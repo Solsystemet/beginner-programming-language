@@ -1,0 +1,4 @@
+number x = 0.0
+number y = 0.0
+number z = x + y
+print(z)

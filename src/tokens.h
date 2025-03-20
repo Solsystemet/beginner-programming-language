@@ -1,0 +1,9 @@
+#define NEW_LINE 1
+#define DECIMAL 2
+#define NUMBER 3
+#define IDENTIFIER 4
+#define PRINT 5
+#define OPEN_PARANTHESIS 6
+#define CLOSED_PARANTHESIS 7
+#define EQUAL 8
+#define PLUS 9
