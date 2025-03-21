@@ -7,3 +7,14 @@
 #define CLOSED_PARANTHESIS 7
 #define EQUAL 8
 #define PLUS 9
+#define MINUS 10
+#define MULTIPLY 11
+#define DIVIDE 12
+#define MODULO 13
+#define AND 14
+#define OR 15
+#define NOT 16
+#define FUNCTION 17
+#define ARGUMENTSPLIT 18
+#define TRUE 19
+#define FALSE 20
