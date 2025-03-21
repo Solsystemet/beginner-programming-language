@@ -18,3 +18,13 @@
 #define ARGUMENTSPLIT 18
 #define TRUE 19
 #define FALSE 20
+#define FOR 21
+#define WHILE 22
+#define COLON 23
+#define IF 24
+#define ELSE 25
+#define RETURN 27
+#define OPEN_SQUAREBRACKET 28
+#define CLOSED_SQUAREBRACKET 29
+#define DOT 30
+#define IS 31

@@ -111,6 +111,46 @@ int main(int argc, char* argv[])
             t.type = FALSE;
             result.push_back(t);
             break;
+        case FOR:
+            t.type = FOR;
+            result.push_back(t);
+            break;
+        case WHILE:
+            t.type = WHILE;
+            result.push_back(t);
+            break;
+        case COLON:
+            t.type = COLON;
+            result.push_back(t);
+            break;
+        case IF:
+            t.type = IF;
+            result.push_back(t);
+            break;
+        case ELSE:  
+            t.type = ELSE;
+            result.push_back(t);
+            break;
+        case RETURN:
+            t.type = RETURN;
+            result.push_back(t);
+            break;
+        case OPEN_SQUAREBRACKET:
+            t.type = OPEN_SQUAREBRACKET;
+            result.push_back(t);
+            break;
+        case CLOSED_SQUAREBRACKET:
+            t.type = CLOSED_SQUAREBRACKET;
+            result.push_back(t);
+            break;
+        case DOT:
+            t.type = DOT;
+            result.push_back(t);
+            break;
+        case IS:
+            t.type = IS;
+            result.push_back(t);
+            break;    
         case IDENTIFIER:
             t.type = IDENTIFIER;
             t.value = yytext;
