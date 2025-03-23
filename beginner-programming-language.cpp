@@ -31,12 +31,19 @@ int main(int argc, char* argv[])
     while ((ntoken = yylex())) {
         Token t;
         switch (ntoken)
-        {
+    {
         case NEW_LINE:
             t.type = NEW_LINE;
             result.push_back(t);
             break;
-        
+        case TAB_INDENT:
+            t.type = TAB_INDENT;
+            result.push_back(t);
+            break;
+        case TAB_DEDENT:
+            t.type = TAB_DEDENT;
+            result.push_back(t);
+            break;
         case DECIMAL:
             t.type = DECIMAL;
             t.value = yytext;
@@ -44,7 +51,6 @@ int main(int argc, char* argv[])
             break;
         case NUMBER:
             t.type = NUMBER;
-            t.value = yytext;
             result.push_back(t);
             break;
         case PRINT:
@@ -59,6 +65,14 @@ int main(int argc, char* argv[])
             t.type = CLOSED_PARANTHESIS;
             result.push_back(t);
             break;
+        case OPEN_SQUAREBRACKET:
+            t.type = OPEN_SQUAREBRACKET;
+            result.push_back(t);
+            break;
+        case CLOSED_SQUAREBRACKET:
+            t.type = CLOSED_SQUAREBRACKET;
+            result.push_back(t);
+            break;
         case EQUAL:
             t.type = EQUAL;
             result.push_back(t);
@@ -71,14 +85,14 @@ int main(int argc, char* argv[])
             t.type = MINUS;
             result.push_back(t);
             break;
-        case MULTIPLY:  
+        case MULTIPLY:
             t.type = MULTIPLY;
             result.push_back(t);
             break;
         case DIVIDE:
             t.type = DIVIDE;
             result.push_back(t);
-            break;      
+            break;
         case MODULO:
             t.type = MODULO;
             result.push_back(t);
@@ -87,7 +101,7 @@ int main(int argc, char* argv[])
             t.type = AND;
             result.push_back(t);
             break;
-        case OR:   
+        case OR:
             t.type = OR;
             result.push_back(t);
             break;
@@ -99,16 +113,13 @@ int main(int argc, char* argv[])
             t.type = FUNCTION;
             result.push_back(t);
             break;
-        case ARGUMENTSPLIT:
-            t.type = ARGUMENTSPLIT;
+        case COMMA:
+            t.type = COMMA;
             result.push_back(t);
             break;
-        case TRUE:  
-            t.type = TRUE;
-            result.push_back(t);
-            break;
-        case FALSE:
-            t.type = FALSE;
+        case BOOLVAL:
+            t.type = BOOLVAL;
+            t.value = yytext;
             result.push_back(t);
             break;
         case FOR:
@@ -127,20 +138,12 @@ int main(int argc, char* argv[])
             t.type = IF;
             result.push_back(t);
             break;
-        case ELSE:  
+        case ELSE:
             t.type = ELSE;
             result.push_back(t);
             break;
         case RETURN:
             t.type = RETURN;
-            result.push_back(t);
-            break;
-        case OPEN_SQUAREBRACKET:
-            t.type = OPEN_SQUAREBRACKET;
-            result.push_back(t);
-            break;
-        case CLOSED_SQUAREBRACKET:
-            t.type = CLOSED_SQUAREBRACKET;
             result.push_back(t);
             break;
         case DOT:
@@ -150,15 +153,14 @@ int main(int argc, char* argv[])
         case IS:
             t.type = IS;
             result.push_back(t);
-            break;    
+            break;
         case IDENTIFIER:
             t.type = IDENTIFIER;
             t.value = yytext;
             result.push_back(t);
             break;
-        
         default:
-            //error
+            // error or unrecognized token
             break;
         }
 

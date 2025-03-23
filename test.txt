@@ -2,4 +2,5 @@ function(10)
 print(10.2 and 3.1)
 or
 true not false 
-for while . : return [] IS
+for while . : return [] is
+    ,
