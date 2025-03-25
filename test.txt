@@ -1,4 +1,6 @@
-number x = 0.0
-number y = 0.0
-number z = x + y
-print(z)
+function(10)
+print(10.2 and 3.1)
+or
+true not false 
+for while . : return [] is
+    ,
