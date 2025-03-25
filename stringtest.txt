@@ -1,0 +1,1 @@
+string yaes = "laskdhaslkjdh lakjshdlksajhd alksjhas \tasdasd"

@@ -1,17 +1,8 @@
 #include <iostream>
-#include "./src/lex.yy.c"
-#include "./src/tokens.h"
 #include <string.h>
 #include <vector>
+#include "src/lexer.h"
 
-extern int yylex();
-extern FILE* yyin;
-extern char* yytext;
-
-struct Token{
-    int type;
-    std::string value;
-};
 
 int main(int argc, char* argv[])
 {
@@ -20,157 +11,15 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    yyin = fopen(argv[1], "r");
-    if (!yyin) {
+    FILE* input = fopen(argv[1], "r");
+    if (!input) {
         std::cerr << "Error: Could not open file " << argv[1] << std::endl;
         return 1;
     }
-
-    int ntoken;
-    std::vector<Token> result;
-    while ((ntoken = yylex())) {
-        Token t;
-        switch (ntoken)
-    {
-        case NEW_LINE:
-            t.type = NEW_LINE;
-            result.push_back(t);
-            break;
-        case TAB_INDENT:
-            t.type = TAB_INDENT;
-            result.push_back(t);
-            break;
-        case TAB_DEDENT:
-            t.type = TAB_DEDENT;
-            result.push_back(t);
-            break;
-        case DECIMAL:
-            t.type = DECIMAL;
-            t.value = yytext;
-            result.push_back(t);
-            break;
-        case NUMBER:
-            t.type = NUMBER;
-            result.push_back(t);
-            break;
-        case PRINT:
-            t.type = PRINT;
-            result.push_back(t);
-            break;
-        case OPEN_PARANTHESIS:
-            t.type = OPEN_PARANTHESIS;
-            result.push_back(t);
-            break;
-        case CLOSED_PARANTHESIS:
-            t.type = CLOSED_PARANTHESIS;
-            result.push_back(t);
-            break;
-        case OPEN_SQUAREBRACKET:
-            t.type = OPEN_SQUAREBRACKET;
-            result.push_back(t);
-            break;
-        case CLOSED_SQUAREBRACKET:
-            t.type = CLOSED_SQUAREBRACKET;
-            result.push_back(t);
-            break;
-        case EQUAL:
-            t.type = EQUAL;
-            result.push_back(t);
-            break;
-        case PLUS:
-            t.type = PLUS;
-            result.push_back(t);
-            break;
-        case MINUS:
-            t.type = MINUS;
-            result.push_back(t);
-            break;
-        case MULTIPLY:
-            t.type = MULTIPLY;
-            result.push_back(t);
-            break;
-        case DIVIDE:
-            t.type = DIVIDE;
-            result.push_back(t);
-            break;
-        case MODULO:
-            t.type = MODULO;
-            result.push_back(t);
-            break;
-        case AND:
-            t.type = AND;
-            result.push_back(t);
-            break;
-        case OR:
-            t.type = OR;
-            result.push_back(t);
-            break;
-        case NOT:
-            t.type = NOT;
-            result.push_back(t);
-            break;
-        case FUNCTION:
-            t.type = FUNCTION;
-            result.push_back(t);
-            break;
-        case COMMA:
-            t.type = COMMA;
-            result.push_back(t);
-            break;
-        case BOOLVAL:
-            t.type = BOOLVAL;
-            t.value = yytext;
-            result.push_back(t);
-            break;
-        case FOR:
-            t.type = FOR;
-            result.push_back(t);
-            break;
-        case WHILE:
-            t.type = WHILE;
-            result.push_back(t);
-            break;
-        case COLON:
-            t.type = COLON;
-            result.push_back(t);
-            break;
-        case IF:
-            t.type = IF;
-            result.push_back(t);
-            break;
-        case ELSE:
-            t.type = ELSE;
-            result.push_back(t);
-            break;
-        case RETURN:
-            t.type = RETURN;
-            result.push_back(t);
-            break;
-        case DOT:
-            t.type = DOT;
-            result.push_back(t);
-            break;
-        case IS:
-            t.type = IS;
-            result.push_back(t);
-            break;
-        case IDENTIFIER:
-            t.type = IDENTIFIER;
-            t.value = yytext;
-            result.push_back(t);
-            break;
-        default:
-            // error or unrecognized token
-            break;
-        }
-
-    }
-
-    for(Token t : result){
-        std::cout << t.type << std::endl;
-        std::cout << t.value << std::endl;
-    }
+    Lexer lexer = Lexer(input);
+    std::vector<Token> result = lexer.Tokenize(); 
 
     fclose(yyin);
     return 0;
 }
+
