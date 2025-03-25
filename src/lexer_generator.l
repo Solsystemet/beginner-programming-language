@@ -8,8 +8,8 @@
 \n                              { return NEW_LINE; }
 \t+                             { return TAB_INDENT; }
 
-[0-9]+\.[0-9]+                  { return DECIMAL; }
-[0-9]+                          { return NUMBER; }
+-?([1-9][0-9]*|0)\(.[0-9]+)?      { return DECIMAL; }
+
 
 "("                             { return OPEN_PARANTHESIS; }
 ")"                             { return CLOSED_PARANTHESIS; }
