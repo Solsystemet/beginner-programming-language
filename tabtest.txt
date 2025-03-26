@@ -1,0 +1,15 @@
+number[] function BubbleSort():
+	number n = 6
+	boolean swapped = false
+	number[] arr = [6,4,3,2,1,5]
+	for number i = 0, i < n - 1, 1:
+		swapped = false
+		for number j = 0, j < n - 1, 1:
+			if arr[j] > arr[j+1]
+				number temp = arr[j]
+				arr[j] = arr[j+1]
+				arr[j+1] = temp
+				swapped = true
+		if NOT swapped:
+			break
+	return arr

@@ -1,14 +1,14 @@
 %{
-   #include "tokens.h"
+   #include "tokenvalues.h"
    #include <string.h>
 %}
 
 %%
 
 \n                              { return NEW_LINE; }
-\t+                             { return TAB_INDENT; }
+\t                             { return TAB_INDENT; }
 
--?([1-9][0-9]*|0)\(.[0-9]+)?      { return DECIMAL; }
+(-)?([0-9]+(\.[0-9]+)?)      { return DECIMAL; }
 
 
 "("                             { return OPEN_PARANTHESIS; }
@@ -23,11 +23,16 @@
 ","                             { return COMMA; }
 "."                             { return DOT; }
 ":"                             { return COLON; }
-
+"<"                             { return LESS; }
+">"                             { return GREATER; }
 [ ]+                            ; // Ignore spaces
+
+\"([^\"\\]|\\.)*\"              { return STRING_VAL; }
 
 [a-zA-Z_][a-zA-Z_0-9]* {
     if (strcmp(yytext, "number") == 0) return NUMBER;
+    if (strcmp(yytext, "string") == 0) return STRING;
+    if (strcmp(yytext, "boolean") == 0) return BOOLEAN;
     if (strcmp(yytext, "print") == 0) return PRINT;
     if (strcmp(yytext, "function") == 0) return FUNCTION;
     if (strcmp(yytext, "and") == 0) return AND;
