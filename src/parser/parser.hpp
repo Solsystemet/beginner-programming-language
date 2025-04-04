@@ -1,6 +1,9 @@
 #pragma once
-#include <variant>
 #include "../lexer/tokenvalues.h"
+#include "../lexer/tokens.h"
+#include <vector>
+#include "../arena.hpp"
+#include "../mpark/variant.hpp"
 
 namespace node {
 
@@ -13,6 +16,7 @@ namespace node {
 	{
 		Token identifier;
 	};
+
 	// Forward cast probably bad
 	struct NodeExpr;
 	struct  NodeExprAdd {
@@ -22,22 +26,24 @@ namespace node {
 
 	struct NodeArithmeticExpr
 	{
-		std::variant<NodeExprAdd*> var;
+		mpark::variant<NodeExprAdd*> var;
 	};
 
-	struct NodeTerm {
-		std::variant<NodeTermIntLit*, NodeTermIdentifier*> var;
+    //Identifier or Decimal can be passed to this struct
+	struct NodeTerm{
+		mpark::variant<NodeTermIntLit*, NodeTermIdentifier*> var;
 	};
-
+    
+    //NodeTerm or note artihmetic expression can be passed to this struct
 	struct NodeExpr
 	{
-		std::variant<NodeTerm*, NodeArithmeticExpr*> var;
+        mpark::variant<NodeArithmeticExpr*, NodeTerm*> var;
 	};
 
 	struct NodeStmtNumber
 	{
 		Token ident;
-		NodeExpr* expr{};
+		NodeExpr* expr = nullptr;
 	};
 
 	struct NodeStmtPrint {
@@ -46,7 +52,7 @@ namespace node {
 
 	struct NodeStmt
 	{
-		std::variant<NodeStmtNumber*, NodeStmtPrint*> var;
+		mpark::variant<NodeStmtNumber*, NodeStmtPrint*> var;
 	};
 
 	struct NodeProg
@@ -65,10 +71,10 @@ public:
         // <term> ::= <DECIMAL> | <IDENTIFIER>
 
         // Decimal
-        Token* t = try_consume(TokenType::DECIMAL);
+        Token* t = try_consume(DECIMAL);
         if (t != nullptr) {
             auto* term_int_lit = m_allocator.alloc<node::NodeTermIntLit>();
-            term_int_lit->int_lit = t->value;
+            term_int_lit->int_lit = *t;
 
             auto term = m_allocator.alloc<node::NodeTerm>();
             term->var = term_int_lit;
@@ -76,10 +82,10 @@ public:
         }
 
         // Identifier
-        t = try_consume(TokenType::IDENTIFIER);
+        t = try_consume(IDENTIFIER);
         if (t != nullptr) {
             auto* term_identifier = m_allocator.alloc<node::NodeTermIdentifier>();
-            term_identifier->identifier = t->value;
+            term_identifier->identifier = *t;
 
             auto term = m_allocator.alloc<node::NodeTerm>();
             term->var = term_identifier;
@@ -107,7 +113,7 @@ public:
 
 			//Check for expr -> Aritmetic expr
             if (current_token != nullptr) {
-                prec = op_prec(current_token->type);
+                prec = *op_prec(current_token->type);
 
                 if (prec < min_prec) {
                     break;
@@ -118,7 +124,7 @@ public:
             }
 
 			Token op = consume(); //Get the operator
-			int  next_min_prec = prec.value() + 1;
+			int  next_min_prec = prec+ 1;
 
 			//Veryfiying Aritmetic expr
 			node::NodeExpr* expr_rhs = parse_expr(next_min_prec);
@@ -131,6 +137,83 @@ public:
 
         return expr;
     }
+
+    node::NodeProg parse_prog() {
+		node::NodeProg prog;
+		// Rule 2
+		// Stmts -> <Stmt><Stmts>
+		while (peek())
+		{	
+			//Parse a statement
+			if (node::NodeStmt* stmt = parse_stmt()) {
+				//Push statement to program
+				prog.stmts.push_back(stmt);
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+			}
+		}
+		return prog;
+	}
+
+    node::NodeStmt* parse_stmt() {
+		//Rule 3.1
+		// Stmt -> number identifier = <Expr>
+		if (peek() && peek()->type == NUMBER &&
+			peek(1) && peek(1)->type == IDENTIFIER &&
+			peek(2) && peek(2)->type == EQUAL) 
+		{
+			// consume terminal symbols
+			consume();
+			auto* node_stmt_number = m_allocator.alloc<node::NodeStmtNumber>();
+			node:node_stmt_number->ident = consume();
+			consume();
+			
+			// Parse expression rule
+			if (node::NodeExpr* expr = parse_expr()) {
+				node_stmt_number->expr = expr;
+			}
+			else {
+				std::cerr << "Invalid expression" << std::endl;
+				exit(EXIT_FAILURE);
+					
+			}
+			// consume terminal symbols
+			try_consume(NEW_LINE, "Expected 'new_line'");
+			auto* node_stmt = m_allocator.alloc<node::NodeStmt>();
+			node_stmt->var = node_stmt_number;
+			return node_stmt;
+		}
+		//Rule 3.2
+		// Stmt -> print(<Expr>)
+		if (peek() && peek()->type == PRINT &&
+			peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
+			// consume terminal symbols
+			consume();
+			consume();
+			auto* node_stmt_print = m_allocator.alloc<node::NodeStmtPrint>();
+
+			// Parse expression rule
+			if (const auto node_epxr = parse_expr()) {
+				node_stmt_print->expr = node_epxr;
+			}
+			else {
+				std::cerr << "Invalid expression" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// consume terminal symbols
+			try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
+			try_consume(EOF, "Expected 'end_of_file'");
+
+			auto* node_stmt = m_allocator.alloc<node::NodeStmt>();
+			node_stmt->var = node_stmt_print;
+			return node_stmt;
+		}
+
+		return {};
+
+	}
 
 private:
 
@@ -146,7 +229,7 @@ private:
 	}
 
 
-    Token* peek(int offset = 0) const {
+    Token* peek(int offset = 0){
         if (m_currentIndex + offset >= m_tokens.size())
             return nullptr;
         return &m_tokens.at(m_currentIndex + offset);
@@ -156,7 +239,7 @@ private:
         return m_tokens.at(m_currentIndex++);
     }
 
-    Token* try_consume(TokenType type, const std::string& err_msg = "") {
+    Token* try_consume(int type, const std::string& err_msg = "") {
         if (peek() != nullptr && peek()->type == type) {
             return &consume();
         }
@@ -169,5 +252,5 @@ private:
 
     std::vector<Token> m_tokens;
     size_t m_currentIndex;
-    Allocator m_allocator;
+    ArenaAllocater m_allocator;
 };
