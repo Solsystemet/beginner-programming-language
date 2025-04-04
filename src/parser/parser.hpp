@@ -63,9 +63,9 @@ namespace node {
 class Parser
 {
 public:
-    Parser(std::vector<Token>& tokens)
-        : m_tokens(std::move(tokens)), m_allocator(1024 * 1024 * 8), m_currentIndex(0) {
-    }
+	Parser(std::vector<Token> tokens)
+		: m_tokens(std::move(tokens)), m_currentIndex(0), m_allocator(1024 * 1024 * 8) {
+	}
 
     node::NodeTerm* parse_term() {
         // <term> ::= <DECIMAL> | <IDENTIFIER>
@@ -109,13 +109,12 @@ public:
         while (true) {
 
             Token* current_token = peek();
-            int prec;
+            int prec = -1;
 
 			//Check for expr -> Aritmetic expr
             if (current_token != nullptr) {
-                prec = *op_prec(current_token->type);
-
-                if (prec < min_prec) {
+				prec = op_prec(current_token->type);
+                if (prec == -1 || prec < min_prec) {
                     break;
                 }
             }
@@ -132,29 +131,30 @@ public:
 				std::cerr << "Expected expression after operator" << std::endl;
 				exit(EXIT_FAILURE);
             }
+			auto arithmetic_expr = m_allocator.alloc<node::NodeArithmeticExpr>();
+			auto expr_lhs = m_allocator.alloc<node::NodeExpr>();
 
-        }
+			//Switch case for rule 5
+			// <Arithmetic Expr> -> <AddExpr>
+			switch (op.type)
+			{
+				// Rule 6.1
+				//<AddExpr> -> <Expr>+<Expr>
+				case PLUS:
+				auto add = m_allocator.alloc<node::NodeExprAdd>();
+				expr_lhs->var = expr->var;
+				add->lhs = expr_lhs;
+				add->rhs = expr_rhs;
+				arithmetic_expr->var = add;
+			break;
+			}
+			expr->var = arithmetic_expr;
+		}
 
         return expr;
     }
 
-    node::NodeProg parse_prog() {
-		node::NodeProg prog;
-		// Rule 2
-		// Stmts -> <Stmt><Stmts>
-		while (peek())
-		{	
-			//Parse a statement
-			if (node::NodeStmt* stmt = parse_stmt()) {
-				//Push statement to program
-				prog.stmts.push_back(stmt);
-			}
-			else {
-				std::cerr << "Invalid statement" << std::endl;
-			}
-		}
-		return prog;
-	}
+    
 
     node::NodeStmt* parse_stmt() {
 		//Rule 3.1
@@ -211,20 +211,38 @@ public:
 			return node_stmt;
 		}
 
-		return {};
+		return nullptr;
 
+	}
+
+	node::NodeProg parse_prog() {
+		node::NodeProg prog;
+		// Rule 2
+		// Stmts -> <Stmt><Stmts>
+		while (peek())
+		{	
+			//Parse a statement
+			if (node::NodeStmt* stmt = parse_stmt()) {
+				//Push statement to program
+				prog.stmts.push_back(stmt);
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+			}
+		}
+		return prog;
 	}
 
 private:
 
     //Arithmetic Prec
-	int* op_prec(int t) {
+	int op_prec(int t) {
         switch (t)
         {
         case PLUS:
             return 0;
         default:
-            return nullptr;
+            return -1;
         };
 	}
 
@@ -235,7 +253,7 @@ private:
         return &m_tokens.at(m_currentIndex + offset);
     }
 
-    Token consume() {
+    Token& consume() {
         return m_tokens.at(m_currentIndex++);
     }
 

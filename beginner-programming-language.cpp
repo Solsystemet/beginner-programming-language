@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string.h>
-#include <vector>
-#include "src/lexer.h"
+#include "src/lexer/lexer.h"
 #include "src/parser/parser.hpp"
 
 int main(int argc, char* argv[])
@@ -18,18 +17,13 @@ int main(int argc, char* argv[])
         return 1;
     }
     */
-    FILE* input = fopen("parsetest.txt", "w");
-    fprintf(input,  "number z = 2 + 2\nprint(z)");
-    fclose(input);
+    FILE* input = fopen("test.txt", "r");
 
     Lexer lexer = Lexer(input);
     std::vector<Token> result = lexer.Tokenize(); 
 
-    Parser parser = Parser(result);
+    Parser parser = Parser(std::move(result));
     node::NodeProg ast = parser.parse_prog();
-    
-
-
     fclose(yyin);
     return 0;
 }

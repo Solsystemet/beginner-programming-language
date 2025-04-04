@@ -1,3 +1,4 @@
+#pragma once
 #include <stdio.h>
 #include <iostream>
 #include "./lex.yy.c"
@@ -194,6 +195,8 @@ std::vector<Token> Lexer::Tokenize()
 
     FixTabIndent(&result);
 
+    Token t = {EOF};
+    result.push_back(t);
 
     return result;
 }
@@ -214,7 +217,7 @@ void Lexer::FixTabIndent(std::vector<Token>* tokens){
 
         // if we find a new line token we read ahead an check amount of tabs
         if(tokens->at(i).type == NEW_LINE){
-            int count = 1;
+            size_t count = 1;
             while (tokens->at(i+count).type == TAB_INDENT)
             {
                 currentTabIndent++;
