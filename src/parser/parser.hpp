@@ -24,6 +24,16 @@ namespace node {
 		NodeExpr* rhs;
 	};
 
+	struct NodeStringExpr;
+	struct NodeStringExprConcat {
+		NodeStringExpr* lhs;
+		NodeStringExpr* rhs;
+	};
+
+	struct NodeStringExpr{
+		mpark::variant<Token, NodeStringExprConcat*> var;
+	};
+
 	struct NodeArithmeticExpr
 	{
 		mpark::variant<NodeExprAdd*> var;
@@ -40,6 +50,22 @@ namespace node {
         mpark::variant<NodeArithmeticExpr*, NodeTerm*> var;
 	};
 
+	struct NodeSimpleDecl{
+		Token type;
+		Token identifier;
+		NodeExpr* expr;
+
+	};
+
+	struct NodeObjectDecl {
+		Token identifier;
+		std::vector<NodeSimpleDecl*> properties;
+	};
+
+	struct NodeDecl {
+		mpark::variant<NodeSimpleDecl*, NodeObjectDecl*> var;
+	};
+
 	struct NodeStmtNumber
 	{
 		Token ident;
@@ -47,7 +73,7 @@ namespace node {
 	};
 
 	struct NodeStmtPrint {
-		NodeExpr* expr;
+		mpark::variant<NodeExpr*, NodeStringExpr*> var;
 	};
 
 	struct NodeStmt
@@ -73,7 +99,7 @@ public:
         // Decimal
         Token* t = try_consume(DECIMAL);
         if (t != nullptr) {
-            auto* term_int_lit = m_allocator.alloc<node::NodeTermIntLit>();
+			auto* term_int_lit = m_allocator.alloc<node::NodeTermIntLit>();
             term_int_lit->int_lit = *t;
 
             auto term = m_allocator.alloc<node::NodeTerm>();
@@ -91,7 +117,6 @@ public:
             term->var = term_identifier;
             return term;
         }
-
         return nullptr;
     }
 
@@ -154,19 +179,63 @@ public:
         return expr;
     }
 
-    
+    node::NodeStringExpr* parse_string_expr(int min_prec = 0) {
+		Token* t = try_consume(STRING_VAL);
+		if (t == nullptr){
+			return nullptr;
+		}
+		
+	
+		auto* string_expr = m_allocator.alloc<node::NodeStringExpr>();
+		string_expr->var = *t;
+	
+		while (true) {
+			Token* current_token = peek();
+			int prec = -1;
+	
+			if (current_token != nullptr) {
+				prec = op_prec(current_token->type);
+				if (prec == -1 || prec < min_prec){
+					break;
+				} 
+			} else{
+				break;
+			} 
+	
+			Token op = consume();
+			int next_min_prec = prec + 1;
+	
+			node::NodeStringExpr* rhs = parse_string_expr(next_min_prec);
+			if (rhs == nullptr) {
+				std::cerr << "Expected string expression after '+'" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+	
+			auto* concat = m_allocator.alloc<node::NodeStringExprConcat>();
+			concat->lhs = string_expr;
+			concat->rhs = rhs;
+	
+			string_expr = m_allocator.alloc<node::NodeStringExpr>();
+			string_expr->var = concat;
+		}
+	
+		return string_expr;
+	}
+	
 
     node::NodeStmt* parse_stmt() {
 		//Rule 3.1
 		// Stmt -> number identifier = <Expr>
-		if (peek() && peek()->type == NUMBER &&
+		if (m_tokens.size() - m_currentIndex > 3 && peek()->type == NUMBER &&
 			peek(1) && peek(1)->type == IDENTIFIER &&
-			peek(2) && peek(2)->type == EQUAL) 
+			peek(2) && peek(2)->type == EQUAL && 
+			peek(3)) 
 		{
 			// consume terminal symbols
-			consume();
+			
 			auto* node_stmt_number = m_allocator.alloc<node::NodeStmtNumber>();
 			node:node_stmt_number->ident = consume();
+			consume();
 			consume();
 			
 			// Parse expression rule
@@ -190,13 +259,15 @@ public:
 			peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
 			// consume terminal symbols
 			consume();
-			consume();
 			auto* node_stmt_print = m_allocator.alloc<node::NodeStmtPrint>();
-
-			// Parse expression rule
-			if (const auto node_epxr = parse_expr()) {
-				node_stmt_print->expr = node_epxr;
+			if(const auto string_expr = parse_string_expr()){
+				node_stmt_print->var = string_expr;
 			}
+			// Parse expression rule
+			else if (const auto node_epxr = parse_expr()) {
+				node_stmt_print->var = node_epxr;
+			}
+			
 			else {
 				std::cerr << "Invalid expression" << std::endl;
 				exit(EXIT_FAILURE);
@@ -204,7 +275,8 @@ public:
 
 			// consume terminal symbols
 			try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
-			try_consume(EOF, "Expected 'end_of_file'");
+			try_consume(NEW_LINE, "Expected newline after print statement");
+
 
 			auto* node_stmt = m_allocator.alloc<node::NodeStmt>();
 			node_stmt->var = node_stmt_print;
@@ -215,17 +287,93 @@ public:
 
 	}
 
+	node::NodeDecl* parse_declaration() {
+		// Simple Declaration: <type> <identifier> = <expr>
+		if (m_tokens.size() - m_currentIndex > 3 &&
+				(peek()->type == NUMBER || peek()->type == STRING || peek()->type == BOOLEAN) &&
+				peek(1) && peek(1)->type == IDENTIFIER &&
+				peek(2) && peek(2)->type == EQUAL &&
+				(
+					peek(3)->type == STRING_VAL ||
+					peek(3)->type == DECIMAL ||
+					peek(3)->type == BOOLVAL ||
+					peek(3)->type == IDENTIFIER
+				)
+			)
+
+ 			{
+			
+			auto* simple_decl = m_allocator.alloc<node::NodeSimpleDecl>();
+			simple_decl->type = consume();      // <type>
+			simple_decl->identifier = consume();// <identifier>   
+			consume();                    
+	
+			auto* expr = parse_expr();
+			if (expr == nullptr) {
+				std::cerr << "Invalid expression in simple declaration after '=' at token index "
+						<< m_currentIndex << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			simple_decl->expr = expr;
+
+	
+			try_consume(NEW_LINE, "Expected newline after declaration");
+	
+			auto* decl = m_allocator.alloc<node::NodeDecl>();
+			decl->var = simple_decl;
+			return decl;
+		}
+		
+		// Object Declaration: <identifier> : <newline> <indent> <simple_decl> <dedent>
+		if (peek(0) && peek(0)->type == IDENTIFIER &&
+			peek(1) && peek(1)->type == COLON &&
+			peek(2) && peek(2)->type == NEW_LINE &&
+			peek(3) && peek(3)->type == TAB_INDENT) {
+	
+			auto* object_decl = m_allocator.alloc<node::NodeObjectDecl>();
+			object_decl->identifier = consume(); // identifier
+			consume(); // COLON
+			consume(); // NEW_LINE
+			consume(); // INDENT
+	
+			// one or more simple declarations inside
+			while (peek() && 
+				  (peek()->type == NUMBER || peek()->type == STRING || peek()->type == BOOLEAN)) {
+					auto* properties_decl = parse_declaration();
+					if (auto simple = mpark::get_if<node::NodeSimpleDecl*>(&properties_decl->var)) {
+					object_decl->properties.push_back(*simple);
+					} else {
+					std::cerr << "Only simple declarations allowed inside object" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+	
+			try_consume(TAB_DEDENT, "Expected dedent after object declaration");
+	
+			auto* decl = m_allocator.alloc<node::NodeDecl>();
+			decl->var = object_decl;
+			return decl;
+		}
+	
+		return nullptr;
+	}
+
 	node::NodeProg parse_prog() {
 		node::NodeProg prog;
 		// Rule 2
 		// Stmts -> <Stmt><Stmts>
 		while (peek())
 		{	
+			if(node::NodeDecl* decl = parse_declaration()){
+				std::cout<< "Parsed declaration\n";
+				continue;
+			}
 			//Parse a statement
-			if (node::NodeStmt* stmt = parse_stmt()) {
+			else if (node::NodeStmt* stmt = parse_stmt()) {
 				//Push statement to program
 				prog.stmts.push_back(stmt);
 			}
+			
 			else {
 				std::cerr << "Invalid statement" << std::endl;
 			}
