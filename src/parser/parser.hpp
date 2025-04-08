@@ -46,7 +46,7 @@ namespace node {
     //NodeTerm or note artihmetic expression can be passed to this struct
 	struct NodeExpr
 	{
-        mpark::variant<NodeArithmeticExpr*, NodeTerm*> var;
+        mpark::variant<NodeArithmeticExpr*,NodeStringExpr* , NodeTerm*> var;
 	};
 
 	struct NodeSimpleDecl {
@@ -179,7 +179,7 @@ public:
         return expr;
     }
 
-    node::NodeStringExpr* parse_string_expr(int min_prec = 0) {
+    node::NodeExpr* parse_string_expr(int min_prec = 0) {
 		Token* t = try_consume(STRING_VAL);
 		if (t == nullptr){
 			return nullptr;
@@ -205,7 +205,7 @@ public:
 			Token op = consume();
 			int next_min_prec = prec + 1;
 	
-			node::NodeStringExpr* rhs = parse_string_expr(next_min_prec);
+			node::NodeExpr* rhs = parse_string_expr(next_min_prec);
 			if (rhs == nullptr) {
 				std::cerr << "Expected string expression after '+'" << std::endl;
 				exit(EXIT_FAILURE);
@@ -213,13 +213,14 @@ public:
 	
 			auto* concat = new node::NodeStringExprConcat();
 			concat->lhs = string_expr;
-			concat->rhs = rhs;
+			concat->rhs = mpark::get<node::NodeStringExpr*>(rhs->var);
 	
 			string_expr = new node::NodeStringExpr();
 			string_expr->var = concat;
 		}
-	
-		return string_expr;
+		auto* expr = new node::NodeExpr();
+		expr->var = string_expr;
+		return expr;
 	}
 	
 
@@ -290,8 +291,8 @@ public:
 
 	node::NodeDecl* parse_declaration() {
 		// Simple Declaration: <type> <identifier> = <expr>
-		if (m_tokens.size() - m_currentIndex > 3 &&
-				(peek()->type == NUMBER || peek()->type == STRING || peek()->type == BOOLEAN) &&
+		if (
+				peek()->type == NUMBER &&
 				peek(1) && peek(1)->type == IDENTIFIER &&
 				peek(2) && peek(2)->type == EQUAL
 			)
@@ -313,6 +314,34 @@ public:
 	
 			try_consume(NEW_LINE, "Expected newline after declaration");
 	
+			auto* decl = new node::NodeDecl();
+			decl->var = simple_decl;
+			return decl;
+		}
+
+		if (
+			peek() && peek()->type == STRING &&
+			peek(1) && peek(1)->type == IDENTIFIER &&
+			peek(2) && peek(2)->type == EQUAL
+			)
+
+		{
+			auto* simple_decl = new node::NodeSimpleDecl();
+			simple_decl->type = consume();      // <type>
+			simple_decl->identifier = consume();// <identifier>
+			consume();
+
+			auto* expr = parse_string_expr();
+			if (expr == nullptr) {
+				std::cerr << "Invalid expression in simple declaration after '=' at token index "
+					<< m_currentIndex << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			simple_decl->expr = expr;
+
+
+			try_consume(NEW_LINE, "Expected newline after declaration");
+
 			auto* decl = new node::NodeDecl();
 			decl->var = simple_decl;
 			return decl;
