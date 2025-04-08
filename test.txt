@@ -1,2 +1,2 @@
-string z = "Hello, " + "World!"
+number z = 2 + 2 * (2 + 2) / (5 * 3)
 print(z)

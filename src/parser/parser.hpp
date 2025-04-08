@@ -5,22 +5,40 @@
 #include "../mpark/variant.hpp"
 
 namespace node {
+	struct NodeTerm;
+	struct NodeArithmeticExpr;
 
-	struct NodeTermIntLit
+	struct NodeFactorDecimal
 	{
-		Token int_lit;
+		Token decimal;
 	};
 
-	struct NodeTermIdentifier
+	struct NodeFactorIdentifier
 	{
 		Token identifier;
 	};
 
-	// Forward cast probably bad
-	struct NodeExpr;
+	struct NodeFactor
+	{
+		//TODO: Add function call production later
+		mpark::variant<NodeFactorDecimal*, NodeFactorIdentifier*, NodeArithmeticExpr*> var;
+	};
+
 	struct  NodeExprAdd {
-		NodeExpr* lhs;
-		NodeExpr* rhs;
+		NodeArithmeticExpr* lhs;
+		NodeTerm* rhs;
+	};
+	struct  NodeExprSubtract {
+		NodeArithmeticExpr* lhs;
+		NodeTerm* rhs;
+	};
+	struct  NodeExprMult {
+		NodeTerm* lhs;
+		NodeFactor* rhs;
+	};
+	struct  NodeExprDivide {
+		NodeTerm* lhs;
+		NodeFactor* rhs;
 	};
 
 	struct NodeStringExpr;
@@ -35,25 +53,17 @@ namespace node {
 
 	struct NodeArithmeticExpr
 	{
-		mpark::variant<NodeExprAdd*> var;
+		mpark::variant<NodeTerm*, NodeExprAdd*, NodeExprSubtract*> var;
 	};
 
     //Identifier or Decimal can be passed to this struct
 	struct NodeTerm{
-		mpark::variant<NodeTermIntLit*, NodeTermIdentifier*> var;
-	};
-    
-    //NodeTerm or note artihmetic expression can be passed to this struct
-	struct NodeExpr
-	{
-        mpark::variant<NodeArithmeticExpr*,NodeStringExpr* , NodeTerm*> var;
+		mpark::variant<NodeFactor*, NodeExprMult*, NodeExprDivide*> var;
 	};
 
 	struct NodeSimpleDecl {
-		Token type ={};
 		Token identifier;
-		NodeExpr* expr;
-
+		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> expr;
 	};
 
 	struct NodeObjectDecl {
@@ -65,19 +75,13 @@ namespace node {
 		mpark::variant<NodeSimpleDecl*, NodeObjectDecl*> var;
 	};
 
-	struct NodeStmtNumber
-	{
-		Token ident;
-		NodeExpr* expr = nullptr;
-	};
-
 	struct NodeStmtPrint {
-		mpark::variant<NodeExpr*, NodeStringExpr*> var;
+		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> var;
 	};
 
 	struct NodeStmt
 	{
-		mpark::variant<NodeStmtNumber*, NodeStmtPrint*> var;
+		mpark::variant<NodeDecl*, NodeStmtPrint*> var;
 	};
 
 	struct NodeProg
@@ -93,34 +97,80 @@ public:
 		: m_tokens(std::move(tokens)) {
 	}
 
+	node::NodeFactor* parse_factor() {
+		// Decimal
+		Token* t = try_consume(DECIMAL);
+		if (t != nullptr) {
+			auto* factor_decimal = new node::NodeFactorDecimal();
+			factor_decimal->decimal = *t;
+
+			auto factor = new node::NodeFactor();
+			factor->var = factor_decimal;
+			return factor;
+		}
+
+		// Identifier
+		t = try_consume(IDENTIFIER);
+		if (t != nullptr) {
+			auto* factor_identifier = new node::NodeFactorIdentifier();
+			factor_identifier->identifier = *t;
+
+			auto factor = new node::NodeFactor();
+			factor->var = factor_identifier;
+			return factor;
+		}
+		// (<AExpr>)
+		t = try_consume(OPEN_PARANTHESIS);
+		if (t != nullptr) {
+			auto* arithmetic_expr = parse_arithmetic_expr();
+			try_consume(CLOSED_PARANTHESIS, "Expected ')'");
+			auto factor = new node::NodeFactor();
+			factor->var = arithmetic_expr;
+			return factor;
+		}
+		return nullptr;
+	}
+
     node::NodeTerm* parse_term() {
-        // <term> ::= <DECIMAL> | <IDENTIFIER>
+        // <term> ::= <DECIMAL> | <IDENTIFIER
+		auto* term = new node::NodeTerm();
+		node::NodeFactor* factor = parse_factor();
 
-        // Decimal
-        Token* t = try_consume(DECIMAL);
-        if (t != nullptr) {
-			auto* term_int_lit = new node::NodeTermIntLit();
-            term_int_lit->int_lit = *t;
+		if (factor == nullptr) {
+			return nullptr;
+		}
+		term->var = factor;
 
-            auto term = new node::NodeTerm();
-            term->var = term_int_lit;
-            return term;
-        }
+		if (peek()->type == MULTIPLY) {
+			consume();
+			
+			auto* term_mult = new node::NodeExprMult();
+			term_mult->lhs = term;
+			node::NodeFactor* factor_rhs = parse_factor();
+			if (factor_rhs == nullptr) {
+				std::cerr << "Invalid factor!" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			term_mult->rhs = factor_rhs;
+			term->var = term_mult;
+		}
+		if (peek()->type == DIVIDE) {
+			consume();
 
-        // Identifier
-        t = try_consume(IDENTIFIER);
-        if (t != nullptr) {
-            auto* term_identifier = new node::NodeTermIdentifier();
-            term_identifier->identifier = *t;
-
-            auto term = new node::NodeTerm();
-            term->var = term_identifier;
-            return term;
-        }
-        return nullptr;
+			auto* term_divide = new node::NodeExprDivide();
+			term_divide->lhs = term;
+			node::NodeFactor* factor_rhs = parse_factor();
+			if (factor_rhs == nullptr) {
+				std::cerr << "Invalid factor!" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			term_divide->rhs = factor_rhs;
+			term->var = term_divide;
+		}
+		return term;
     }
 
-    node::NodeExpr* parse_expr(int min_prec = 0) {
+    node::NodeArithmeticExpr* parse_arithmetic_expr() {
         node::NodeTerm* term = parse_term();
 
         // Double check if term is empty
@@ -128,58 +178,47 @@ public:
             return nullptr;
         }
 
-        auto expr = new node::NodeExpr();
+        auto expr = new node::NodeArithmeticExpr();
         expr->var = term;
 
-        while (true) {
+		if (peek()->type == PLUS) {
+			consume();
+			auto expr_lhs = new node::NodeArithmeticExpr();
+			auto add = new node::NodeExprAdd();
+			expr_lhs->var = expr->var;
+			add->lhs = expr_lhs;
 
-            Token* current_token = peek();
-            int prec = -1;
-
-			//Check for expr -> Aritmetic expr
-            if (current_token != nullptr) {
-				prec = op_prec(current_token->type);
-                if (prec == -1 || prec < min_prec) {
-                    break;
-                }
-            }
-            else {
-                break;
-            }
-
-			Token op = consume(); //Get the operator
-			int  next_min_prec = prec+ 1;
-
-			//Veryfiying Aritmetic expr
-			node::NodeExpr* expr_rhs = parse_expr(next_min_prec);
-            if (expr_rhs == nullptr) {
-				std::cerr << "Expected expression after operator" << std::endl;
+			auto* term_rhs = parse_term();
+			if (term_rhs == nullptr) {
+				std::cerr << "Expected term after operator" << std::endl;
 				exit(EXIT_FAILURE);
-            }
-			auto arithmetic_expr = new node::NodeArithmeticExpr();
-			auto expr_lhs = new node::NodeExpr();
-
-			//Switch case for rule 5
-			// <Arithmetic Expr> -> <AddExpr>
-			switch (op.type)
-			{
-				// Rule 6.1
-				//<AddExpr> -> <Expr>+<Expr>
-				case PLUS:
-				auto add = new node::NodeExprAdd();
-				expr_lhs->var = expr->var;
-				add->lhs = expr_lhs;
-				add->rhs = expr_rhs;
-				arithmetic_expr->var = add;
-			break;
 			}
-			expr->var = arithmetic_expr;
+
+			add->rhs = term_rhs;
+			expr->var = add;
+		}
+		
+		if (peek()->type == MINUS) {
+			consume();
+			auto expr_lhs = new node::NodeArithmeticExpr();
+			auto subtract = new node::NodeExprSubtract();
+			expr_lhs->var = expr->var;
+			subtract->lhs = expr_lhs;
+
+			auto* term_rhs = parse_term();
+			if (term_rhs == nullptr) {
+				std::cerr << "Expected term after operator" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			subtract->rhs = term_rhs;
+			expr->var = subtract;
 		}
 
         return expr;
     }
 
-    node::NodeExpr* parse_string_expr(int min_prec = 0) {
+    node::NodeStringExpr* parse_string_expr() {
 		Token* t = try_consume(STRING_VAL);
 		if (t == nullptr){
 			return nullptr;
@@ -188,72 +227,25 @@ public:
 	
 		auto* string_expr = new node::NodeStringExpr();
 		string_expr->var = *t;
-	
-		while (true) {
-			Token* current_token = peek();
-			int prec = -1;
-	
-			if (current_token != nullptr) {
-				prec = op_prec(current_token->type);
-				if (prec == -1 || prec < min_prec){
-					break;
-				} 
-			} else{
-				break;
-			} 
-	
-			Token op = consume();
-			int next_min_prec = prec + 1;
-	
-			node::NodeExpr* rhs = parse_string_expr(next_min_prec);
+
+		if (peek()->type == PLUS) {
+			consume();
+			auto* concat = new node::NodeStringExprConcat();
+			concat->lhs = string_expr;
+
+			node::NodeStringExpr* rhs = parse_string_expr();
 			if (rhs == nullptr) {
 				std::cerr << "Expected string expression after '+'" << std::endl;
 				exit(EXIT_FAILURE);
 			}
-	
-			auto* concat = new node::NodeStringExprConcat();
-			concat->lhs = string_expr;
-			concat->rhs = mpark::get<node::NodeStringExpr*>(rhs->var);
-	
-			string_expr = new node::NodeStringExpr();
+			concat->rhs = rhs;
 			string_expr->var = concat;
 		}
-		auto* expr = new node::NodeExpr();
-		expr->var = string_expr;
-		return expr;
+		return string_expr;
 	}
 	
 
     node::NodeStmt* parse_stmt() {
-		//Rule 3.1
-		// Stmt -> number identifier = <Expr>
-		if (m_tokens.size() - m_currentIndex > 3 && peek()->type == NUMBER &&
-			peek(1) && peek(1)->type == IDENTIFIER &&
-			peek(2) && peek(2)->type == EQUAL && 
-			peek(3)) 
-		{
-			// consume terminal symbols
-			
-			auto* node_stmt_number = new node::NodeStmtNumber();
-			node:node_stmt_number->ident = consume();
-			consume();
-			consume();
-			
-			// Parse expression rule
-			if (node::NodeExpr* expr = parse_expr()) {
-				node_stmt_number->expr = expr;
-			}
-			else {
-				std::cerr << "Invalid expression" << std::endl;
-				exit(EXIT_FAILURE);
-					
-			}
-			// consume terminal symbols
-			try_consume(NEW_LINE, "Expected 'new_line'");
-			auto* node_stmt = new node::NodeStmt();
-			node_stmt->var = node_stmt_number;
-			return node_stmt;
-		}
 		//Rule 3.2
 		// Stmt -> print(<Expr>)
 		if (peek() && peek()->type == PRINT &&
@@ -266,7 +258,7 @@ public:
 				node_stmt_print->var = string_expr;
 			}
 			// Parse expression rule
-			else if (const auto node_epxr = parse_expr()) {
+			else if (const auto node_epxr = parse_arithmetic_expr()) {
 				node_stmt_print->var = node_epxr;
 			}
 			
@@ -299,17 +291,17 @@ public:
 
  			{
 			auto* simple_decl = new node::NodeSimpleDecl();
-			simple_decl->type = consume();      // <type>
+			consume();      // <type>
 			simple_decl->identifier = consume();// <identifier>
 			consume();                    
 	
-			auto* expr = parse_expr();
-			if (expr == nullptr) {
+			auto* arithmetic_expr = parse_arithmetic_expr();
+			if (arithmetic_expr == nullptr) {
 				std::cerr << "Invalid expression in simple declaration after '=' at token index "
 						<< m_currentIndex << std::endl;
 				exit(EXIT_FAILURE);
 			}
-			simple_decl->expr = expr;
+			simple_decl->expr = arithmetic_expr;
 
 	
 			try_consume(NEW_LINE, "Expected newline after declaration");
@@ -327,7 +319,7 @@ public:
 
 		{
 			auto* simple_decl = new node::NodeSimpleDecl();
-			simple_decl->type = consume();      // <type>
+			consume();      // <type>
 			simple_decl->identifier = consume();// <identifier>
 			consume();
 
@@ -388,6 +380,11 @@ public:
 		while (peek())
 		{	
 			if(node::NodeDecl* decl = parse_declaration()){
+				node::NodeStmt* stmt = new node::NodeStmt();
+				stmt->var = decl;
+
+
+				prog.stmts.push_back(stmt);
 				std::cout<< "Parsed declaration\n";
 				continue;
 			}
