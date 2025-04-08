@@ -1,2 +1,2 @@
-number z = 2 + 2
+string z = "Hello, " + "World!"
 print(z)

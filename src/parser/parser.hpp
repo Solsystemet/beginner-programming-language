@@ -2,7 +2,6 @@
 #include "../lexer/tokenvalues.h"
 #include "../lexer/tokens.h"
 #include <vector>
-#include "../arena.hpp"
 #include "../mpark/variant.hpp"
 
 namespace node {
@@ -50,8 +49,8 @@ namespace node {
         mpark::variant<NodeArithmeticExpr*, NodeTerm*> var;
 	};
 
-	struct NodeSimpleDecl{
-		Token type;
+	struct NodeSimpleDecl {
+		Token type ={};
 		Token identifier;
 		NodeExpr* expr;
 
@@ -89,8 +88,9 @@ namespace node {
 class Parser
 {
 public:
+	// Constructor
 	Parser(std::vector<Token> tokens)
-		: m_tokens(std::move(tokens)), m_currentIndex(0), m_allocator(1024 * 1024 * 8) {
+		: m_tokens(std::move(tokens)) {
 	}
 
     node::NodeTerm* parse_term() {
@@ -99,10 +99,10 @@ public:
         // Decimal
         Token* t = try_consume(DECIMAL);
         if (t != nullptr) {
-			auto* term_int_lit = m_allocator.alloc<node::NodeTermIntLit>();
+			auto* term_int_lit = new node::NodeTermIntLit();
             term_int_lit->int_lit = *t;
 
-            auto term = m_allocator.alloc<node::NodeTerm>();
+            auto term = new node::NodeTerm();
             term->var = term_int_lit;
             return term;
         }
@@ -110,10 +110,10 @@ public:
         // Identifier
         t = try_consume(IDENTIFIER);
         if (t != nullptr) {
-            auto* term_identifier = m_allocator.alloc<node::NodeTermIdentifier>();
+            auto* term_identifier = new node::NodeTermIdentifier();
             term_identifier->identifier = *t;
 
-            auto term = m_allocator.alloc<node::NodeTerm>();
+            auto term = new node::NodeTerm();
             term->var = term_identifier;
             return term;
         }
@@ -128,7 +128,7 @@ public:
             return nullptr;
         }
 
-        auto expr = m_allocator.alloc<node::NodeExpr>();
+        auto expr = new node::NodeExpr();
         expr->var = term;
 
         while (true) {
@@ -156,8 +156,8 @@ public:
 				std::cerr << "Expected expression after operator" << std::endl;
 				exit(EXIT_FAILURE);
             }
-			auto arithmetic_expr = m_allocator.alloc<node::NodeArithmeticExpr>();
-			auto expr_lhs = m_allocator.alloc<node::NodeExpr>();
+			auto arithmetic_expr = new node::NodeArithmeticExpr();
+			auto expr_lhs = new node::NodeExpr();
 
 			//Switch case for rule 5
 			// <Arithmetic Expr> -> <AddExpr>
@@ -166,7 +166,7 @@ public:
 				// Rule 6.1
 				//<AddExpr> -> <Expr>+<Expr>
 				case PLUS:
-				auto add = m_allocator.alloc<node::NodeExprAdd>();
+				auto add = new node::NodeExprAdd();
 				expr_lhs->var = expr->var;
 				add->lhs = expr_lhs;
 				add->rhs = expr_rhs;
@@ -186,7 +186,7 @@ public:
 		}
 		
 	
-		auto* string_expr = m_allocator.alloc<node::NodeStringExpr>();
+		auto* string_expr = new node::NodeStringExpr();
 		string_expr->var = *t;
 	
 		while (true) {
@@ -211,11 +211,11 @@ public:
 				exit(EXIT_FAILURE);
 			}
 	
-			auto* concat = m_allocator.alloc<node::NodeStringExprConcat>();
+			auto* concat = new node::NodeStringExprConcat();
 			concat->lhs = string_expr;
 			concat->rhs = rhs;
 	
-			string_expr = m_allocator.alloc<node::NodeStringExpr>();
+			string_expr = new node::NodeStringExpr();
 			string_expr->var = concat;
 		}
 	
@@ -233,7 +233,7 @@ public:
 		{
 			// consume terminal symbols
 			
-			auto* node_stmt_number = m_allocator.alloc<node::NodeStmtNumber>();
+			auto* node_stmt_number = new node::NodeStmtNumber();
 			node:node_stmt_number->ident = consume();
 			consume();
 			consume();
@@ -249,7 +249,7 @@ public:
 			}
 			// consume terminal symbols
 			try_consume(NEW_LINE, "Expected 'new_line'");
-			auto* node_stmt = m_allocator.alloc<node::NodeStmt>();
+			auto* node_stmt = new node::NodeStmt();
 			node_stmt->var = node_stmt_number;
 			return node_stmt;
 		}
@@ -259,7 +259,8 @@ public:
 			peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
 			// consume terminal symbols
 			consume();
-			auto* node_stmt_print = m_allocator.alloc<node::NodeStmtPrint>();
+			consume();
+			auto* node_stmt_print = new node::NodeStmtPrint();
 			if(const auto string_expr = parse_string_expr()){
 				node_stmt_print->var = string_expr;
 			}
@@ -275,10 +276,10 @@ public:
 
 			// consume terminal symbols
 			try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
-			try_consume(NEW_LINE, "Expected newline after print statement");
+			try_consume(EOF, "Expected newline after print statement");
 
 
-			auto* node_stmt = m_allocator.alloc<node::NodeStmt>();
+			auto* node_stmt = new node::NodeStmt();
 			node_stmt->var = node_stmt_print;
 			return node_stmt;
 		}
@@ -292,20 +293,13 @@ public:
 		if (m_tokens.size() - m_currentIndex > 3 &&
 				(peek()->type == NUMBER || peek()->type == STRING || peek()->type == BOOLEAN) &&
 				peek(1) && peek(1)->type == IDENTIFIER &&
-				peek(2) && peek(2)->type == EQUAL &&
-				(
-					peek(3)->type == STRING_VAL ||
-					peek(3)->type == DECIMAL ||
-					peek(3)->type == BOOLVAL ||
-					peek(3)->type == IDENTIFIER
-				)
+				peek(2) && peek(2)->type == EQUAL
 			)
 
  			{
-			
-			auto* simple_decl = m_allocator.alloc<node::NodeSimpleDecl>();
+			auto* simple_decl = new node::NodeSimpleDecl();
 			simple_decl->type = consume();      // <type>
-			simple_decl->identifier = consume();// <identifier>   
+			simple_decl->identifier = consume();// <identifier>
 			consume();                    
 	
 			auto* expr = parse_expr();
@@ -319,7 +313,7 @@ public:
 	
 			try_consume(NEW_LINE, "Expected newline after declaration");
 	
-			auto* decl = m_allocator.alloc<node::NodeDecl>();
+			auto* decl = new node::NodeDecl();
 			decl->var = simple_decl;
 			return decl;
 		}
@@ -329,8 +323,8 @@ public:
 			peek(1) && peek(1)->type == COLON &&
 			peek(2) && peek(2)->type == NEW_LINE &&
 			peek(3) && peek(3)->type == TAB_INDENT) {
-	
-			auto* object_decl = m_allocator.alloc<node::NodeObjectDecl>();
+			
+			auto* object_decl = new node::NodeObjectDecl();
 			object_decl->identifier = consume(); // identifier
 			consume(); // COLON
 			consume(); // NEW_LINE
@@ -350,7 +344,7 @@ public:
 	
 			try_consume(TAB_DEDENT, "Expected dedent after object declaration");
 	
-			auto* decl = m_allocator.alloc<node::NodeDecl>();
+			auto* decl = new node::NodeDecl();
 			decl->var = object_decl;
 			return decl;
 		}
@@ -418,5 +412,4 @@ private:
 
     std::vector<Token> m_tokens;
     size_t m_currentIndex;
-    ArenaAllocater m_allocator;
 };
