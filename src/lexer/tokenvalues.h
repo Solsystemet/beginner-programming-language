@@ -1,3 +1,4 @@
+#pragma once
 #define NEW_LINE 1
 #define DECIMAL 2
 #define NUMBER 3

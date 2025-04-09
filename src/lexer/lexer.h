@@ -1,25 +1,23 @@
+#pragma once
 #include <stdio.h>
 #include <iostream>
-#include "./lex.yy.c"
 #include "./tokens.h"
 #include <string.h>
 #include <vector>
 #include "tokenvalues.h"
+#include "flex.flex.h"
+#include "FlexLexer.h"
 
-//externs from lex.yy.c
-extern int yylex();
-extern FILE* yyin;
-extern char* yytext;
 
 class Lexer
 {
 private:
     // Sanitizes the tokens to have correct amount of indents and dedents
-void FixTabIndent(std::vector<Token>* tokens);
+    void FixTabIndent(std::vector<Token>* tokens);
 
-// helper function for verifying indent and dedent count. move elsewhere or delete
-void CountIndentDedent(std::vector<Token> tokens);
-    
+    // helper function for verifying indent and dedent count. move elsewhere or delete
+    void CountIndentDedent(std::vector<Token> tokens);
+
 public:
     Lexer(FILE* file);
     std::vector<Token> Tokenize();
@@ -42,7 +40,7 @@ std::vector<Token> Lexer::Tokenize()
     while ((ntoken = yylex())) {
         Token t;
         switch (ntoken)
-    {
+        {
         case NEW_LINE:
             t.type = NEW_LINE;
             result.push_back(t);
@@ -194,38 +192,40 @@ std::vector<Token> Lexer::Tokenize()
 
     FixTabIndent(&result);
 
+    Token t = { EOF };
+    result.push_back(t);
 
     return result;
 }
 
-void Lexer::FixTabIndent(std::vector<Token>* tokens){
+void Lexer::FixTabIndent(std::vector<Token>* tokens) {
 
     int maxTabIndent = 0;
     int currentTabIndent = 0;
 
     for (size_t i = 0; i < tokens->size(); i++)
     {
-        
-        if(i == tokens->size()-1 && maxTabIndent == 1){
-            Token t = {TAB_DEDENT};
+
+        if (i == tokens->size() - 1 && maxTabIndent == 1) {
+            Token t = { TAB_DEDENT };
             tokens->push_back(t);
             break;
         }
 
         // if we find a new line token we read ahead an check amount of tabs
-        if(tokens->at(i).type == NEW_LINE){
-            int count = 1;
-            while (tokens->at(i+count).type == TAB_INDENT)
+        if (tokens->at(i).type == NEW_LINE) {
+            size_t count = 1;
+            while (tokens->at(i + count).type == TAB_INDENT)
             {
                 currentTabIndent++;
                 count++;
             }
             // update maxTabIndent and remove tab indents until 1 left
-            if(currentTabIndent > maxTabIndent){
+            if (currentTabIndent > maxTabIndent) {
                 int difference = currentTabIndent - maxTabIndent;
                 maxTabIndent = currentTabIndent;
 
-                if(currentTabIndent > 1){
+                if (currentTabIndent > 1) {
                     auto start = tokens->begin() + i + 2;
                     auto end = tokens->begin() + i + count;
                     tokens->erase(start, end);
@@ -234,17 +234,17 @@ void Lexer::FixTabIndent(std::vector<Token>* tokens){
 
             }
             // remove all the tab indent tokens
-            else if(currentTabIndent == maxTabIndent){
+            else if (currentTabIndent == maxTabIndent) {
                 auto start = tokens->begin() + i + 1;
                 auto end = tokens->begin() + i + count;
                 tokens->erase(start, end);
                 count = 1;
             }
             // remove all tab indent tokens and add the corresponding dedents
-            else if(currentTabIndent < maxTabIndent){
+            else if (currentTabIndent < maxTabIndent) {
                 int difference = maxTabIndent - currentTabIndent;
                 maxTabIndent = currentTabIndent;
-                Token t = {TAB_DEDENT};
+                Token t = { TAB_DEDENT };
                 for (size_t j = 0; j < difference; j++)
                 {
                     tokens->insert(tokens->begin() + i + count, t);
@@ -252,25 +252,25 @@ void Lexer::FixTabIndent(std::vector<Token>* tokens){
                 auto start = tokens->begin() + i + 1;
                 auto end = tokens->begin() + i + count;
                 tokens->erase(start, end);
-                count-= difference - 1;
+                count -= difference - 1;
             }
             i += count - 1;
             currentTabIndent = 0;
         }
     }
-    
+
 }
 
 // just for verifying the amount
-void Lexer::CountIndentDedent(std::vector<Token> tokens){
+void Lexer::CountIndentDedent(std::vector<Token> tokens) {
     int indentCount = 0;
     int dedentCount = 0;
 
     for (size_t i = 0; i < tokens.size(); i++)
     {
-        if(tokens.at(i).type == TAB_INDENT)
+        if (tokens.at(i).type == TAB_INDENT)
             indentCount++;
-        else if(tokens.at(i).type == TAB_DEDENT)
+        else if (tokens.at(i).type == TAB_DEDENT)
             dedentCount++;
     }
 
