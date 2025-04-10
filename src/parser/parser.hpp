@@ -54,7 +54,6 @@ public:
 		try_consume_arithmetic(DIVIDE, term, new node::NodeExprDivide(), *this);
 		try_consume_arithmetic(MODULO, term, new node::NodeExprModulo(), *this);
 
-
 		return term;
 	}
 
