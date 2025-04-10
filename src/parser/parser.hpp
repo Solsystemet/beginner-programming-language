@@ -2,8 +2,8 @@
 #include "../lexer/tokenvalues.h"
 #include "../lexer/tokens.h"
 #include <vector>
-#include "../mpark/variant.hpp"
-#include "./nodes.hpp"
+#include "../../nodes.hpp"
+#include "./parserHelperFunctions.hpp"
 
 
 
@@ -12,7 +12,7 @@ class Parser
 public:
 	// Constructor
 	Parser(std::vector<Token> tokens)
-		: m_tokens(std::move(tokens)) {
+		: m_tokens(std::move(tokens)), m_currentIndex(0) {
 	}
 
 	node::NodeFactor* parse_factor() {
@@ -24,6 +24,7 @@ public:
 
 
 		// Identifier
+<<<<<<< Updated upstream
 		if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeFactorIdentifier()))
 			nodefactor = factor;
 		
@@ -32,10 +33,16 @@ public:
 			nodefactor = factor;
 		
 		return nodefactor;
+=======
+		try_consume_symbol(t, new node::NodeFactorIdentifier());
+
+		// (<AExpr>)
+		try_consume_symbol(t, new node::NodeArithmeticExpr(), *this);
+>>>>>>> Stashed changes
 	}
 
-    node::NodeTerm* parse_term() {
-        // <term> ::= <DECIMAL> | <IDENTIFIER
+
+	node::NodeTerm* parse_term() {
 		auto* term = new node::NodeTerm();
 		node::NodeFactor* factor = parse_factor();
 
@@ -44,16 +51,14 @@ public:
 		}
 		term->var = factor;
 
-
-		try_consume_arithmetic(MULTIPLY, term, new node::NodeExprMult());
-
-		try_consume_arithmetic(DIVIDE, term, new node::NodeExprDivide());
+		try_consume_arithmetic(MULTIPLY, term, new node::NodeExprMult(), *this);
+		try_consume_arithmetic(DIVIDE, term, new node::NodeExprDivide(), *this);
 
 		try_consume_arithmetic(MODULO, term, new node::NodeExprModulo());
 
 
 		return term;
-    }
+	}
 
 	node::NodeArithmeticExpr* parse_arithmetic_expr() {
 		node::NodeTerm* term = parse_term();
@@ -65,13 +70,12 @@ public:
 		auto expr = new node::NodeArithmeticExpr();
 		expr->var = term;
 
-		
-		try_consume_arithmetic(PLUS, expr,new node::NodeExprAdd());
-
-		try_consume_arithmetic(MINUS, expr, new node::NodeExprSubtract());
+		try_consume_arithmetic(PLUS, expr, new node::NodeExprAdd(), *this);
+		try_consume_arithmetic(MINUS, expr, new node::NodeExprSubtract(), *this);
 
 		return expr;
 	}
+
 
     node::NodeStringExpr* parse_string_expr() {
 		Token* t = try_consume(STRING_VAL);
@@ -256,6 +260,7 @@ public:
 		}
 		return prog;
 	}
+<<<<<<< Updated upstream
 
 private:
 
@@ -444,4 +449,9 @@ private:
 
 
 	
+=======
+	private:
+		std::vector<Token> m_tokens;
+		unsigned int m_currentIndex = 0;
+>>>>>>> Stashed changes
 };

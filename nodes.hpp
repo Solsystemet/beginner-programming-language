@@ -1,3 +1,4 @@
+#pragma once
 #include "src/lexer/tokens.h"
 #include "src/mpark/variant.hpp"
 #include <iostream>
