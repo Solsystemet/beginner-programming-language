@@ -61,10 +61,10 @@ node::NodeFactor* try_consume_symbol(Token*& t, node::NodeFactorIdentifier* fact
 }
 
 // Overload for Parentheses (OPEN_PARANTHESIS)
-node::NodeFactor* try_consume_symbol(Token*& t, node::NodeArithmeticExpr* arithmetic_expr, Parser& parser) {
+node::NodeFactor* try_consume_symbol(Token*& t, node::NodeArithmeticExpr* arithmetic_expr, Parser* parser) {
 	t = try_consume(OPEN_PARANTHESIS);
 	if (t != nullptr) {
-		arithmetic_expr = parser.parse_arithmetic_expr();
+		arithmetic_expr = parser->parse_arithmetic_expr();
 		try_consume(CLOSED_PARANTHESIS, "Expected ')'");
 		auto* factor = new node::NodeFactor();
 		factor->var = arithmetic_expr;
@@ -77,7 +77,7 @@ void try_consume_arithmetic(
 	int tokenType,
 	node::NodeArithmeticExpr* expr,
 	node::NodeExprAdd* add,
-	Parser& parser
+	Parser* parser
 ) {
 	if (peek()->type == tokenType) {
 		consume();
@@ -85,7 +85,7 @@ void try_consume_arithmetic(
 		expr_lhs->var = expr->var;
 		add->lhs = expr_lhs;
 
-		auto* term_rhs = parser.parse_term();
+		auto* term_rhs = parser->parse_term();
 		if (term_rhs == nullptr) {
 			std::cerr << "Expected term after operator" << std::endl;
 			exit(EXIT_FAILURE);
@@ -100,7 +100,7 @@ void try_consume_arithmetic(
 	int tokenType,
 	node::NodeArithmeticExpr* expr,
 	node::NodeExprSubtract* sub,
-	Parser& parser
+	Parser* parser
 ) {
 	if (peek()->type == tokenType) {
 		consume();
@@ -108,7 +108,7 @@ void try_consume_arithmetic(
 		expr_lhs->var = expr->var;
 		sub->lhs = expr_lhs;
 
-		auto* term_rhs = parser.parse_term();
+		auto* term_rhs = parser->parse_term();
 		if (term_rhs == nullptr) {
 			std::cerr << "Expected term after operator" << std::endl;
 			exit(EXIT_FAILURE);
@@ -123,14 +123,14 @@ void try_consume_arithmetic(
 	int tokenType,
 	node::NodeTerm* term,
 	node::NodeExprMult* mult,
-	Parser& parser
+	Parser* parser
 ) {
 	if (peek()->type == tokenType) {
 		consume();
 
 		auto* term_mult = new node::NodeExprMult();
 		term_mult->lhs = term;
-		node::NodeFactor* factor_rhs = parser.parse_factor();
+		node::NodeFactor* factor_rhs = parser->parse_factor();
 		if (factor_rhs == nullptr) {
 			std::cerr << "Invalid factor!" << std::endl;
 			exit(EXIT_FAILURE);
@@ -144,14 +144,14 @@ void try_consume_arithmetic(
 	int tokenType,
 	node::NodeTerm* term,
 	node::NodeExprDivide* div,
-	Parser& parser
+	Parser* parser
 ) {
-	if (peek()->type == DIVIDE) {
+	if (peek()->type == tokenType) {
 		consume();
 
 		auto* term_divide = new node::NodeExprDivide();
 		term_divide->lhs = term;
-		node::NodeFactor* factor_rhs = parser.parse_factor();
+		node::NodeFactor* factor_rhs = parser->parse_factor();
 		if (factor_rhs == nullptr) {
 			std::cerr << "Invalid factor!" << std::endl;
 			exit(EXIT_FAILURE);
@@ -160,3 +160,24 @@ void try_consume_arithmetic(
 		term->var = term_divide;
 	}
 }
+
+void try_consume_arithmetic(
+	int tokenType,
+	node::NodeTerm* term,
+	node::NodeExprModulo* mod,
+	Parser* parser
+) {
+	if (peek()->type == MODULO) {
+		consume();
+		auto* term_modulo = new node::NodeExprModulo();
+		term_modulo->lhs = term;
+		node::NodeFactor* factor_rhs = parser->parse_factor();
+		if (factor_rhs == nullptr) {
+			std::cerr << "Invalid factor!" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		term_modulo->rhs = factor_rhs;
+		term->var = term_modulo;
+	}
+}
+

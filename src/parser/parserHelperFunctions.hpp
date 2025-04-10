@@ -16,15 +16,17 @@ node::NodeFactor* try_consume_symbol(Token*& t, node::NodeFactorDecimal* factor_
 
 node::NodeFactor* try_consume_symbol(Token*& t, node::NodeFactorIdentifier* factor_identifier);
 
-node::NodeFactor* try_consume_symbol(Token*& t, node::NodeArithmeticExpr* arithmetic_expr, Parser& parser);
+node::NodeFactor* try_consume_symbol(Token*& t, node::NodeArithmeticExpr* arithmetic_expr, Parser* parser);
 
-void try_consume_arithmetic(int tokenType, node::NodeArithmeticExpr* expr, node::NodeExprAdd* add, Parser& parser);
+void try_consume_arithmetic(int tokenType, node::NodeArithmeticExpr* expr, node::NodeExprAdd* add, Parser* parser);
 
-void try_consume_arithmetic(int tokenType, node::NodeArithmeticExpr* expr, node::NodeExprSubtract* sub, Parser& parser);
+void try_consume_arithmetic(int tokenType, node::NodeArithmeticExpr* expr, node::NodeExprSubtract* sub, Parser* parser);
 
-void try_consume_arithmetic(int tokenType, node::NodeTerm* term, node::NodeExprMult* mult, Parser& parser);
+void try_consume_arithmetic(int tokenType, node::NodeTerm* term, node::NodeExprMult* mult, Parser* parser);
 
-void try_consume_arithmetic(int tokenType, node::NodeTerm* term, node::NodeExprDivide* div, Parser& parser);
+void try_consume_arithmetic(int tokenType, node::NodeTerm* term, node::NodeExprDivide* div, Parser* parser);
+
+void try_consume_arithmetic( int tokenType, node::NodeTerm* term, node::NodeExprModulo* mod, Parser* parser);
 
 
 

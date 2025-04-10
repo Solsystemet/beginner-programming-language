@@ -29,7 +29,7 @@ public:
 			nodefactor = factor;
 		
 		// (<AExpr>)
-		if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeArithmeticExpr()))
+		if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeArithmeticExpr(), this))
 			nodefactor = factor;
 		
 		return nodefactor;
@@ -37,7 +37,7 @@ public:
 		try_consume_symbol(t, new node::NodeFactorIdentifier());
 
 		// (<AExpr>)
-		try_consume_symbol(t, new node::NodeArithmeticExpr(), *this);
+		try_consume_symbol(t, new node::NodeArithmeticExpr(), this);
 }
 
 
@@ -50,9 +50,9 @@ public:
 		}
 		term->var = factor;
 
-		try_consume_arithmetic(MULTIPLY, term, new node::NodeExprMult(), *this);
-		try_consume_arithmetic(DIVIDE, term, new node::NodeExprDivide(), *this);
-		try_consume_arithmetic(MODULO, term, new node::NodeExprModulo(), *this);
+		try_consume_arithmetic(MULTIPLY, term, new node::NodeExprMult(), this);
+		try_consume_arithmetic(DIVIDE, term, new node::NodeExprDivide(), this);
+		try_consume_arithmetic(MODULO, term, new node::NodeExprModulo(), this);
 
 		return term;
 	}
@@ -67,8 +67,8 @@ public:
 		auto expr = new node::NodeArithmeticExpr();
 		expr->var = term;
 
-		try_consume_arithmetic(PLUS, expr, new node::NodeExprAdd(), *this);
-		try_consume_arithmetic(MINUS, expr, new node::NodeExprSubtract(), *this);
+		try_consume_arithmetic(PLUS, expr, new node::NodeExprAdd(), this);
+		try_consume_arithmetic(MINUS, expr, new node::NodeExprSubtract(), this);
 
 		return expr;
 	}
