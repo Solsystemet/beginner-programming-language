@@ -17,16 +17,21 @@ public:
 
 	node::NodeFactor* parse_factor() {
 		Token* t;
-
+		node::NodeFactor* nodefactor = nullptr;
 		// Decimal
-		try_consume_symbol(t, new node::NodeFactorDecimal());
+		if(node::NodeFactor* factor = try_consume_symbol(t, new node::NodeFactorDecimal()))
+			nodefactor = factor;
+
 
 		// Identifier
-		try_consume_symbol(t, new node::NodeFactorIdentifier());
+		if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeFactorIdentifier()))
+			nodefactor = factor;
 		
 		// (<AExpr>)
-		try_consume_symbol(t, new node::NodeArithmeticExpr());
-	
+		if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeArithmeticExpr()))
+			nodefactor = factor;
+		
+		return nodefactor;
 	}
 
     node::NodeTerm* parse_term() {
@@ -43,6 +48,9 @@ public:
 		try_consume_arithmetic(MULTIPLY, term, new node::NodeExprMult());
 
 		try_consume_arithmetic(DIVIDE, term, new node::NodeExprDivide());
+
+		try_consume_arithmetic(MODULO, term, new node::NodeExprModulo());
+
 
 		return term;
     }
@@ -220,6 +228,7 @@ public:
 		return nullptr;
 	}
 
+
 	node::NodeProg parse_prog() {
 		node::NodeProg prog;
 		// Rule 2
@@ -292,7 +301,6 @@ private:
 		t = try_consume(DECIMAL);
 		if (t != nullptr) {
 			factor_decimal->decimal = *t;
-
 			auto* factor = new node::NodeFactor();
 			factor->var = factor_decimal;
 			return factor;
@@ -410,6 +418,26 @@ private:
 			}
 			term_divide->rhs = factor_rhs;
 			term->var = term_divide;
+		}
+	}
+
+	void try_consume_arithmetic(
+		int tokenType,
+		node::NodeTerm* term,
+		node::NodeExprModulo* mod
+	) {
+		if (peek()->type == MODULO) {
+			consume();
+
+			auto* term_modulo = new node::NodeExprModulo();
+			term_modulo->lhs = term;
+			node::NodeFactor* factor_rhs = parse_factor();
+			if (factor_rhs == nullptr) {
+				std::cerr << "Invalid factor!" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			term_modulo->rhs = factor_rhs;
+			term->var = term_modulo;
 		}
 	}
 

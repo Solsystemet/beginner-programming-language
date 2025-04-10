@@ -39,6 +39,10 @@ namespace node {
 		NodeTerm* lhs;
 		NodeFactor* rhs;
 	};
+	struct NodeExprModulo {
+		NodeTerm* lhs;
+		NodeFactor* rhs;
+	};
 
 	struct NodeStringExpr;
 	struct NodeStringExprConcat {
@@ -57,7 +61,7 @@ namespace node {
 
 	//Identifier or Decimal can be passed to this struct
 	struct NodeTerm {
-		mpark::variant<NodeFactor*, NodeExprMult*, NodeExprDivide*> var;
+		mpark::variant<NodeFactor*, NodeExprMult*, NodeExprDivide*, NodeExprModulo*> var;
 	};
 
 	struct NodeSimpleDecl {
