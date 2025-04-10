@@ -24,7 +24,7 @@ public:
 
 
 		// Identifier
-<<<<<<< Updated upstream
+
 		if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeFactorIdentifier()))
 			nodefactor = factor;
 		
@@ -33,13 +33,12 @@ public:
 			nodefactor = factor;
 		
 		return nodefactor;
-=======
+
 		try_consume_symbol(t, new node::NodeFactorIdentifier());
 
 		// (<AExpr>)
 		try_consume_symbol(t, new node::NodeArithmeticExpr(), *this);
->>>>>>> Stashed changes
-	}
+}
 
 
 	node::NodeTerm* parse_term() {
@@ -53,9 +52,7 @@ public:
 
 		try_consume_arithmetic(MULTIPLY, term, new node::NodeExprMult(), *this);
 		try_consume_arithmetic(DIVIDE, term, new node::NodeExprDivide(), *this);
-
-		try_consume_arithmetic(MODULO, term, new node::NodeExprModulo());
-
+		try_consume_arithmetic(MODULO, term, new node::NodeExprModulo(), *this);
 
 		return term;
 	}
@@ -260,7 +257,7 @@ public:
 		}
 		return prog;
 	}
-<<<<<<< Updated upstream
+
 
 private:
 
@@ -449,9 +446,10 @@ private:
 
 
 	
-=======
+
 	private:
 		std::vector<Token> m_tokens;
 		unsigned int m_currentIndex = 0;
->>>>>>> Stashed changes
+
+
 };
