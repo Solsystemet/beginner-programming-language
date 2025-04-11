@@ -12,6 +12,7 @@ namespace node {
 		Token decimal;
 	};
 
+
 	struct NodeFactorIdentifier
 	{
 		Token identifier;
@@ -78,6 +79,7 @@ namespace node {
 		mpark::variant<NodeSimpleDecl*, NodeObjectDecl*> var;
 	};
 
+	
 	struct NodeStmtPrint {
 		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> var;
 	};
@@ -85,6 +87,117 @@ namespace node {
 	struct NodeStmt
 	{
 		mpark::variant<NodeDecl*, NodeStmtPrint*> var;
+	};
+	struct NodeBooleanOr;
+	struct NodeBooleanAnd;
+	struct NodeBooleanEqual;
+	struct NodeRealExpression;
+	struct NodeBooleanNot;
+	struct NodeBooleanFactor;
+	struct NodeBooleanLess;
+	struct NodeBooleanGreater;
+	struct NodeBooleanLessEqual;
+	struct NodeBooleanGreaterEqual;
+	struct NodeFunctionCall;
+	struct NodeBooleanEqualIs;
+	struct NodeBooleanEqualIsNot;
+	struct NodeBooleanOrOperation;
+	struct NodeBooleanAndOperation;
+
+	struct NodeBooleanExpr {
+		NodeBooleanOr* expr;
+	};
+
+	struct NodeBooleanOrOperation {
+		NodeBooleanOr* lhs;
+		Token op;
+		NodeBooleanAnd* rhs;
+	};
+
+	struct NodeBooleanOr {
+		mpark::variant<NodeBooleanAnd*, NodeBooleanOrOperation*> var;
+	};
+
+	struct NodeBooleanAndOperation {
+		NodeBooleanAnd* lhs;
+		Token op;
+		NodeBooleanEqual* rhs;
+	};
+
+	struct NodeBooleanAnd {
+		mpark::variant<NodeBooleanEqual*, NodeBooleanAndOperation*> var;
+	};
+
+	struct NodeBooleanEqualIs {
+		NodeBooleanEqual* lhs;
+		Token is_token;
+		NodeRealExpression* rhs;
+	};
+
+	struct NodenBooleanEqualIsNot {
+		NodeBooleanEqual* lhs;
+		Token is_token;
+		Token not_token;
+		NodeRealExpression* rhs;
+	};
+
+	struct NodeBooleanEqual {
+		mpark::variant<NodeRealExpression*, NodeBooleanEqualIs*, NodeBooleanEqualIsNot*> var;
+	};
+
+	struct NodeRealExpression {
+		mpark::variant<
+			NodeBooleanNot*,
+			NodeBooleanLess*,
+			NodeBooleanGreater*,
+			NodeBooleanLessEqual*,
+			NodeBooleanGreaterEqual*
+		> var;
+	};
+	
+	struct NodeBooleanNotOperation {
+		Token not_token;
+		NodeBooleanNot* expr;
+	};
+
+	struct NodeBooleanNot {
+		mpark::variant<NodeBooleanFactor*, NodeBooleanNotOperation*> var;
+	};
+
+	struct NodeBoolValue {
+		Token boolval;
+	};
+
+	struct NodeIdentifier {
+		Token identifier;
+	};
+
+	struct NodeBooleanFactor {
+		mpark::variant<NodeBoolValue, NodeIdentifier, NodeBooleanExpr*> var;
+	};
+
+	struct NodeBooleanLess {
+		NodeArithmeticExpr* lhs;
+		Token less_op;          
+		NodeArithmeticExpr* rhs;
+	};
+
+	struct NodeBooleanGreater {
+		NodeArithmeticExpr* lhs;
+		Token greater_op;       
+		NodeArithmeticExpr* rhs;
+	};
+
+	struct NodeBooleanLessEqual {
+		NodeArithmeticExpr* lhs;
+		Token less_equal_op;     
+		NodeArithmeticExpr* rhs;
+	};
+
+	struct NodeBooleanGreaterEqual {
+		NodeArithmeticExpr* lhs;
+		Token greater_equal_op;  
+		NodeArithmeticExpr* rhs;
 	};
 
 	struct NodeProg
