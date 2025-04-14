@@ -5,8 +5,65 @@
 #include <vector>
 
 namespace node {
-	struct NodeTerm;
+
+	// Prog node rules 
+	struct NodeProg;
+	struct NodeStmt;
+
+	struct NodeProg
+	{
+		std::vector<NodeStmt*> stmts;
+	};
+
+	// Statement rules
+	struct NodeDecl;
+	struct NodeStmtPrint; // special function call stmt
+
+	struct NodeStmt
+	{
+		mpark::variant<NodeDecl*, NodeStmtPrint*> var;
+	};
+
+	struct NodeStmtPrint {
+		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> var;
+	};
+
+	// Decleration rules
+	struct NodeSimpleDecl;
+	struct NodeObjectDecl;
+
+	struct NodeDecl {
+		mpark::variant<NodeSimpleDecl*, NodeObjectDecl*> var;
+	};
+
+	struct NodeSimpleDecl {
+		Token identifier;
+		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> expr;
+	};
+
+	struct NodeObjectDecl {
+		Token identifier;
+		std::vector<NodeSimpleDecl*> properties;
+	};
+
+	
+
+
+	
+
+
+	//Arithmetic expression rules
 	struct NodeArithmeticExpr;
+	struct NodeTerm;
+	struct NodeExprAdd;
+	struct NodeExprSubtract;
+	struct NodeFactor;
+	struct NodeExprMult;
+	struct NodeExprDivide;
+	struct NodeExprModulo;
+	struct NodeFactorDecimal;
+	struct NodeFactorIdentifier;
+	// Missing function call for arithmetic expressions
 
 	struct NodeFactorDecimal
 	{
@@ -65,36 +122,16 @@ namespace node {
 	struct NodeTerm {
 		mpark::variant<NodeFactor*, NodeExprMult*, NodeExprDivide*, NodeExprModulo*> var;
 	};
-
-	struct NodeSimpleDecl {
-		Token identifier;
-		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> expr;
-	};
-
-	struct NodeObjectDecl {
-		Token identifier;
-		std::vector<NodeSimpleDecl*> properties;
-	};
-
-	struct NodeDecl {
-		mpark::variant<NodeSimpleDecl*, NodeObjectDecl*> var;
-	};
-
 	
-	struct NodeStmtPrint {
-		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> var;
-	};
-
-	struct NodeStmt
-	{
-		mpark::variant<NodeDecl*, NodeStmtPrint*> var;
-	};
+	// Boolean expression rules
 	struct NodeBooleanOr;
 	struct NodeBooleanAnd;
 	struct NodeBooleanEqual;
 	struct NodeRealExpression;
 	struct NodeBooleanNot;
 	struct NodeBooleanFactor;
+	struct NodeBooleanFactorValue;
+	struct NodeBooleanFactorIdentifier;
 	struct NodeBooleanLess;
 	struct NodeBooleanGreater;
 	struct NodeBooleanLessEqual;
@@ -111,7 +148,6 @@ namespace node {
 
 	struct NodeBooleanOrOperation {
 		NodeBooleanOr* lhs;
-		Token op;
 		NodeBooleanAnd* rhs;
 	};
 
@@ -121,7 +157,6 @@ namespace node {
 
 	struct NodeBooleanAndOperation {
 		NodeBooleanAnd* lhs;
-		Token op;
 		NodeBooleanEqual* rhs;
 	};
 
@@ -131,14 +166,11 @@ namespace node {
 
 	struct NodeBooleanEqualIs {
 		NodeBooleanEqual* lhs;
-		Token is_token;
 		NodeRealExpression* rhs;
 	};
 
 	struct NodenBooleanEqualIsNot {
 		NodeBooleanEqual* lhs;
-		Token is_token;
-		Token not_token;
 		NodeRealExpression* rhs;
 	};
 
@@ -155,9 +187,8 @@ namespace node {
 			NodeBooleanGreaterEqual*
 		> var;
 	};
-	
+
 	struct NodeBooleanNotOperation {
-		Token not_token;
 		NodeBooleanNot* expr;
 	};
 
@@ -165,44 +196,35 @@ namespace node {
 		mpark::variant<NodeBooleanFactor*, NodeBooleanNotOperation*> var;
 	};
 
-	struct NodeBoolValue {
+	struct NodeBooleanFactorValue {
 		Token boolval;
 	};
 
-	struct NodeIdentifier {
+	struct NodeBooleanFactorIdentifier {
 		Token identifier;
 	};
 
 	struct NodeBooleanFactor {
-		mpark::variant<NodeBoolValue, NodeIdentifier, NodeBooleanExpr*> var;
+		mpark::variant<NodeBooleanFactorValue*, NodeBooleanFactorIdentifier*, NodeBooleanExpr*> var;
 	};
 
 	struct NodeBooleanLess {
 		NodeArithmeticExpr* lhs;
-		Token less_op;          
 		NodeArithmeticExpr* rhs;
 	};
 
 	struct NodeBooleanGreater {
 		NodeArithmeticExpr* lhs;
-		Token greater_op;       
 		NodeArithmeticExpr* rhs;
 	};
 
 	struct NodeBooleanLessEqual {
 		NodeArithmeticExpr* lhs;
-		Token less_equal_op;     
 		NodeArithmeticExpr* rhs;
 	};
 
 	struct NodeBooleanGreaterEqual {
 		NodeArithmeticExpr* lhs;
-		Token greater_equal_op;  
 		NodeArithmeticExpr* rhs;
-	};
-
-	struct NodeProg
-	{
-		std::vector<NodeStmt*> stmts;
 	};
 }
