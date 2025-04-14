@@ -21,6 +21,9 @@
     <ClCompile Include="src\lexer\flex.flex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\parser\parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\tokenvalues.h">
@@ -47,10 +50,7 @@
     <ClInclude Include="src\parser\parser.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\arena.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="nodes.hpp">
+    <ClInclude Include="src\nodes.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="parserHelperFunctions.hpp">

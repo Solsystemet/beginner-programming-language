@@ -114,6 +114,10 @@ std::vector<Token> Lexer::Tokenize()
             t.type = OR;
             result.push_back(t);
             break;
+        case LESS:
+            t.type = LESS;
+            result.push_back(t);
+            break;
         case NOT:
             t.type = NOT;
             result.push_back(t);

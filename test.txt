@@ -1,2 +1,2 @@
-number z = 4 mod 2
+boolean z = 2 + 2 < 2 - 1
 print(z)

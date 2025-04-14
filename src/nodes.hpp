@@ -1,6 +1,6 @@
 #pragma once
-#include "src/lexer/tokens.h"
-#include "src/mpark/variant.hpp"
+#include "./lexer/tokens.h"
+#include "./mpark/variant.hpp"
 #include <iostream>
 #include <vector>
 
@@ -9,6 +9,41 @@ namespace node {
 	// Prog node rules 
 	struct NodeProg;
 	struct NodeStmt;
+
+	//Arithmetic expression rules
+	struct NodeArithmeticExpr;
+	struct NodeTerm;
+	struct NodeExprAdd;
+	struct NodeExprSubtract;
+	struct NodeFactor;
+	struct NodeExprMult;
+	struct NodeExprDivide;
+	struct NodeExprModulo;
+	struct NodeFactorDecimal;
+	struct NodeFactorIdentifier;
+	// Missing function call for arithmetic expressions
+
+	// Boolean expression rules
+	struct NodeBooleanExpr;
+	struct NodeBooleanOr;
+	struct NodeBooleanAnd;
+	struct NodeBooleanEqual;
+	struct NodeBooleanRealExpression;
+	struct NodeBooleanNot;
+	struct NodeBooleanFactor;
+	struct NodeBooleanFactorValue;
+	struct NodeBooleanFactorIdentifier;
+	struct NodeBooleanLess;
+	struct NodeBooleanGreater;
+	struct NodeBooleanLessEqual;
+	struct NodeBooleanGreaterEqual;
+	struct NodeFunctionCall;
+	struct NodeBooleanEqualIs;
+	struct NodeBooleanEqualIsNot;
+	struct NodeBooleanOrOperation;
+	struct NodeBooleanAndOperation;
+
+	struct NodeStringExpr;
 
 	struct NodeProg
 	{
@@ -38,32 +73,13 @@ namespace node {
 
 	struct NodeSimpleDecl {
 		Token identifier;
-		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> expr;
+		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*, NodeBooleanExpr*> expr;
 	};
 
 	struct NodeObjectDecl {
 		Token identifier;
 		std::vector<NodeSimpleDecl*> properties;
 	};
-
-	
-
-
-	
-
-
-	//Arithmetic expression rules
-	struct NodeArithmeticExpr;
-	struct NodeTerm;
-	struct NodeExprAdd;
-	struct NodeExprSubtract;
-	struct NodeFactor;
-	struct NodeExprMult;
-	struct NodeExprDivide;
-	struct NodeExprModulo;
-	struct NodeFactorDecimal;
-	struct NodeFactorIdentifier;
-	// Missing function call for arithmetic expressions
 
 	struct NodeFactorDecimal
 	{
@@ -122,25 +138,6 @@ namespace node {
 	struct NodeTerm {
 		mpark::variant<NodeFactor*, NodeExprMult*, NodeExprDivide*, NodeExprModulo*> var;
 	};
-	
-	// Boolean expression rules
-	struct NodeBooleanOr;
-	struct NodeBooleanAnd;
-	struct NodeBooleanEqual;
-	struct NodeRealExpression;
-	struct NodeBooleanNot;
-	struct NodeBooleanFactor;
-	struct NodeBooleanFactorValue;
-	struct NodeBooleanFactorIdentifier;
-	struct NodeBooleanLess;
-	struct NodeBooleanGreater;
-	struct NodeBooleanLessEqual;
-	struct NodeBooleanGreaterEqual;
-	struct NodeFunctionCall;
-	struct NodeBooleanEqualIs;
-	struct NodeBooleanEqualIsNot;
-	struct NodeBooleanOrOperation;
-	struct NodeBooleanAndOperation;
 
 	struct NodeBooleanExpr {
 		NodeBooleanOr* expr;
@@ -166,19 +163,19 @@ namespace node {
 
 	struct NodeBooleanEqualIs {
 		NodeBooleanEqual* lhs;
-		NodeRealExpression* rhs;
+		NodeBooleanRealExpression* rhs;
 	};
 
-	struct NodenBooleanEqualIsNot {
+	struct NodeBooleanEqualIsNot {
 		NodeBooleanEqual* lhs;
-		NodeRealExpression* rhs;
+		NodeBooleanRealExpression* rhs;
 	};
 
 	struct NodeBooleanEqual {
-		mpark::variant<NodeRealExpression*, NodeBooleanEqualIs*, NodeBooleanEqualIsNot*> var;
+		mpark::variant<NodeBooleanRealExpression*, NodeBooleanEqualIs*, NodeBooleanEqualIsNot*> var;
 	};
 
-	struct NodeRealExpression {
+	struct NodeBooleanRealExpression {
 		mpark::variant<
 			NodeBooleanNot*,
 			NodeBooleanLess*,

@@ -49,6 +49,31 @@ private:
 
 	node::NodeStringExpr* parse_string_expr();
 
+	node::NodeBooleanExpr* parse_boolean_expr();
+	node::NodeBooleanOr* parse_or();
+	node::NodeBooleanOrOperation* parse_or_op(node::NodeBooleanOr* lhs);
+
+
+	node::NodeBooleanAnd* parse_and();
+	node::NodeBooleanAndOperation* parse_and_op(node::NodeBooleanAnd* lhs);
+
+
+	node::NodeBooleanEqual* parse_equal();
+	node::NodeBooleanEqualIsNot* parse_equal_is_not(node::NodeBooleanEqual* lhs);
+	node::NodeBooleanEqualIs* parse_equal_is(node::NodeBooleanEqual* lhs);
+
+
+	node::NodeBooleanRealExpression* parse_real_expr();
+	node::NodeBooleanGreaterEqual* parse_greater_equal(node::NodeArithmeticExpr* lhs);
+	node::NodeBooleanLessEqual* parse_less_equal(node::NodeArithmeticExpr* lhs);
+	node::NodeBooleanGreater* parse_greater(node::NodeArithmeticExpr* lhs);
+	node::NodeBooleanLess* parse_less(node::NodeArithmeticExpr* lhs);
+
+
+	node::NodeBooleanNot* parse_not();
+	node::NodeBooleanNotOperation* parse_not_op();
+	node::NodeBooleanFactor* parse_boolean_factor();
+
     std::vector<Token> m_tokens;
     size_t m_currentIndex;
 
