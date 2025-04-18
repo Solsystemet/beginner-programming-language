@@ -65,15 +65,46 @@ namespace node {
 
 	// Decleration rules
 	struct NodeSimpleDecl;
+	struct NodeArrayDecl;
 	struct NodeObjectDecl;
 
+	//array declerations
+	struct NodeNumberArrayDecl;
+	struct NodeStringArrayDecl;
+	struct NodeBooleanArrayDecl;
+	struct NodeObjectArrayDecl;
+
 	struct NodeDecl {
-		mpark::variant<NodeSimpleDecl*, NodeObjectDecl*> var;
+		mpark::variant<NodeSimpleDecl*, NodeObjectDecl*, NodeArrayDecl*> var;
 	};
 
 	struct NodeSimpleDecl {
 		Token identifier;
 		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*, NodeBooleanExpr*> expr;
+	};
+
+	struct NodeArrayDecl {
+		Token identifier;
+		mpark::variant<NodeNumberArrayDecl*, NodeStringArrayDecl*, NodeBooleanArrayDecl*, NodeObjectArrayDecl*> var;
+	};
+
+	struct NodeNumberArrayDecl
+	{
+		std::vector<NodeArithmeticExpr*> elements;
+	};
+
+	struct NodeStringArrayDecl
+	{
+		std::vector<NodeStringExpr*> elements;
+	};
+	struct NodeBooleanArrayDecl
+	{
+		std::vector<NodeBooleanExpr*> elements;
+	};
+	// sus
+	struct NodeObjectArrayDecl
+	{
+		std::vector<NodeObjectDecl*> elements;
 	};
 
 	struct NodeObjectDecl {

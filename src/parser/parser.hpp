@@ -41,8 +41,10 @@ private:
         return nullptr;
     }
 	
-	node::NodeDecl* parse_declaration();
 	node::NodeStmt* parse_stmt();
+	node::NodeDecl* parse_decleration();
+	node::NodeSimpleDecl* parse_simple_decleration();
+	node::NodeArrayDecl* parse_array_decleration();
 	node::NodeArithmeticExpr* parse_arithmetic_expr();
 	node::NodeTerm* parse_term();
 	node::NodeFactor* parse_factor();

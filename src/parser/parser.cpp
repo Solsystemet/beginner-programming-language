@@ -7,17 +7,7 @@ node::NodeProg Parser::parse_prog() {
 	// Stmts -> <Stmt><Stmts>
 	while (peek())
 	{
-		if (node::NodeDecl* decl = parse_declaration()) {
-			node::NodeStmt* stmt = new node::NodeStmt();
-			stmt->var = decl;
-
-
-			prog.stmts.push_back(stmt);
-			std::cout << "Parsed declaration\n";
-			continue;
-		}
-		//Parse a statement
-		else if (node::NodeStmt* stmt = parse_stmt()) {
+		if (node::NodeStmt* stmt = parse_stmt()) {
 			//Push statement to program
 			prog.stmts.push_back(stmt);
 		}
@@ -29,130 +19,18 @@ node::NodeProg Parser::parse_prog() {
 	return prog;
 }
 
-node::NodeDecl* Parser::parse_declaration() {
-	// Simple Declaration: <type> <identifier> = <expr>
-	if (
-		peek()->type == NUMBER &&
-		peek(1) && peek(1)->type == IDENTIFIER &&
-		peek(2) && peek(2)->type == EQUAL
-		)
 
-	{
-		auto* simple_decl = new node::NodeSimpleDecl();
-		consume();      // <type>
-		simple_decl->identifier = consume();// <identifier>
-		consume();
-
-		auto* arithmetic_expr = parse_arithmetic_expr();
-		if (arithmetic_expr == nullptr) {
-			std::cerr << "Invalid expression in simple declaration after '=' at token index "
-				<< m_currentIndex << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		simple_decl->expr = arithmetic_expr;
-
-
-		try_consume(NEW_LINE, "Expected newline after declaration");
-
-		auto* decl = new node::NodeDecl();
-		decl->var = simple_decl;
-		return decl;
-	}
-
-	if (
-		peek() && peek()->type == STRING &&
-		peek(1) && peek(1)->type == IDENTIFIER &&
-		peek(2) && peek(2)->type == EQUAL
-		)
-
-	{
-		auto* simple_decl = new node::NodeSimpleDecl();
-		consume();      // <type>
-		simple_decl->identifier = consume();// <identifier>
-		consume();
-
-		auto* expr = parse_string_expr();
-		if (expr == nullptr) {
-			std::cerr << "Invalid expression in simple declaration after '=' at token index "
-				<< m_currentIndex << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		simple_decl->expr = expr;
-
-
-		try_consume(NEW_LINE, "Expected newline after declaration");
-
-		auto* decl = new node::NodeDecl();
-		decl->var = simple_decl;
-		return decl;
-	}
-
-	if (
-		peek() && peek()->type == BOOLEAN &&
-		peek(1) && peek(1)->type == IDENTIFIER &&
-		peek(2) && peek(2)->type == EQUAL
-		)
-
-	{
-		auto* simple_decl = new node::NodeSimpleDecl();
-		consume();      // <type>
-		simple_decl->identifier = consume();// <identifier>
-		consume();
-
-		auto* expr = parse_boolean_expr();
-		if (expr == nullptr) {
-			std::cerr << "Invalid expression in simple declaration after '=' at token index "
-				<< m_currentIndex << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		simple_decl->expr = expr;
-
-
-		try_consume(NEW_LINE, "Expected newline after declaration");
-
-		auto* decl = new node::NodeDecl();
-		decl->var = simple_decl;
-		return decl;
-	}
-
-	// Object Declaration: <identifier> : <newline> <indent> <simple_decl> <dedent>
-	if (peek(0) && peek(0)->type == IDENTIFIER &&
-		peek(1) && peek(1)->type == COLON &&
-		peek(2) && peek(2)->type == NEW_LINE &&
-		peek(3) && peek(3)->type == TAB_INDENT) {
-
-		auto* object_decl = new node::NodeObjectDecl();
-		object_decl->identifier = consume(); // identifier
-		consume(); // COLON
-		consume(); // NEW_LINE
-		consume(); // INDENT
-
-		// one or more simple declarations inside
-		while (peek() &&
-			(peek()->type == NUMBER || peek()->type == STRING || peek()->type == BOOLEAN)) {
-			auto* properties_decl = parse_declaration();
-			if (auto simple = mpark::get_if<node::NodeSimpleDecl*>(&properties_decl->var)) {
-				object_decl->properties.push_back(*simple);
-			}
-			else {
-				std::cerr << "Only simple declarations allowed inside object" << std::endl;
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		try_consume(TAB_DEDENT, "Expected dedent after object declaration");
-
-		auto* decl = new node::NodeDecl();
-		decl->var = object_decl;
-		return decl;
-	}
-
-	return nullptr;
-}
 
 node::NodeStmt* Parser::parse_stmt() {
-	//Rule 3.2
-	// Stmt -> print(<Expr>)
+	
+	// <Stmt> -> <Decleration>
+	if (node::NodeDecl* decl = parse_decleration()) {
+		node::NodeStmt* stmt = new node::NodeStmt();
+		stmt->var = decl;
+		return stmt;
+	}
+
+	// Special print function call
 	if (peek() && peek()->type == PRINT &&
 		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
 		// consume terminal symbols
@@ -184,6 +62,296 @@ node::NodeStmt* Parser::parse_stmt() {
 
 	return nullptr;
 
+}
+
+node::NodeDecl* Parser::parse_decleration() {
+	
+	if (node::NodeSimpleDecl* simp_decl = parse_simple_decleration()) {
+		node::NodeDecl* decl = new node::NodeDecl();
+		decl->var = simp_decl;
+		return decl;
+	}
+
+	if (node::NodeArrayDecl* arr_decl = parse_array_decleration()) {
+		node::NodeDecl* decl = new node::NodeDecl();
+		decl->var = arr_decl;
+		return decl;
+	}
+
+	// Object Declaration: <identifier> : <newline> <indent> <simple_decl> <dedent>
+	if (peek(0) && peek(0)->type == IDENTIFIER &&
+		peek(1) && peek(1)->type == COLON &&
+		peek(2) && peek(2)->type == NEW_LINE &&
+		peek(3) && peek(3)->type == TAB_INDENT) {
+
+		auto* object_decl = new node::NodeObjectDecl();
+		object_decl->identifier = consume(); // identifier
+		consume(); // COLON
+		consume(); // NEW_LINE
+		consume(); // INDENT
+
+		// one or more simple declarations inside
+		while (peek() &&
+			(peek()->type == NUMBER || peek()->type == STRING || peek()->type == BOOLEAN)) {
+			auto* properties_decl = parse_decleration();
+			if (auto simple = mpark::get_if<node::NodeSimpleDecl*>(&properties_decl->var)) {
+				object_decl->properties.push_back(*simple);
+			}
+			else {
+				std::cerr << "Only simple declarations allowed inside object" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		try_consume(TAB_DEDENT, "Expected dedent after object declaration");
+
+		auto* decl = new node::NodeDecl();
+		decl->var = object_decl;
+		return decl;
+	}
+
+	return nullptr;
+}
+
+node::NodeSimpleDecl* Parser::parse_simple_decleration()
+{
+
+	// Simple Declaration: <type> <identifier> = <expr>
+	if (
+		peek()->type == NUMBER &&
+		peek(1) && peek(1)->type == IDENTIFIER &&
+		peek(2) && peek(2)->type == EQUAL
+		)
+
+	{
+		auto* simple_decl = new node::NodeSimpleDecl();
+		consume();      // <type>
+		simple_decl->identifier = consume();// <identifier>
+		consume();
+
+		auto* arithmetic_expr = parse_arithmetic_expr();
+		if (arithmetic_expr == nullptr) {
+			std::cerr << "Invalid expression in simple declaration after '=' at token index "
+				<< m_currentIndex << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		simple_decl->expr = arithmetic_expr;
+
+
+		try_consume(NEW_LINE, "Expected newline after declaration");
+		return simple_decl;
+	}
+
+	if (
+		peek() && peek()->type == STRING &&
+		peek(1) && peek(1)->type == IDENTIFIER &&
+		peek(2) && peek(2)->type == EQUAL
+		)
+
+	{
+		auto* simple_decl = new node::NodeSimpleDecl();
+		consume();      // <type>
+		simple_decl->identifier = consume();// <identifier>
+		consume();
+
+		auto* expr = parse_string_expr();
+		if (expr == nullptr) {
+			std::cerr << "Invalid expression in simple declaration after '=' at token index "
+				<< m_currentIndex << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		simple_decl->expr = expr;
+
+
+		try_consume(NEW_LINE, "Expected newline after declaration");
+		return simple_decl;
+	}
+
+	if (
+		peek() && peek()->type == BOOLEAN &&
+		peek(1) && peek(1)->type == IDENTIFIER &&
+		peek(2) && peek(2)->type == EQUAL
+		)
+
+	{
+		auto* simple_decl = new node::NodeSimpleDecl();
+		consume();      // <type>
+		simple_decl->identifier = consume();// <identifier>
+		consume();
+
+		auto* expr = parse_boolean_expr();
+		if (expr == nullptr) {
+			std::cerr << "Invalid expression in simple declaration after '=' at token index "
+				<< m_currentIndex << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		simple_decl->expr = expr;
+
+
+		try_consume(NEW_LINE, "Expected newline after declaration");
+		return simple_decl;
+	}
+
+	return nullptr;
+}
+
+node::NodeArrayDecl* Parser::parse_array_decleration()
+{
+	// number[] x =
+	if (
+		peek()->type == NUMBER &&
+		peek(1) && peek(1)->type == OPEN_SQUAREBRACKET &&
+		peek(2) && peek(2)->type == CLOSED_SQUAREBRACKET&&
+		peek(3) && peek(3)->type == IDENTIFIER &&
+		peek(4) && peek(4)->type == EQUAL
+		)
+
+	{
+		auto* arr = new node::NodeArrayDecl();
+		auto* numberArray = new node::NodeNumberArrayDecl();
+		consume();      // <type>
+		consume(); // [
+		consume(); // ]
+		arr->identifier = consume();// <identifier>
+		consume(); // =
+
+		//Assumes empty array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET &&
+			peek(1) && peek(1)->type == CLOSED_SQUAREBRACKET) {
+			consume(); // [
+			consume(); // ]
+			arr->var = numberArray;
+			try_consume(NEW_LINE, "Expected newline after declaration");
+			return arr;
+		}
+		// Now assume arithmetic expressions 
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume(); // [
+			do
+			{
+				auto* arithmetic_expr = parse_arithmetic_expr();
+				if (arithmetic_expr == nullptr) {
+					std::cerr << "Invalid expression in array declaration after '=' at token index "
+						<< m_currentIndex << std::endl;
+					exit(EXIT_FAILURE);
+				}
+				numberArray->elements.push_back(arithmetic_expr);
+				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
+					consume(); // ]
+					break;
+				}
+			} while (consume().type == COMMA);
+		}
+
+
+		try_consume(NEW_LINE, "Expected newline after declaration");
+		return arr;
+	}
+
+	// string[] x =
+	if (
+		peek()->type == STRING &&
+		peek(1) && peek(1)->type == OPEN_SQUAREBRACKET &&
+		peek(2) && peek(2)->type == CLOSED_SQUAREBRACKET &&
+		peek(3) && peek(3)->type == IDENTIFIER &&
+		peek(4) && peek(4)->type == EQUAL
+		)
+
+	{
+		auto* arr = new node::NodeArrayDecl();
+		auto* stringArray = new node::NodeStringArrayDecl();
+		consume();      // <type>
+		consume(); // [
+		consume(); // ]
+		arr->identifier = consume();// <identifier>
+		consume(); // =
+
+		//Assumes empty array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET &&
+			peek(1) && peek(1)->type == CLOSED_SQUAREBRACKET) {
+			consume(); // [
+			consume(); // ]
+			arr->var = stringArray;
+			try_consume(NEW_LINE, "Expected newline after declaration");
+			return arr;
+		}
+		// Now assume arithmetic expressions 
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume(); // [
+			do
+			{
+				auto* string_expr = parse_string_expr();
+				if (string_expr == nullptr) {
+					std::cerr << "Invalid expression in array declaration after '=' at token index "
+						<< m_currentIndex << std::endl;
+					exit(EXIT_FAILURE);
+				}
+				stringArray->elements.push_back(string_expr);
+				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
+					consume(); // ]
+					break;
+				}
+			} while (consume().type == COMMA);
+		}
+
+
+		try_consume(NEW_LINE, "Expected newline after declaration");
+		return arr;
+	}
+
+	// boolean[] x =
+	if (
+		peek()->type == BOOLEAN &&
+		peek(1) && peek(1)->type == OPEN_SQUAREBRACKET &&
+		peek(2) && peek(2)->type == CLOSED_SQUAREBRACKET &&
+		peek(3) && peek(3)->type == IDENTIFIER &&
+		peek(4) && peek(4)->type == EQUAL
+		)
+
+	{
+		auto* arr = new node::NodeArrayDecl();
+		auto* booleanArray = new node::NodeBooleanArrayDecl();
+		consume();      // <type>
+		consume(); // [
+		consume(); // ]
+		arr->identifier = consume();// <identifier>
+		consume(); // =
+
+		//Assumes empty array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET &&
+			peek(1) && peek(1)->type == CLOSED_SQUAREBRACKET) {
+			consume(); // [
+			consume(); // ]
+			arr->var = booleanArray;
+			try_consume(NEW_LINE, "Expected newline after declaration");
+			return arr;
+		}
+		// Now assume boolean expressions 
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume(); // [
+			do
+			{
+				auto* boolean_expr = parse_boolean_expr();
+				if (boolean_expr == nullptr) {
+					std::cerr << "Invalid expression in array declaration after '=' at token index "
+						<< m_currentIndex << std::endl;
+					exit(EXIT_FAILURE);
+				}
+				booleanArray->elements.push_back(boolean_expr);
+				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
+					consume(); // ]
+					break;
+				}
+			} while (consume().type == COMMA);
+		}
+
+		try_consume(NEW_LINE, "Expected newline after declaration");
+		return arr;
+	}
+
+	//TODO: Make object array declerations
+	
+	return nullptr;
 }
 
 node::NodeArithmeticExpr* Parser::parse_arithmetic_expr() {

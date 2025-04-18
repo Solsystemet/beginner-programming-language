@@ -1,2 +1,2 @@
-boolean z = 2 + 2 < 2 - 1
+boolean[] z = [true, false, 2 < 4]
 print(z)
