@@ -82,6 +82,8 @@ private:
 	node::NodeFunctionCall* parse_function_Call();
 	node::NodeValue* parse_value();
 
+	node::NodeAssignment* parse_assignment();
+
     std::vector<Token> m_tokens;
     size_t m_currentIndex;
 

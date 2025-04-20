@@ -38,6 +38,13 @@ node::NodeStmt* Parser::parse_stmt() {
 		return stmt;
 	}
 
+	if (node::NodeAssignment* assignment = parse_assignment()) {
+		node::NodeStmt* stmt = new node::NodeStmt();
+		stmt->var = assignment;
+		try_consume(NEW_LINE, "Expected new_line after assignment");
+		return stmt;
+	}
+
 	// Special print function call
 	if (peek() && peek()->type == PRINT &&
 		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
@@ -1006,6 +1013,47 @@ node::NodeValue* Parser::parse_value()
 		val->var = val_expr;
 
 		return val;
+	}
+
+	return nullptr;
+}
+
+node::NodeAssignment* Parser::parse_assignment()
+{
+	node::NodeAssignment* assignment = new node::NodeAssignment();
+
+	//assume identfier with properties first
+	if (peek() && peek()->type == IDENTIFIER &&
+		peek(1) && peek(1)->type == DOT) {
+		assignment->identifierHead = consume(); // identifier
+		consume();
+		
+		do {
+			if (Token* t = try_consume(IDENTIFIER)) {
+
+				assignment->props.push_back(*t);
+			}
+		} while (try_consume(DOT));
+
+		try_consume(EQUAL, "Expects '=' after identifier properties assignment");
+
+		if (node::NodeValue* val = parse_value()) {
+			assignment->rhs = val;
+			return assignment;
+		}
+
+	}
+	else if (peek() && peek()->type == IDENTIFIER &&
+		peek(1) && peek(1)->type == EQUAL) {
+
+		assignment->identifierHead = consume(); // identifier
+		consume(); // =
+
+		if (node::NodeValue* val = parse_value()) {
+			assignment->rhs = val;
+			return assignment;
+		}
+
 	}
 
 	return nullptr;

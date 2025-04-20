@@ -68,10 +68,19 @@ namespace node {
 	struct NodeValueIdentifierProperty;
 	struct NodeValueFunctionCallProperty;
 
+	// node assigment rules
+	struct NodeAssignment;
+	struct NodeAssignmentFunctionCall;
+	struct NodeAssignmentIdentifier;
+	struct NodeAssignmentArithmeticExpression;
+	struct NodeAssignmentBooleanExpression;
+	struct NodeAssignmentStringExpression;
+	struct NodeAssignmentIdentifierProperties;
+
 
 	struct NodeStmt
 	{
-		mpark::variant<NodeDecl*,NodeFunctionCall*, NodeStmtPrint*> var;
+		mpark::variant<NodeDecl*,NodeFunctionCall*,NodeAssignment*, NodeStmtPrint*> var;
 	};
 
 	struct NodeStmtPrint {
@@ -129,6 +138,48 @@ namespace node {
 		NodeFunctionCall* functionCall;
 		NodeValueIdentifierProperty* identifierproperties;
 	};
+
+	struct NodeAssignment {
+		Token identifierHead;
+
+		NodeValue* rhs;
+
+		// represent <identifier>.<Identifier Property>
+		std::vector<Token> props;
+	};
+
+	struct NodeAssignmentIdentifier
+	{
+		Token identifier;
+	};
+
+	struct NodeAssignmentFunctionCall
+	{
+		NodeFunctionCall* functioncall;
+	};
+
+	struct NodeAssignmentIdentifierProperties
+	{
+		Token identifierHead;
+		std::vector<Token> props;
+	};
+
+	struct NodeAssignmentArithmeticExpression
+	{
+		NodeArithmeticExpr* expr;
+	};
+
+	struct NodeAssignmentBooleanExpression
+	{
+		NodeArithmeticExpr* expr;
+	};
+
+	struct NodeAssignmentStringExpression
+	{
+		NodeArithmeticExpr* expr;
+	};
+
+
 	// Decleration rules
 	struct NodeSimpleDecl;
 	struct NodeArrayDecl;
