@@ -45,6 +45,9 @@ private:
 	node::NodeDecl* parse_decleration();
 	node::NodeSimpleDecl* parse_simple_decleration();
 	node::NodeArrayDecl* parse_array_decleration();
+	node::NodeObjectDecl* parse_object_decleration();
+
+
 	node::NodeArithmeticExpr* parse_arithmetic_expr();
 	node::NodeTerm* parse_term();
 	node::NodeFactor* parse_factor();
@@ -75,6 +78,9 @@ private:
 	node::NodeBooleanNot* parse_not();
 	node::NodeBooleanNotOperation* parse_not_op();
 	node::NodeBooleanFactor* parse_boolean_factor();
+
+	node::NodeFunctionCall* parse_function_Call();
+	node::NodeValue* parse_value();
 
     std::vector<Token> m_tokens;
     size_t m_currentIndex;

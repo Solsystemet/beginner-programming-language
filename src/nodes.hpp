@@ -53,16 +53,82 @@ namespace node {
 	// Statement rules
 	struct NodeDecl;
 	struct NodeStmtPrint; // special function call stmt
+	
+	struct NodeFunctionCall;
+	// for function call arguments
+	struct NodeArgs;
+	
+	// node value rules
+	struct NodeValue;
+	struct NodeValueIdentifier;
+	struct NodeValueFunctionCall;
+	struct NodeValueArithmeticExpression;
+	struct NodeValueStringExpression;
+	struct NodeValueBooleanExpression;
+	struct NodeValueIdentifierProperty;
+	struct NodeValueFunctionCallProperty;
+
 
 	struct NodeStmt
 	{
-		mpark::variant<NodeDecl*, NodeStmtPrint*> var;
+		mpark::variant<NodeDecl*,NodeFunctionCall*, NodeStmtPrint*> var;
 	};
 
 	struct NodeStmtPrint {
 		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> var;
 	};
 
+	struct NodeFunctionCall {
+		Token functionName;
+		std::vector<NodeArgs*> args;
+	};
+
+	struct NodeArgs
+	{
+		NodeValue* value;
+	};
+
+	struct NodeValue
+	{
+		mpark::variant<
+			NodeValueIdentifier*,
+			NodeValueFunctionCall*,
+			NodeValueArithmeticExpression*,
+			NodeValueStringExpression*,
+			NodeValueBooleanExpression*,
+			NodeValueIdentifierProperty*,
+			NodeValueFunctionCallProperty*> var;
+	};
+
+	struct NodeValueIdentifier {
+		Token identifier;
+	};
+	struct NodeValueFunctionCall
+	{
+		NodeFunctionCall* functionCall;
+	};
+	struct NodeValueArithmeticExpression
+	{
+		NodeArithmeticExpr* expr;
+	};
+	struct NodeValueStringExpression
+	{
+		NodeStringExpr* expr;
+	};
+	struct NodeValueBooleanExpression
+	{
+		NodeBooleanExpr* expr;
+	};
+	struct NodeValueIdentifierProperty
+	{
+		Token identfierHead;
+		std::vector<Token> identifierproperties;
+	};
+	struct NodeValueFunctionCallProperty
+	{
+		NodeFunctionCall* functionCall;
+		NodeValueIdentifierProperty* identifierproperties;
+	};
 	// Decleration rules
 	struct NodeSimpleDecl;
 	struct NodeArrayDecl;
@@ -108,8 +174,9 @@ namespace node {
 	};
 
 	struct NodeObjectDecl {
+		Token objectType;
 		Token identifier;
-		std::vector<NodeSimpleDecl*> properties;
+		std::vector<NodeDecl*> properties;
 	};
 
 	struct NodeFactorDecimal
@@ -125,8 +192,7 @@ namespace node {
 
 	struct NodeFactor
 	{
-		//TODO: Add function call production later
-		mpark::variant<NodeFactorDecimal*, NodeFactorIdentifier*, NodeArithmeticExpr*> var;
+		mpark::variant<NodeFactorDecimal*, NodeFactorIdentifier*, NodeArithmeticExpr*, NodeFunctionCall*> var;
 	};
 
 	struct  NodeExprAdd {
@@ -157,7 +223,7 @@ namespace node {
 	};
 
 	struct NodeStringExpr {
-		mpark::variant<Token, NodeStringExprConcat*> var;
+		mpark::variant<Token, NodeStringExprConcat*, NodeFunctionCall*> var;
 	};
 
 	struct NodeArithmeticExpr
@@ -233,7 +299,7 @@ namespace node {
 	};
 
 	struct NodeBooleanFactor {
-		mpark::variant<NodeBooleanFactorValue*, NodeBooleanFactorIdentifier*, NodeBooleanExpr*> var;
+		mpark::variant<NodeBooleanFactorValue*, NodeBooleanFactorIdentifier*, NodeBooleanExpr*, NodeFunctionCall*> var;
 	};
 
 	struct NodeBooleanLess {

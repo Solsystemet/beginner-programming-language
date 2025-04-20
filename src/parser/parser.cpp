@@ -30,6 +30,14 @@ node::NodeStmt* Parser::parse_stmt() {
 		return stmt;
 	}
 
+	// <Stmt> -> <Function Call>
+	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
+		node::NodeStmt* stmt = new node::NodeStmt();
+		stmt->var = func_Call;
+		try_consume(NEW_LINE, "Expected new_line after function call");
+		return stmt;
+	}
+
 	// Special print function call
 	if (peek() && peek()->type == PRINT &&
 		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
@@ -78,37 +86,13 @@ node::NodeDecl* Parser::parse_decleration() {
 		return decl;
 	}
 
-	// Object Declaration: <identifier> : <newline> <indent> <simple_decl> <dedent>
-	if (peek(0) && peek(0)->type == IDENTIFIER &&
-		peek(1) && peek(1)->type == COLON &&
-		peek(2) && peek(2)->type == NEW_LINE &&
-		peek(3) && peek(3)->type == TAB_INDENT) {
-
-		auto* object_decl = new node::NodeObjectDecl();
-		object_decl->identifier = consume(); // identifier
-		consume(); // COLON
-		consume(); // NEW_LINE
-		consume(); // INDENT
-
-		// one or more simple declarations inside
-		while (peek() &&
-			(peek()->type == NUMBER || peek()->type == STRING || peek()->type == BOOLEAN)) {
-			auto* properties_decl = parse_decleration();
-			if (auto simple = mpark::get_if<node::NodeSimpleDecl*>(&properties_decl->var)) {
-				object_decl->properties.push_back(*simple);
-			}
-			else {
-				std::cerr << "Only simple declarations allowed inside object" << std::endl;
-				exit(EXIT_FAILURE);
-			}
-		}
-
-		try_consume(TAB_DEDENT, "Expected dedent after object declaration");
-
-		auto* decl = new node::NodeDecl();
-		decl->var = object_decl;
+	if (node::NodeObjectDecl* obj_decl = parse_object_decleration()) {
+		node::NodeDecl* decl = new node::NodeDecl();
+		decl->var = obj_decl;
 		return decl;
 	}
+
+	
 
 	return nullptr;
 }
@@ -350,7 +334,43 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 	}
 
 	//TODO: Make object array declerations
+	// example 1
+	// person[] people = []
+	/* example 2
+	* person[] people = [
+	* person x:
+		name = "Peter"]
+	*/
 	
+	return nullptr;
+}
+
+node::NodeObjectDecl* Parser::parse_object_decleration()
+{
+	// Object Declaration: <identifier><identifier> : <newline> <indent> <decls> <dedent>
+	if (peek(0) && peek(0)->type == IDENTIFIER &&
+		peek(1) && peek(1)->type == IDENTIFIER &&
+		peek(2) && peek(2)->type == COLON &&
+		peek(3) && peek(3)->type == NEW_LINE &&
+		peek(4) && peek(4)->type == TAB_INDENT) {
+
+		auto* object_decl = new node::NodeObjectDecl();
+		object_decl->objectType = consume(); // identifier for object type
+		object_decl->identifier = consume(); // identifier for variable name
+		consume(); // COLON
+		consume(); // NEW_LINE
+		consume(); // INDENT
+
+		// assign values
+		while (node::NodeDecl* decl = parse_decleration())
+		{
+			object_decl->properties.push_back(decl);
+		}
+
+		try_consume(TAB_DEDENT, "Expected dedent after object declaration");
+		return object_decl;
+	}
+
 	return nullptr;
 }
 
@@ -409,33 +429,56 @@ node::NodeFactor* Parser::parse_factor() {
 	if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeArithmeticExpr()))
 		nodefactor = factor;
 
+	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
+		nodefactor->var = func_Call;
+	}
+
 	return nodefactor;
 }
 
 node::NodeStringExpr* Parser::parse_string_expr() {
-	Token* t = try_consume(STRING_VAL);
-	if (t == nullptr) {
-		return nullptr;
-	}
-
-
 	auto* string_expr = new node::NodeStringExpr();
-	string_expr->var = *t;
 
-	if (peek()->type == PLUS) {
-		consume();
-		auto* concat = new node::NodeStringExprConcat();
-		concat->lhs = string_expr;
+	if (Token* t = try_consume(STRING_VAL)) {
+		string_expr->var = *t;
 
-		node::NodeStringExpr* rhs = parse_string_expr();
-		if (rhs == nullptr) {
-			std::cerr << "Expected string expression after '+'" << std::endl;
-			exit(EXIT_FAILURE);
+		if (peek()->type == PLUS) {
+			consume();
+			auto* concat = new node::NodeStringExprConcat();
+			concat->lhs = string_expr;
+
+			node::NodeStringExpr* rhs = parse_string_expr();
+			if (rhs == nullptr) {
+				std::cerr << "Expected string expression after '+'" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			concat->rhs = rhs;
+			string_expr->var = concat;
 		}
-		concat->rhs = rhs;
-		string_expr->var = concat;
+
+		return string_expr;
 	}
-	return string_expr;
+	else if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
+		string_expr->var = func_Call;
+
+		if (peek()->type == PLUS) {
+			consume();
+			auto* concat = new node::NodeStringExprConcat();
+			concat->lhs = string_expr;
+
+			node::NodeStringExpr* rhs = parse_string_expr();
+			if (rhs == nullptr) {
+				std::cerr << "Expected string expression after '+'" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			concat->rhs = rhs;
+			string_expr->var = concat;
+		}
+
+		return string_expr;
+	}
+
+	return nullptr;
 }
 
 node::NodeBooleanExpr* Parser::parse_boolean_expr()
@@ -839,6 +882,130 @@ node::NodeBooleanFactor* Parser::parse_boolean_factor()
 		try_consume(CLOSED_PARANTHESIS, "Expected ')'");
 		nodefactor->var = expr;
 		return nodefactor;
+	}
+
+	if (node::NodeFunctionCall* func_call = parse_function_Call()) {
+		nodefactor->var = func_call;
+		return nodefactor;
+	}
+
+	return nullptr;
+}
+
+node::NodeFunctionCall* Parser::parse_function_Call()
+{
+	if (peek() && peek()->type == IDENTIFIER &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
+		node::NodeFunctionCall* function_call = new node::NodeFunctionCall();
+
+		function_call->functionName = consume(); // identifier
+		consume();
+
+		do
+		{
+			if (node::NodeValue* val = parse_value()) {
+				node::NodeArgs* arg = new node::NodeArgs();
+				arg->value = val;
+				function_call->args.push_back(arg);
+			}
+
+		} while (try_consume(COMMA));
+		try_consume(CLOSED_PARANTHESIS, "Expected closed paranthesis after function call args");
+		
+		return function_call;
+	}
+	return nullptr;
+}
+
+node::NodeValue* Parser::parse_value()
+{
+	node::NodeValue* val = new node::NodeValue();
+
+	// Assume normal function call
+	if (node::NodeFunctionCall* function_call = parse_function_Call()) {
+		node::NodeValueFunctionCall* v_func_call = new node::NodeValueFunctionCall();
+		v_func_call->functionCall = function_call;
+
+		// Verify if properties are there after function call (also assume function call returns an object)
+		if (peek() && peek()->type == DOT) {
+			consume(); // .
+			node::NodeValueFunctionCallProperty* fc_props = new node::NodeValueFunctionCallProperty();
+			node::NodeValueIdentifierProperty* ident_prop = new node::NodeValueIdentifierProperty();
+
+			fc_props->functionCall = function_call;
+			fc_props->identifierproperties = ident_prop;
+
+			ident_prop->identfierHead = function_call->functionName;
+
+			if (Token* t = try_consume(IDENTIFIER,
+				"Expected identifier after '.' after a function call")) {
+				ident_prop->identifierproperties.push_back(*t);
+			}
+
+			while (peek() && peek()->type == DOT)
+			{
+				ident_prop->identifierproperties.push_back(*try_consume(IDENTIFIER,
+					"Expected identifier after '.' after a function call"));
+			}
+			val->var = fc_props;
+			return val;
+		}
+
+		val->var = v_func_call;
+		return val;
+	}
+
+	// value returns identifier (can be of any type)
+	if (peek() && peek()->type == IDENTIFIER) {
+		node::NodeValueIdentifier* val_ident = new node::NodeValueIdentifier();
+		val_ident->identifier = consume();
+
+		// Verify if properties are there after identifier (also assume identifier is an object)
+		if (peek() && peek()->type == DOT) {
+			consume(); // .
+			node::NodeValueIdentifierProperty* ident_props = new node::NodeValueIdentifierProperty();
+			ident_props->identfierHead = val_ident->identifier;
+			ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
+				"Expected identifier after '.' after a function call"));
+			while (peek() && peek()->type == DOT)
+			{
+				ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
+					"Expected identifier after '.' after a function call"));
+			}
+			val->var = ident_props;
+			return val;
+		}
+
+		val->var = val_ident;
+		return val;
+
+	}
+
+	// value returns arithmetic expression
+	if (node::NodeArithmeticExpr* a_epxr = parse_arithmetic_expr()) {
+		node::NodeValueArithmeticExpression* val_expr = new node::NodeValueArithmeticExpression();
+		val_expr->expr = a_epxr;
+		val->var = val_expr;
+
+		return val;
+	}
+
+	// value returns string expression
+	if (node::NodeStringExpr* s_epxr = parse_string_expr()) {
+		node::NodeValueStringExpression* val_expr = new node::NodeValueStringExpression();
+		val_expr->expr = s_epxr;
+		val->var = val_expr;
+
+		return val;
+	}
+
+	// value returns boolean expression
+	if (node::NodeBooleanExpr* b_epxr = parse_boolean_expr()) {
+		node::NodeValueBooleanExpression* val_expr = new node::NodeValueBooleanExpression();
+		val_expr->expr = b_epxr;
+		val->var = val_expr;
+
+		return val;
 	}
 
 	return nullptr;

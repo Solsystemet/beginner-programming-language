@@ -1,2 +1,2 @@
-boolean[] z = [true, false, 2 < 4]
+add(2,2)
 print(z)
