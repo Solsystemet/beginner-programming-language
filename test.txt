@@ -1,4 +1,4 @@
-x = 2 + 2
-y = add(2,2)
-x.y.z = createPerson().name
+person john:
+	name = "John"
+	age = 19
 print(z)

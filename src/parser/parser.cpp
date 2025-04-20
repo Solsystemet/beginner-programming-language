@@ -354,7 +354,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 
 node::NodeObjectDecl* Parser::parse_object_decleration()
 {
-	// Object Declaration: <identifier><identifier> : <newline> <indent> <decls> <dedent>
+	// Object Declaration: <identifier><identifier> : <newline> <indent> <assignments> <dedent>
 	if (peek(0) && peek(0)->type == IDENTIFIER &&
 		peek(1) && peek(1)->type == IDENTIFIER &&
 		peek(2) && peek(2)->type == COLON &&
@@ -372,6 +372,7 @@ node::NodeObjectDecl* Parser::parse_object_decleration()
 		while (node::NodeAssignment* assignment = parse_assignment())
 		{
 			object_decl->properties.push_back(assignment);
+			try_consume(NEW_LINE, "Expected 'new line' after assignment in obj decleration");
 		}
 
 		try_consume(TAB_DEDENT, "Expected dedent after object declaration");
