@@ -107,6 +107,9 @@ namespace node {
 			NodeValueBooleanExpression*,
 			NodeValueIdentifierProperty*,
 			NodeValueFunctionCallProperty*> var;
+
+		//if node value is from an array
+		NodeArithmeticExpr* index = nullptr;
 	};
 
 	struct NodeValueIdentifier {
@@ -141,6 +144,9 @@ namespace node {
 
 	struct NodeAssignment {
 		Token identifierHead;
+
+		// if variable is an array index will be overwritten
+		NodeArithmeticExpr* index = nullptr;
 
 		NodeValue* rhs;
 
@@ -227,7 +233,7 @@ namespace node {
 	struct NodeObjectDecl {
 		Token objectType;
 		Token identifier;
-		std::vector<NodeDecl*> properties;
+		std::vector<NodeAssignment*> properties;
 	};
 
 	struct NodeFactorDecimal

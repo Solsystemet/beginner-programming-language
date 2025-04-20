@@ -369,9 +369,9 @@ node::NodeObjectDecl* Parser::parse_object_decleration()
 		consume(); // INDENT
 
 		// assign values
-		while (node::NodeDecl* decl = parse_decleration())
+		while (node::NodeAssignment* assignment = parse_assignment())
 		{
-			object_decl->properties.push_back(decl);
+			object_decl->properties.push_back(assignment);
 		}
 
 		try_consume(TAB_DEDENT, "Expected dedent after object declaration");
@@ -954,8 +954,26 @@ node::NodeValue* Parser::parse_value()
 				ident_prop->identifierproperties.push_back(*try_consume(IDENTIFIER,
 					"Expected identifier after '.' after a function call"));
 			}
+
+			//Check if it is an array
+			if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+				consume();
+				if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+					val->index = expr;
+					try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+				}
+			}
 			val->var = fc_props;
 			return val;
+		}
+
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				val->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
 		}
 
 		val->var = v_func_call;
@@ -979,8 +997,26 @@ node::NodeValue* Parser::parse_value()
 				ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
 					"Expected identifier after '.' after a function call"));
 			}
+
+			//Check if it is an array
+			if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+				consume();
+				if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+					val->index = expr;
+					try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+				}
+			}
 			val->var = ident_props;
 			return val;
+		}
+
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				val->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
 		}
 
 		val->var = val_ident;
@@ -994,6 +1030,15 @@ node::NodeValue* Parser::parse_value()
 		val_expr->expr = a_epxr;
 		val->var = val_expr;
 
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				val->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+		}
+
 		return val;
 	}
 
@@ -1003,6 +1048,15 @@ node::NodeValue* Parser::parse_value()
 		val_expr->expr = s_epxr;
 		val->var = val_expr;
 
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				val->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+		}
+
 		return val;
 	}
 
@@ -1011,6 +1065,15 @@ node::NodeValue* Parser::parse_value()
 		node::NodeValueBooleanExpression* val_expr = new node::NodeValueBooleanExpression();
 		val_expr->expr = b_epxr;
 		val->var = val_expr;
+
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				val->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+		}
 
 		return val;
 	}
@@ -1035,6 +1098,15 @@ node::NodeAssignment* Parser::parse_assignment()
 			}
 		} while (try_consume(DOT));
 
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				assignment->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+		}
+
 		try_consume(EQUAL, "Expects '=' after identifier properties assignment");
 
 		if (node::NodeValue* val = parse_value()) {
@@ -1043,11 +1115,20 @@ node::NodeAssignment* Parser::parse_assignment()
 		}
 
 	}
-	else if (peek() && peek()->type == IDENTIFIER &&
-		peek(1) && peek(1)->type == EQUAL) {
+	else if (peek() && peek()->type == IDENTIFIER) {
 
 		assignment->identifierHead = consume(); // identifier
-		consume(); // =
+		
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				assignment->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+		}
+
+		try_consume(EQUAL, "Expects '=' after lhs");
 
 		if (node::NodeValue* val = parse_value()) {
 			assignment->rhs = val;
