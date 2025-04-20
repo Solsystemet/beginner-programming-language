@@ -1,4 +1,8 @@
-person john:
-	name = "John"
-	age = 19
-print(z)
+if true:
+	print(2)
+else if false:
+	print(3)
+else if false or true:
+	print(5)
+else:
+	print(4)

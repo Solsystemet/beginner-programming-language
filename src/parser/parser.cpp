@@ -5,7 +5,7 @@ node::NodeProg Parser::parse_prog() {
 	node::NodeProg prog;
 	// Rule 2
 	// Stmts -> <Stmt><Stmts>
-	while (peek())
+	while (peek() != nullptr && peek()->type != -1)
 	{
 		if (node::NodeStmt* stmt = parse_stmt()) {
 			//Push statement to program
@@ -45,6 +45,12 @@ node::NodeStmt* Parser::parse_stmt() {
 		return stmt;
 	}
 
+	if (node::NodeGlobalControlFlow* controlFlow = parse_global_control_flow()) {
+		node::NodeStmt* stmt = new node::NodeStmt();
+		stmt->var = controlFlow;
+		return stmt;
+	}
+
 	// Special print function call
 	if (peek() && peek()->type == PRINT &&
 		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
@@ -67,12 +73,15 @@ node::NodeStmt* Parser::parse_stmt() {
 
 		// consume terminal symbols
 		try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
-		try_consume(EOF, "Expected newline after print statement");
-
-
-		auto* node_stmt = new node::NodeStmt();
-		node_stmt->var = node_stmt_print;
-		return node_stmt;
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			auto* node_stmt = new node::NodeStmt();
+			node_stmt->var = node_stmt_print;
+			return node_stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in print" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	return nullptr;
@@ -378,6 +387,74 @@ node::NodeObjectDecl* Parser::parse_object_decleration()
 		try_consume(TAB_DEDENT, "Expected dedent after object declaration");
 		return object_decl;
 	}
+
+	return nullptr;
+}
+
+node::NodeNestedStmt* Parser::parse_nested_stmt()
+{
+	// <Stmt> -> <Decleration>
+	if (node::NodeDecl* decl = parse_decleration()) {
+		node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
+		stmt->var = decl;
+		return stmt;
+	}
+
+	// <Stmt> -> <Function Call>
+	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
+		node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
+		stmt->var = func_Call;
+		try_consume(NEW_LINE, "Expected new_line after function call");
+		return stmt;
+	}
+
+	if (node::NodeAssignment* assignment = parse_assignment()) {
+		node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
+		stmt->var = assignment;
+		try_consume(NEW_LINE, "Expected new_line after assignment");
+		return stmt;
+	}
+
+	if (node::NodeGlobalControlFlow* controlFlow = parse_global_control_flow()) {
+		node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
+		stmt->var = controlFlow;
+		try_consume(NEW_LINE, "Expected new_line after control flow");
+		return stmt;
+	}
+
+	// Special print function call
+	if (peek() && peek()->type == PRINT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
+		// consume terminal symbols
+		consume();
+		consume();
+		auto* node_stmt_print = new node::NodeStmtPrint();
+		if (const auto string_expr = parse_string_expr()) {
+			node_stmt_print->var = string_expr;
+		}
+		// Parse expression rule
+		else if (const auto node_epxr = parse_arithmetic_expr()) {
+			node_stmt_print->var = node_epxr;
+		}
+
+		else {
+			std::cerr << "Invalid expression" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// consume terminal symbols
+		try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
+			stmt->var = node_stmt_print;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in print" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+
 
 	return nullptr;
 }
@@ -1136,6 +1213,221 @@ node::NodeAssignment* Parser::parse_assignment()
 			return assignment;
 		}
 
+	}
+
+	return nullptr;
+}
+
+node::NodeGlobalControlFlow* Parser::parse_global_control_flow()
+{
+	node::NodeGlobalControlFlow* controlFlow = new node::NodeGlobalControlFlow();
+	if (node::NodeGlobalIf* _if = parse_global_if()) {
+		controlFlow->var = _if;
+		return controlFlow;
+	}
+
+	if (node::NodeGlobalLoop* _loop = parse_global_loop()) {
+		controlFlow->var = _loop;
+		return controlFlow;
+	}
+
+	return nullptr;
+}
+
+node::NodeGlobalIf* Parser::parse_global_if()
+{
+
+	if (peek() && peek()->type == IF) {
+		consume(); // if
+		node::NodeGlobalIf* _if = new node::NodeGlobalIf();
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			_if->condition = expr;
+
+			try_consume(COLON, "Expected ':' after boolean expr in global if");
+			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
+			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
+
+			while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+				_if->stmts.push_back(stmt);
+			}
+
+			try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
+
+			while (node::NodeGlobalElseIf* _elseif = parse_global_else_if())
+			{
+				_if->elseifs.push_back(_elseif);
+			}
+
+			if (node::NodeGlobalElse* _else = parse_global_else()) {
+				_if->_else = _else;
+			}
+
+			return _if;
+
+		}
+		else
+		{
+			std::cerr << "Expected boolean expression after 'if'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return nullptr;
+}
+
+node::NodeGlobalElseIf* Parser::parse_global_else_if()
+{
+	if (peek() && peek()->type == ELSE &&
+		peek(1) && peek(1)->type == IF) {
+		consume(); // else
+		consume(); // if
+		node::NodeGlobalElseIf* _elseif = new node::NodeGlobalElseIf();
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			_elseif->condition = expr;
+
+			try_consume(COLON, "Expected ':' after boolean expr in global if");
+			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
+			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
+
+			while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+				_elseif->stmts.push_back(stmt);
+			}
+
+			try_consume(TAB_DEDENT, "Expected tab dedent after else if statement");
+			return _elseif;
+
+		}
+		else
+		{
+			std::cerr << "Expected boolean expression after 'if'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return nullptr;
+}
+
+node::NodeGlobalElse* Parser::parse_global_else()
+{
+	if (peek() && peek()->type == ELSE) {
+		consume(); // else
+		node::NodeGlobalElse* _else = new node::NodeGlobalElse();
+
+		try_consume(COLON, "Expected ':' after boolean expr in global if");
+		try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
+		try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
+
+		while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+			_else->stmts.push_back(stmt);
+		}
+
+		try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
+
+		return _else;
+
+			
+	}
+
+	return nullptr;
+}
+
+node::NodeGlobalLoop* Parser::parse_global_loop()
+{
+	node::NodeGlobalLoop* loop = new node::NodeGlobalLoop();
+	if (node::NodeGlobalWhile* _while = parse_global_while()) {
+		loop->var = _while;
+		return loop;
+	}
+
+	if (node::NodeGlobalFor* _for = parse_global_for()) {
+		loop->var = _for;
+		return loop;
+	}
+
+	return nullptr;
+}
+
+node::NodeGlobalWhile* Parser::parse_global_while()
+{
+	node::NodeGlobalWhile* _while = new node::NodeGlobalWhile();
+	if (peek() && peek()->type == WHILE) {
+		consume(); // while
+
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			_while->condition = expr;
+
+			try_consume(COLON, "Expected ':' after boolean expr in global while");
+			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global while");
+			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global while");
+
+			while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+				_while->stmts.push_back(stmt);
+			}
+
+			try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
+
+			return _while;
+		}
+		else {
+			std::cerr << "Expected boolean expression for global while loop" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	return nullptr;
+}
+
+node::NodeGlobalFor* Parser::parse_global_for()
+{
+	node::NodeGlobalFor* _for = new node::NodeGlobalFor();
+	if (peek() && peek()->type == FOR &&
+		peek(1) && peek(1)->type == NUMBER &&
+		peek(2) && peek(2)->type == IDENTIFIER &&
+		peek(3) && peek(3)->type == EQUAL
+		) {
+
+		consume(); // for
+		consume(); // number
+		_for->indexValIdentifier = consume(); // identifier
+		consume(); // equal
+
+		if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			_for->indexValExpr = expr;
+		}
+		else {
+			std::cerr << "Expected arithmetic expression for global for loop" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		try_consume(COMMA, "Expected ',' after arithmetic expression in global for loop");
+
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			_for->condition = expr;
+		}
+		else {
+			std::cerr << "Expected boolean expression for global for loop" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		try_consume(COMMA, "Expected ',' after arithmetic expression in global for loop");
+
+		if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			_for->increment = expr;
+		}
+		else {
+			std::cerr << "Expected boolean expression for global for loop" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		try_consume(COLON, "Expected ':' after boolean expr in global while");
+		try_consume(NEW_LINE, "Expected 'new_line' after ':' in global while");
+		try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global while");
+
+		while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+			_for->stmts.push_back(stmt);
+		}
+
+		try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
+
+		return _for;
 	}
 
 	return nullptr;

@@ -47,6 +47,8 @@ private:
 	node::NodeArrayDecl* parse_array_decleration();
 	node::NodeObjectDecl* parse_object_decleration();
 
+	node::NodeNestedStmt* parse_nested_stmt();
+
 
 	node::NodeArithmeticExpr* parse_arithmetic_expr();
 	node::NodeTerm* parse_term();
@@ -83,6 +85,15 @@ private:
 	node::NodeValue* parse_value();
 
 	node::NodeAssignment* parse_assignment();
+
+	node::NodeGlobalControlFlow* parse_global_control_flow();
+	node::NodeGlobalIf* parse_global_if();
+	node::NodeGlobalElseIf* parse_global_else_if();
+	node::NodeGlobalElse* parse_global_else();
+
+	node::NodeGlobalLoop* parse_global_loop();
+	node::NodeGlobalWhile* parse_global_while();
+	node::NodeGlobalFor* parse_global_for();
 
     std::vector<Token> m_tokens;
     size_t m_currentIndex;

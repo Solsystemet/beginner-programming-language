@@ -9,6 +9,7 @@ namespace node {
 	// Prog node rules 
 	struct NodeProg;
 	struct NodeStmt;
+	struct NodeNestedStmt;
 
 	//Arithmetic expression rules
 	struct NodeArithmeticExpr;
@@ -77,10 +78,26 @@ namespace node {
 	struct NodeAssignmentStringExpression;
 	struct NodeAssignmentIdentifierProperties;
 
+	// node global control flow rules
+	struct NodeGlobalControlFlow;
+	struct NodeGlobalIf;
+	struct NodeGlobalElseIf;
+	struct NodeGlobalElse;
+	struct NodeGlobalLoop;
+	struct NodeGlobalWhile;
+	struct NodeGlobalFor;
+
 
 	struct NodeStmt
 	{
-		mpark::variant<NodeDecl*,NodeFunctionCall*,NodeAssignment*, NodeStmtPrint*> var;
+		mpark::variant<NodeDecl*,NodeFunctionCall*,NodeAssignment*,
+			NodeGlobalControlFlow*, NodeStmtPrint*> var;
+	};
+
+	struct NodeNestedStmt
+	{
+		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
+			NodeGlobalControlFlow*, NodeStmtPrint*> var;
 	};
 
 	struct NodeStmtPrint {
@@ -378,4 +395,58 @@ namespace node {
 		NodeArithmeticExpr* lhs;
 		NodeArithmeticExpr* rhs;
 	};
+
+	// node global control flow rules
+	struct NodeGlobalControlFlow;
+	struct NodeGlobalIf;
+	struct NodeGlobalElseIf;
+	struct NodeGlobalElse;
+	struct NodeGlobalLoop;
+	struct NodeGlobalWhile;
+	struct NodeGlobalFor;
+
+	struct NodeGlobalControlFlow {
+		mpark::variant<NodeGlobalIf*, NodeGlobalLoop*> var;
+	};
+
+	struct NodeGlobalIf {
+		NodeBooleanExpr* condition;
+		std::vector<NodeNestedStmt*> stmts;
+
+		std::vector<NodeGlobalElseIf*> elseifs;
+
+		// assumes else if not there
+		NodeGlobalElse* _else = nullptr;
+	};
+
+	struct NodeGlobalElseIf
+	{
+		NodeBooleanExpr* condition;
+		std::vector<NodeNestedStmt*> stmts;
+	};
+
+	struct NodeGlobalElse {
+		std::vector<NodeNestedStmt*> stmts;
+	};
+
+	struct NodeGlobalLoop {
+		mpark::variant<NodeGlobalWhile*, NodeGlobalFor*> var;
+	};
+
+	struct NodeGlobalWhile {
+		NodeBooleanExpr* condition;
+		std::vector<NodeNestedStmt*> stmts;
+	};
+
+	struct NodeGlobalFor
+	{
+		Token indexValIdentifier;
+		NodeArithmeticExpr* indexValExpr;
+		NodeBooleanExpr* condition;
+		NodeArithmeticExpr* increment;
+
+		std::vector<NodeNestedStmt*> stmts;
+	};
+
+
 }
