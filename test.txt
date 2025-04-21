@@ -1,8 +1,2 @@
-if true:
-	print(2)
-else if false:
-	print(3)
-else if false or true:
-	print(5)
-else:
-	print(4)
+number function add(number lhs, number rhs):
+	return lhs + rhs

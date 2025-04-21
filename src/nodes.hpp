@@ -10,6 +10,9 @@ namespace node {
 	struct NodeProg;
 	struct NodeStmt;
 	struct NodeNestedStmt;
+	struct NodeFunctionStmt;
+
+	struct NodeFunctionReturn;
 
 	//Arithmetic expression rules
 	struct NodeArithmeticExpr;
@@ -87,17 +90,43 @@ namespace node {
 	struct NodeGlobalWhile;
 	struct NodeGlobalFor;
 
+	// node function control flow rules
+	struct NodeFunctionControlFlow;
+	struct NodeFunctionIf;
+	struct NodeFunctionElseIf;
+	struct NodeFunctionElse;
+	struct NodeFunctionLoop;
+	struct NodeFunctionWhile;
+	struct NodeFunctionFor;
+
+	// node definition rules
+	struct NodeDefinition;
+	struct NodeFunctionDefinition;
+	struct NodeObjectDefinition;
+
+	struct NodeFunctionArg;
+
 
 	struct NodeStmt
 	{
 		mpark::variant<NodeDecl*,NodeFunctionCall*,NodeAssignment*,
-			NodeGlobalControlFlow*, NodeStmtPrint*> var;
+			NodeGlobalControlFlow*, NodeStmtPrint*, NodeDefinition*> var;
 	};
 
 	struct NodeNestedStmt
 	{
 		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
 			NodeGlobalControlFlow*, NodeStmtPrint*> var;
+	};
+
+	struct NodeFunctionStmt
+	{
+		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
+			NodeFunctionControlFlow*, NodeFunctionReturn*, NodeStmtPrint*> var;
+	};
+
+	struct NodeFunctionReturn {
+		NodeValue* val = nullptr;
 	};
 
 	struct NodeStmtPrint {
@@ -396,15 +425,6 @@ namespace node {
 		NodeArithmeticExpr* rhs;
 	};
 
-	// node global control flow rules
-	struct NodeGlobalControlFlow;
-	struct NodeGlobalIf;
-	struct NodeGlobalElseIf;
-	struct NodeGlobalElse;
-	struct NodeGlobalLoop;
-	struct NodeGlobalWhile;
-	struct NodeGlobalFor;
-
 	struct NodeGlobalControlFlow {
 		mpark::variant<NodeGlobalIf*, NodeGlobalLoop*> var;
 	};
@@ -447,6 +467,81 @@ namespace node {
 
 		std::vector<NodeNestedStmt*> stmts;
 	};
+
+
+
+	struct NodeFunctionControlFlow {
+		mpark::variant<NodeFunctionIf*, NodeFunctionLoop*> var;
+	};
+
+	struct NodeFunctionIf {
+		NodeBooleanExpr* condition;
+		std::vector<NodeFunctionStmt*> stmts;
+
+		std::vector<NodeFunctionElseIf*> elseifs;
+
+		// assumes else if not there
+		NodeFunctionElse* _else = nullptr;
+	};
+
+	struct NodeFunctionElseIf
+	{
+		NodeBooleanExpr* condition;
+		std::vector<NodeFunctionStmt*> stmts;
+	};
+
+	struct NodeFunctionElse {
+		std::vector<NodeFunctionStmt*> stmts;
+	};
+
+	struct NodeFunctionLoop {
+		mpark::variant<NodeFunctionWhile*, NodeFunctionFor*> var;
+	};
+
+	struct NodeFunctionWhile {
+		NodeBooleanExpr* condition;
+		std::vector<NodeFunctionStmt*> stmts;
+	};
+
+	struct NodeFunctionFor
+	{
+		Token indexValIdentifier;
+		NodeArithmeticExpr* indexValExpr;
+		NodeBooleanExpr* condition;
+		NodeArithmeticExpr* increment;
+
+		std::vector<NodeFunctionStmt*> stmts;
+	};
+
+	struct NodeDefinition {
+		mpark::variant<NodeFunctionDefinition*, NodeObjectDefinition*> var;
+	};
+
+	struct NodeFunctionDefinition
+	{
+		// can either be number, string, boolean or identifier
+		Token* type = nullptr;
+		bool isAnArray = false;
+		Token functionName;
+
+		std::vector<NodeFunctionArg*> args;
+		std::vector<NodeFunctionStmt*> stmts;
+	};
+
+	struct NodeFunctionArg
+	{
+		Token type;
+		bool isTypeAnArray = false;
+		Token identifier;
+	};
+
+	struct NodeObjectDefinition
+	{
+		Token identifier;
+		std::vector<NodeDecl*> props;
+	};
+
+
 
 
 }

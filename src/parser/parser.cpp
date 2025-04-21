@@ -51,6 +51,12 @@ node::NodeStmt* Parser::parse_stmt() {
 		return stmt;
 	}
 
+	if (node::NodeDefinition* definition = parse_definition()) {
+		node::NodeStmt* stmt = new node::NodeStmt();
+		stmt->var = definition;
+		return stmt;
+	}
+
 	// Special print function call
 	if (peek() && peek()->type == PRINT &&
 		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
@@ -455,6 +461,86 @@ node::NodeNestedStmt* Parser::parse_nested_stmt()
 		}
 	}
 
+
+	return nullptr;
+}
+
+node::NodeFunctionStmt* Parser::parse_function_stmt()
+{
+	// <Stmt> -> <Decleration>
+	if (node::NodeDecl* decl = parse_decleration()) {
+		node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
+		stmt->var = decl;
+		return stmt;
+	}
+
+	// <Stmt> -> <Function Call>
+	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
+		node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
+		stmt->var = func_Call;
+		try_consume(NEW_LINE, "Expected new_line after function call");
+		return stmt;
+	}
+
+	if (node::NodeAssignment* assignment = parse_assignment()) {
+		node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
+		stmt->var = assignment;
+		try_consume(NEW_LINE, "Expected new_line after assignment");
+		return stmt;
+	}
+
+	if (node::NodeFunctionControlFlow* controlFlow = parse_function_control_flow()) {
+		node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
+		stmt->var = controlFlow;
+		try_consume(NEW_LINE, "Expected new_line after control flow");
+		return stmt;
+	}
+
+	if (peek() && peek()->type == RETURN) {
+		consume();
+		node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
+		node::NodeFunctionReturn* returnstmt = new node::NodeFunctionReturn();
+
+		if (node::NodeValue* val = parse_value()) {
+			returnstmt->val = val;
+		}
+		try_consume(NEW_LINE, "Expected new_line after return");
+		stmt->var = returnstmt;
+		return stmt;
+	}
+
+	// Special print function call
+	if (peek() && peek()->type == PRINT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
+		// consume terminal symbols
+		consume();
+		consume();
+		auto* node_stmt_print = new node::NodeStmtPrint();
+		if (const auto string_expr = parse_string_expr()) {
+			node_stmt_print->var = string_expr;
+		}
+		// Parse expression rule
+		else if (const auto node_epxr = parse_arithmetic_expr()) {
+			node_stmt_print->var = node_epxr;
+		}
+
+		else {
+			std::cerr << "Invalid expression" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		// consume terminal symbols
+		try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
+			stmt->var = node_stmt_print;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in print" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	return nullptr;
 }
@@ -1058,49 +1144,7 @@ node::NodeValue* Parser::parse_value()
 		return val;
 	}
 
-	// value returns identifier (can be of any type)
-	if (peek() && peek()->type == IDENTIFIER) {
-		node::NodeValueIdentifier* val_ident = new node::NodeValueIdentifier();
-		val_ident->identifier = consume();
-
-		// Verify if properties are there after identifier (also assume identifier is an object)
-		if (peek() && peek()->type == DOT) {
-			consume(); // .
-			node::NodeValueIdentifierProperty* ident_props = new node::NodeValueIdentifierProperty();
-			ident_props->identfierHead = val_ident->identifier;
-			ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
-				"Expected identifier after '.' after a function call"));
-			while (peek() && peek()->type == DOT)
-			{
-				ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
-					"Expected identifier after '.' after a function call"));
-			}
-
-			//Check if it is an array
-			if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
-				consume();
-				if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
-					val->index = expr;
-					try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
-				}
-			}
-			val->var = ident_props;
-			return val;
-		}
-
-		//Check if it is an array
-		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
-			consume();
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
-				val->index = expr;
-				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
-			}
-		}
-
-		val->var = val_ident;
-		return val;
-
-	}
+	
 
 	// value returns arithmetic expression
 	if (node::NodeArithmeticExpr* a_epxr = parse_arithmetic_expr()) {
@@ -1154,6 +1198,50 @@ node::NodeValue* Parser::parse_value()
 		}
 
 		return val;
+	}
+
+	// value returns identifier (can be of any type)
+	if (peek() && peek()->type == IDENTIFIER) {
+		node::NodeValueIdentifier* val_ident = new node::NodeValueIdentifier();
+		val_ident->identifier = consume();
+
+		// Verify if properties are there after identifier (also assume identifier is an object)
+		if (peek() && peek()->type == DOT) {
+			consume(); // .
+			node::NodeValueIdentifierProperty* ident_props = new node::NodeValueIdentifierProperty();
+			ident_props->identfierHead = val_ident->identifier;
+			ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
+				"Expected identifier after '.' after a function call"));
+			while (peek() && peek()->type == DOT)
+			{
+				ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
+					"Expected identifier after '.' after a function call"));
+			}
+
+			//Check if it is an array
+			if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+				consume();
+				if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+					val->index = expr;
+					try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+				}
+			}
+			val->var = ident_props;
+			return val;
+		}
+
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				val->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+		}
+
+		val->var = val_ident;
+		return val;
+
 	}
 
 	return nullptr;
@@ -1430,5 +1518,383 @@ node::NodeGlobalFor* Parser::parse_global_for()
 		return _for;
 	}
 
+	return nullptr;
+}
+
+node::NodeFunctionControlFlow* Parser::parse_function_control_flow()
+{
+	node::NodeFunctionControlFlow* controlFlow = new node::NodeFunctionControlFlow();
+	if (node::NodeFunctionIf* _if = parse_function_if()) {
+		controlFlow->var = _if;
+		return controlFlow;
+	}
+
+	if (node::NodeFunctionLoop* _loop = parse_function_loop()) {
+		controlFlow->var = _loop;
+		return controlFlow;
+	}
+
+	return nullptr;
+}
+
+node::NodeFunctionIf* Parser::parse_function_if()
+{
+	if (peek() && peek()->type == IF) {
+		consume(); // if
+		node::NodeFunctionIf* _if = new node::NodeFunctionIf();
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			_if->condition = expr;
+
+			try_consume(COLON, "Expected ':' after boolean expr in global if");
+			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
+			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
+
+			while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+				_if->stmts.push_back(stmt);
+			}
+
+			try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
+
+			while (node::NodeFunctionElseIf* _elseif = parse_function_else_if())
+			{
+				_if->elseifs.push_back(_elseif);
+			}
+
+			if (node::NodeFunctionElse* _else = parse_function_else()) {
+				_if->_else = _else;
+			}
+
+			return _if;
+
+		}
+		else
+		{
+			std::cerr << "Expected boolean expression after 'if'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return nullptr;
+}
+
+node::NodeFunctionElseIf* Parser::parse_function_else_if()
+{
+	if (peek() && peek()->type == ELSE &&
+		peek(1) && peek(1)->type == IF) {
+		consume(); // else
+		consume(); // if
+		node::NodeFunctionElseIf* _elseif = new node::NodeFunctionElseIf();
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			_elseif->condition = expr;
+
+			try_consume(COLON, "Expected ':' after boolean expr in global if");
+			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
+			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
+
+			while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+				_elseif->stmts.push_back(stmt);
+			}
+
+			try_consume(TAB_DEDENT, "Expected tab dedent after else if statement");
+			return _elseif;
+
+		}
+		else
+		{
+			std::cerr << "Expected boolean expression after 'if'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return nullptr;
+}
+
+node::NodeFunctionElse* Parser::parse_function_else()
+{
+	if (peek() && peek()->type == ELSE) {
+		consume(); // else
+		node::NodeFunctionElse* _else = new node::NodeFunctionElse();
+
+		try_consume(COLON, "Expected ':' after boolean expr in global if");
+		try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
+		try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
+
+		while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+			_else->stmts.push_back(stmt);
+		}
+
+		try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
+
+		return _else;
+
+
+	}
+	return nullptr;
+}
+
+node::NodeFunctionLoop* Parser::parse_function_loop()
+{
+
+	node::NodeFunctionLoop* loop = new node::NodeFunctionLoop();
+	if (node::NodeFunctionWhile* _while = parse_function_while()) {
+		loop->var = _while;
+		return loop;
+	}
+
+	if (node::NodeFunctionFor* _for = parse_function_for()) {
+		loop->var = _for;
+		return loop;
+	}
+
+	return nullptr;
+}
+
+node::NodeFunctionWhile* Parser::parse_function_while()
+{
+	node::NodeFunctionWhile* _while = new node::NodeFunctionWhile();
+	if (peek() && peek()->type == WHILE) {
+		consume(); // while
+
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			_while->condition = expr;
+
+			try_consume(COLON, "Expected ':' after boolean expr in global while");
+			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global while");
+			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global while");
+
+			while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+				_while->stmts.push_back(stmt);
+			}
+
+			try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
+
+			return _while;
+		}
+		else {
+			std::cerr << "Expected boolean expression for global while loop" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	return nullptr;
+}
+
+node::NodeFunctionFor* Parser::parse_function_for()
+{
+	node::NodeFunctionFor* _for = new node::NodeFunctionFor();
+	if (peek() && peek()->type == FOR &&
+		peek(1) && peek(1)->type == NUMBER &&
+		peek(2) && peek(2)->type == IDENTIFIER &&
+		peek(3) && peek(3)->type == EQUAL
+		) {
+
+		consume(); // for
+		consume(); // number
+		_for->indexValIdentifier = consume(); // identifier
+		consume(); // equal
+
+		if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			_for->indexValExpr = expr;
+		}
+		else {
+			std::cerr << "Expected arithmetic expression for global for loop" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		try_consume(COMMA, "Expected ',' after arithmetic expression in global for loop");
+
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			_for->condition = expr;
+		}
+		else {
+			std::cerr << "Expected boolean expression for global for loop" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		try_consume(COMMA, "Expected ',' after arithmetic expression in global for loop");
+
+		if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			_for->increment = expr;
+		}
+		else {
+			std::cerr << "Expected boolean expression for global for loop" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		try_consume(COLON, "Expected ':' after boolean expr in global while");
+		try_consume(NEW_LINE, "Expected 'new_line' after ':' in global while");
+		try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global while");
+
+		while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+			_for->stmts.push_back(stmt);
+		}
+
+		try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
+
+		return _for;
+	}
+	return nullptr;
+}
+
+node::NodeDefinition* Parser::parse_definition()
+{
+	node::NodeDefinition* definition = new node::NodeDefinition();
+
+	if (node::NodeFunctionDefinition* func_def = parse_function_definition()) {
+		definition->var = func_def;
+		return definition;
+	}
+
+	if (node::NodeObjectDefinition* obj_def = parse_object_definition()) {
+		definition->var = obj_def;
+		return definition;
+	}
+
+	return nullptr;
+}
+
+node::NodeFunctionDefinition* Parser::parse_function_definition()
+{
+	node::NodeFunctionDefinition* func_def = new node::NodeFunctionDefinition();
+
+	//Assume type function first
+	if (Token* type = parse_type()) {
+		func_def->type = type;
+		if (
+			peek() && peek()->type == OPEN_SQUAREBRACKET &&
+			peek(1) && peek(1)->type == CLOSED_SQUAREBRACKET
+			) 
+		{
+			consume(); // [
+			consume(); // ]
+			func_def->isAnArray = true;
+		}
+
+		try_consume(FUNCTION, "Expects function keyword");
+		
+		if (Token* func_name = try_consume(IDENTIFIER, "Expects identifier after function")) {
+			func_def->functionName = *func_name;
+		}
+		try_consume(OPEN_PARANTHESIS, "Expected '(' after function name");
+
+		do
+		{
+			if (Token* type = parse_type()) {
+				node::NodeFunctionArg* arg = new node::NodeFunctionArg();
+				arg->type = *type;
+				if (
+					peek() && peek()->type == OPEN_SQUAREBRACKET &&
+					peek(1) && peek(1)->type == CLOSED_SQUAREBRACKET
+					)
+				{
+					consume(); // [
+					consume(); // ]
+					arg->isTypeAnArray = true;
+				}
+
+				arg->identifier = *try_consume(IDENTIFIER, "Expected identfier name for argument");
+
+				func_def->args.push_back(arg);
+			}
+
+		} while (try_consume(COMMA));
+
+		try_consume(CLOSED_PARANTHESIS, "Expected ')' after function args");
+
+		try_consume(COLON, "Expected ':' in function definition");
+		try_consume(NEW_LINE, "Expected 'new_line'in function definition");
+		try_consume(TAB_INDENT, "Expected 'tab indent' in function definition");
+
+		while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+			func_def->stmts.push_back(stmt);
+		}
+
+		try_consume(TAB_DEDENT, "Expected tab dedent after function definition");
+		return func_def;
+	}
+
+
+	// now typeless function
+	else if (peek() && peek()->type == FUNCTION) {
+		try_consume(FUNCTION, "Expects function keyword");
+
+		if (Token* func_name = try_consume(IDENTIFIER, "Expects identifier after function")) {
+			func_def->functionName = *func_name;
+		}
+		try_consume(OPEN_PARANTHESIS, "Expected '(' after function name");
+
+		do
+		{
+			if (Token* type = parse_type()) {
+				node::NodeFunctionArg* arg = new node::NodeFunctionArg();
+				arg->type = *type;
+				if (
+					peek() && peek()->type == OPEN_SQUAREBRACKET &&
+					peek(1) && peek(1)->type == CLOSED_SQUAREBRACKET
+					)
+				{
+					consume(); // [
+					consume(); // ]
+					arg->isTypeAnArray = true;
+				}
+
+				arg->identifier = *try_consume(IDENTIFIER, "Expected identfier name for argument");
+
+				func_def->args.push_back(arg);
+			}
+
+		} while (try_consume(COMMA));
+
+		try_consume(CLOSED_PARANTHESIS, "Expected ')' after function args");
+
+		try_consume(COLON, "Expected ':' in function definition");
+		try_consume(NEW_LINE, "Expected 'new_line'in function definition");
+		try_consume(TAB_INDENT, "Expected 'tab indent' in function definition");
+
+		while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+			func_def->stmts.push_back(stmt);
+		}
+
+		try_consume(TAB_DEDENT, "Expected tab dedent after function definition");
+
+		return func_def;
+	}
+
+	return nullptr;
+}
+
+node::NodeObjectDefinition* Parser::parse_object_definition()
+{
+	node::NodeObjectDefinition* obj_Def = new node::NodeObjectDefinition();
+	if (peek() && peek()->type == IDENTIFIER) {
+		obj_Def->identifier = consume(); // identifier
+
+		try_consume(COLON, "expected colon in object definition");
+		try_consume(NEW_LINE, "expected new_line in object definition");
+		try_consume(TAB_INDENT, "expected tab indent in object definition");
+
+		while (node::NodeDecl* decl = parse_decleration())
+		{
+			obj_Def->props.push_back(decl);
+		}
+		try_consume(TAB_DEDENT, "expected tab dedent in object definition");
+
+		return obj_Def;
+	}
+
+	return nullptr;
+}
+
+Token* Parser::parse_type()
+{
+	if (
+		(peek() && peek()->type == NUMBER ||
+		peek() && peek()->type == STRING ||
+		peek() && peek()->type == BOOLEAN ||
+		peek() && peek()->type == IDENTIFIER) &&
+		peek(1) && peek(1)->type != COLON
+		) 
+	{
+
+		return &consume();
+	}
 	return nullptr;
 }
