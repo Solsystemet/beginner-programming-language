@@ -4,7 +4,7 @@
 node::NodeProg Parser::parse_prog() {
 	node::NodeProg prog;
 	// Rule 2
-	// Stmts -> <Stmt><Stmts>
+	// Stmts -> <Stmt><Stmts>;
 	while (peek() != nullptr && peek()->type != -1)
 	{
 		if (node::NodeStmt* stmt = parse_stmt()) {
@@ -64,14 +64,21 @@ node::NodeStmt* Parser::parse_stmt() {
 		consume();
 		consume();
 		auto* node_stmt_print = new node::NodeStmtPrint();
-		if (const auto string_expr = parse_string_expr()) {
+		size_t verify_str = 0;
+		size_t verify_arithmetic = 0;
+		size_t verify_bool = 0;
+		if (verify_string_expr(&verify_str)) {
+			const auto string_expr = parse_string_expr();
 			node_stmt_print->var = string_expr;
 		}
-		// Parse expression rule
-		else if (const auto node_epxr = parse_arithmetic_expr()) {
+		else if (verify_arithmetic_expr(&verify_arithmetic)) {
+			const auto node_epxr = parse_arithmetic_expr();
 			node_stmt_print->var = node_epxr;
 		}
-
+		else if (verify_boolean_expr(&verify_bool)) {
+			const auto node_epxr = parse_boolean_expr();
+			node_stmt_print->var = node_epxr;
+		}
 		else {
 			std::cerr << "Invalid expression" << std::endl;
 			exit(EXIT_FAILURE);
@@ -134,18 +141,21 @@ node::NodeSimpleDecl* Parser::parse_simple_decleration()
 		consume();      // <type>
 		simple_decl->identifier = consume();// <identifier>
 		consume();
+		size_t verify_arithmetic = 0;
+		if (verify_arithmetic_expr(&verify_arithmetic)) {
+			auto* arithmetic_expr = parse_arithmetic_expr();
+			if (arithmetic_expr == nullptr) {
+				std::cerr << "Invalid expression in simple declaration after '=' at token index "
+					<< m_currentIndex << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			simple_decl->expr = arithmetic_expr;
 
-		auto* arithmetic_expr = parse_arithmetic_expr();
-		if (arithmetic_expr == nullptr) {
-			std::cerr << "Invalid expression in simple declaration after '=' at token index "
-				<< m_currentIndex << std::endl;
-			exit(EXIT_FAILURE);
+
+			try_consume(NEW_LINE, "Expected newline after declaration");
+			return simple_decl;
 		}
-		simple_decl->expr = arithmetic_expr;
-
-
-		try_consume(NEW_LINE, "Expected newline after declaration");
-		return simple_decl;
+		
 	}
 
 	if (
@@ -159,18 +169,21 @@ node::NodeSimpleDecl* Parser::parse_simple_decleration()
 		consume();      // <type>
 		simple_decl->identifier = consume();// <identifier>
 		consume();
+		size_t verify_str = 0;
+		if (verify_string_expr(&verify_str)) {
+			auto* expr = parse_string_expr();
+			if (expr == nullptr) {
+				std::cerr << "Invalid expression in simple declaration after '=' at token index "
+					<< m_currentIndex << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			simple_decl->expr = expr;
 
-		auto* expr = parse_string_expr();
-		if (expr == nullptr) {
-			std::cerr << "Invalid expression in simple declaration after '=' at token index "
-				<< m_currentIndex << std::endl;
-			exit(EXIT_FAILURE);
+
+			try_consume(NEW_LINE, "Expected newline after declaration");
+			return simple_decl;
 		}
-		simple_decl->expr = expr;
-
-
-		try_consume(NEW_LINE, "Expected newline after declaration");
-		return simple_decl;
+		
 	}
 
 	if (
@@ -184,18 +197,21 @@ node::NodeSimpleDecl* Parser::parse_simple_decleration()
 		consume();      // <type>
 		simple_decl->identifier = consume();// <identifier>
 		consume();
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			auto* expr = parse_boolean_expr();
+			if (expr == nullptr) {
+				std::cerr << "Invalid expression in simple declaration after '=' at token index "
+					<< m_currentIndex << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			simple_decl->expr = expr;
 
-		auto* expr = parse_boolean_expr();
-		if (expr == nullptr) {
-			std::cerr << "Invalid expression in simple declaration after '=' at token index "
-				<< m_currentIndex << std::endl;
-			exit(EXIT_FAILURE);
+
+			try_consume(NEW_LINE, "Expected newline after declaration");
+			return simple_decl;
 		}
-		simple_decl->expr = expr;
-
-
-		try_consume(NEW_LINE, "Expected newline after declaration");
-		return simple_decl;
+		
 	}
 
 	return nullptr;
@@ -215,7 +231,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 	{
 		auto* arr = new node::NodeArrayDecl();
 		auto* numberArray = new node::NodeNumberArrayDecl();
-		consume();      // <type>
+		arr->type = consume();
 		consume(); // [
 		consume(); // ]
 		arr->identifier = consume();// <identifier>
@@ -223,14 +239,15 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 
 		//Assumes empty array
 		if (
-			peek() && peek()->type == BOOLEAN &&
-			peek() && peek()->value == arr->type.value &&
+			peek() && peek()->type == NUMBER &&
 			peek(1) && peek(1)->type == OPEN_SQUAREBRACKET
 			) {
-			consume(); // IDENTIFIER
+			consume(); // Number
 			consume(); // [
 
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			size_t verify_arithmetic = 0;
+			if (verify_arithmetic_expr(&verify_arithmetic)) {
+				node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 				numberArray->size = expr;
 			}
 			else
@@ -249,18 +266,20 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 			size_t size = 0;
 			do
 			{
-				auto* arithmetic_expr = parse_arithmetic_expr();
-				if (arithmetic_expr == nullptr) {
+				size_t verify_arithmetic = 0;
+				if (verify_arithmetic_expr(&verify_arithmetic)) {
+					auto* arithmetic_expr = parse_arithmetic_expr();
+					numberArray->elements.push_back(arithmetic_expr);
+					size++;
+					if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
+						consume(); // ]
+						break;
+					}
+				}
+				else {
 					std::cerr << "Invalid expression in array declaration after '=' at token index "
 						<< m_currentIndex << std::endl;
 					exit(EXIT_FAILURE);
-				}
-				numberArray->elements.push_back(arithmetic_expr);
-				size++;
-				
-				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
-					consume(); // ]
-					break;
 				}
 			} while (consume().type == COMMA);
 			numberArray->size = size;
@@ -283,7 +302,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 	{
 		auto* arr = new node::NodeArrayDecl();
 		auto* stringArray = new node::NodeStringArrayDecl();
-		consume();      // <type>
+		arr->type = consume();      // <type>
 		consume(); // [
 		consume(); // ]
 		arr->identifier = consume();// <identifier>
@@ -291,25 +310,26 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 
 		//Assumes empty array
 		if (
-			peek() && peek()->type == BOOLEAN &&
-			peek() && peek()->value == arr->type.value &&
+			peek() && peek()->type == STRING &&
 			peek(1) && peek(1)->type == OPEN_SQUAREBRACKET
 			) {
 			consume(); // IDENTIFIER
 			consume(); // [
-
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			size_t verify_arithmetic = 0;
+			if (verify_arithmetic_expr(&verify_arithmetic)) {
+				node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 				stringArray->size = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
+				arr->var = stringArray;
+				try_consume(NEW_LINE, "Expected newline after declaration");
+				return arr;
 			}
 			else
 			{
 				std::cerr << "Expected arithmetic expression for size allocation" << std::endl;
 			}
 
-			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
-			arr->var = stringArray;
-			try_consume(NEW_LINE, "Expected newline after declaration");
-			return arr;
+			
 		}
 		// Now assume arithmetic expressions 
 		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
@@ -317,18 +337,22 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 			size_t size = 0;
 			do
 			{
-				auto* string_expr = parse_string_expr();
-				if (string_expr == nullptr) {
+				size_t verify_str = 0;
+				if (verify_string_expr(&verify_str)) {
+					auto* string_expr = parse_string_expr();
+					stringArray->elements.push_back(string_expr);
+					size++;
+					if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
+						consume(); // ]
+						break;
+					}
+				}
+				else {
 					std::cerr << "Invalid expression in array declaration after '=' at token index "
 						<< m_currentIndex << std::endl;
 					exit(EXIT_FAILURE);
 				}
-				stringArray->elements.push_back(string_expr);
-				size++;
-				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
-					consume(); // ]
-					break;
-				}
+				
 			} while (consume().type == COMMA);
 			stringArray->size = size;
 		}
@@ -350,7 +374,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 	{
 		auto* arr = new node::NodeArrayDecl();
 		auto* booleanArray = new node::NodeBooleanArrayDecl();
-		consume();      // <type>
+		arr->type = consume();      // <type>
 		consume(); // [
 		consume(); // ]
 		arr->identifier = consume();// <identifier>
@@ -358,24 +382,23 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 
 		if (
 			peek() && peek()->type == BOOLEAN &&
-			peek() && peek()->value == arr->type.value &&
 			peek(1) && peek(1)->type == OPEN_SQUAREBRACKET
 			) {
 			consume(); // IDENTIFIER
 			consume(); // [
-
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			size_t verify_arithmetic = 0;
+			if (verify_arithmetic_expr(&verify_arithmetic)) {
+				node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 				booleanArray->size = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
+				arr->var = booleanArray;
+				try_consume(NEW_LINE, "Expected newline after declaration");
+				return arr;
 			}
 			else
 			{
 				std::cerr << "Expected arithmetic expression for size allocation" << std::endl;
 			}
-
-			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
-			arr->var = booleanArray;
-			try_consume(NEW_LINE, "Expected newline after declaration");
-			return arr;
 		}
 		// Now assume boolean expressions 
 		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
@@ -383,37 +406,29 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 			size_t size = 0;
 			do
 			{
-				auto* boolean_expr = parse_boolean_expr();
-				if (boolean_expr == nullptr) {
+				size_t verify_bool = 0;
+				if (verify_boolean_expr(&verify_bool)) {
+					auto* boolean_expr = parse_boolean_expr();
+					booleanArray->elements.push_back(boolean_expr);
+					size++;
+					if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
+						consume(); // ]
+						break;
+					}
+				}
+				else {
 					std::cerr << "Invalid expression in array declaration after '=' at token index "
 						<< m_currentIndex << std::endl;
 					exit(EXIT_FAILURE);
 				}
-				booleanArray->elements.push_back(boolean_expr);
-				size++;
-				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
-					consume(); // ]
-					break;
-				}
+				
 			} while (consume().type == COMMA);
-				booleanArray->size = size;
+			booleanArray->size = size;
 		}
 
 		try_consume(NEW_LINE, "Expected newline after declaration");
 		return arr;
 	}
-
-	//TODO: Make object array declerations
-	// example 1
-	// person[] people = person[5]
-	/* example 2
-	* person[] people = [
-	* person x:
-		name = "Peter",
-	  person y:
-		name = "Pete",
-		]
-	*/
 
 	// person[] x =
 	if (
@@ -427,7 +442,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 	{
 		auto* arr = new node::NodeArrayDecl();
 		auto* objArray = new node::NodeObjectArrayDecl();
-		arr->type = *parse_type();     // <type>
+		arr->type = consume();     // <type>
 		consume(); // [
 		consume(); // ]
 		arr->identifier = consume();// <identifier>
@@ -441,19 +456,22 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 			) {
 			consume(); // IDENTIFIER
 			consume(); // [
-
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			
+			size_t verify_arithmetic = 0;
+			if (verify_arithmetic_expr(&verify_arithmetic)) {
+				node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 				objArray->size = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
+				arr->var = objArray;
+				try_consume(NEW_LINE, "Expected newline after declaration");
+				return arr;
 			}
 			else
 			{
 				std::cerr << "Expected arithmetic expression for size allocation" << std::endl;
 			}
 
-			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
-			arr->var = objArray;
-			try_consume(NEW_LINE, "Expected newline after declaration");
-			return arr;
+			
 		}
 		// Now assume boolean expressions 
 		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
@@ -552,14 +570,22 @@ node::NodeNestedStmt* Parser::parse_nested_stmt()
 		consume();
 		consume();
 		auto* node_stmt_print = new node::NodeStmtPrint();
-		if (const auto string_expr = parse_string_expr()) {
+		size_t verify_str = 0;
+		size_t verify_arithmetic = 0;
+		size_t verify_bool = 0;
+		if (verify_string_expr(&verify_str)) {
+			const auto string_expr = parse_string_expr();
 			node_stmt_print->var = string_expr;
 		}
 		// Parse expression rule
-		else if (const auto node_epxr = parse_arithmetic_expr()) {
+		else if (verify_arithmetic_expr(&verify_arithmetic)) {
+			const auto node_epxr = parse_arithmetic_expr();
 			node_stmt_print->var = node_epxr;
 		}
-
+		else if (verify_boolean_expr(&verify_bool)) {
+			const auto node_epxr = parse_boolean_expr();
+			node_stmt_print->var = node_epxr;
+		}
 		else {
 			std::cerr << "Invalid expression" << std::endl;
 			exit(EXIT_FAILURE);
@@ -617,8 +643,9 @@ node::NodeFunctionStmt* Parser::parse_function_stmt()
 		consume();
 		node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
 		node::NodeFunctionReturn* returnstmt = new node::NodeFunctionReturn();
-
-		if (node::NodeValue* val = parse_value()) {
+		size_t verify_Val = 0;
+		if (verify_value(&verify_Val)) {
+			node::NodeValue* val = parse_value();
 			returnstmt->val = val;
 		}
 		try_consume(NEW_LINE, "Expected new_line after return");
@@ -633,14 +660,21 @@ node::NodeFunctionStmt* Parser::parse_function_stmt()
 		consume();
 		consume();
 		auto* node_stmt_print = new node::NodeStmtPrint();
-		if (const auto string_expr = parse_string_expr()) {
+		size_t verify_str = 0;
+		size_t verify_arithmetic = 0;
+		size_t verify_bool = 0;
+		if (verify_string_expr(&verify_str)) {
+			const auto string_expr = parse_string_expr();
 			node_stmt_print->var = string_expr;
 		}
-		// Parse expression rule
-		else if (const auto node_epxr = parse_arithmetic_expr()) {
+		else if (verify_arithmetic_expr(&verify_arithmetic)) {
+			const auto node_epxr = parse_arithmetic_expr();
 			node_stmt_print->var = node_epxr;
 		}
-
+		else if (verify_boolean_expr(&verify_bool)) {
+			const auto node_epxr = parse_boolean_expr();
+			node_stmt_print->var = node_epxr;
+		}
 		else {
 			std::cerr << "Invalid expression" << std::endl;
 			exit(EXIT_FAILURE);
@@ -1261,10 +1295,30 @@ node::NodeValue* Parser::parse_value()
 		return val;
 	}
 
-	
+	// value returns boolean expression
+	size_t verify_bool = 0;
+	if (verify_boolean_expr(&verify_bool)) {
+		node::NodeBooleanExpr* b_epxr = parse_boolean_expr();
+		node::NodeValueBooleanExpression* val_expr = new node::NodeValueBooleanExpression();
+		val_expr->expr = b_epxr;
+		val->var = val_expr;
+
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				val->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+		}
+
+		return val;
+	}
 
 	// value returns arithmetic expression
-	if (node::NodeArithmeticExpr* a_epxr = parse_arithmetic_expr()) {
+	size_t verify_arithmetic = 0;
+	if (verify_arithmetic_expr(&verify_arithmetic)) {
+		node::NodeArithmeticExpr* a_epxr = parse_arithmetic_expr();
 		node::NodeValueArithmeticExpression* val_expr = new node::NodeValueArithmeticExpression();
 		val_expr->expr = a_epxr;
 		val->var = val_expr;
@@ -1299,23 +1353,7 @@ node::NodeValue* Parser::parse_value()
 		return val;
 	}
 
-	// value returns boolean expression
-	if (node::NodeBooleanExpr* b_epxr = parse_boolean_expr()) {
-		node::NodeValueBooleanExpression* val_expr = new node::NodeValueBooleanExpression();
-		val_expr->expr = b_epxr;
-		val->var = val_expr;
-
-		//Check if it is an array
-		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
-			consume();
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
-				val->index = expr;
-				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
-			}
-		}
-
-		return val;
-	}
+	
 
 	// value returns identifier (can be of any type)
 	if (peek() && peek()->type == IDENTIFIER) {
@@ -1384,9 +1422,14 @@ node::NodeAssignment* Parser::parse_assignment()
 		//Check if it is an array
 		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
 			consume();
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			size_t verify_arithmetic = 0;
+			if (verify_arithmetic_expr(&verify_arithmetic)) {
+				node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 				assignment->index = expr;
 				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+			else {
+				std::cerr << "Expected arithmetic expression in array assignment" << std::endl;
 			}
 		}
 
@@ -1405,15 +1448,21 @@ node::NodeAssignment* Parser::parse_assignment()
 		//Check if it is an array
 		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
 			consume();
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+			size_t verify_arithmetic = 0;
+			if (verify_arithmetic_expr(&verify_arithmetic)) {
+				node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 				assignment->index = expr;
 				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+			else {
+				std::cerr << "Expected arithmetic expression in array assignment" << std::endl;
 			}
 		}
 
 		try_consume(EQUAL, "Expects '=' after lhs");
-
-		if (node::NodeValue* val = parse_value()) {
+		size_t verify_val = m_currentIndex;
+		if (verify_value(&verify_val)) {
+			node::NodeValue* val = parse_value();
 			assignment->rhs = val;
 			return assignment;
 		}
@@ -1445,9 +1494,10 @@ node::NodeGlobalIf* Parser::parse_global_if()
 	if (peek() && peek()->type == IF) {
 		consume(); // if
 		node::NodeGlobalIf* _if = new node::NodeGlobalIf();
-		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
 			_if->condition = expr;
-
 			try_consume(COLON, "Expected ':' after boolean expr in global if");
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
 			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
@@ -1468,7 +1518,6 @@ node::NodeGlobalIf* Parser::parse_global_if()
 			}
 
 			return _if;
-
 		}
 		else
 		{
@@ -1486,9 +1535,10 @@ node::NodeGlobalElseIf* Parser::parse_global_else_if()
 		consume(); // else
 		consume(); // if
 		node::NodeGlobalElseIf* _elseif = new node::NodeGlobalElseIf();
-		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
 			_elseif->condition = expr;
-
 			try_consume(COLON, "Expected ':' after boolean expr in global if");
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
 			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
@@ -1499,7 +1549,6 @@ node::NodeGlobalElseIf* Parser::parse_global_else_if()
 
 			try_consume(TAB_DEDENT, "Expected tab dedent after else if statement");
 			return _elseif;
-
 		}
 		else
 		{
@@ -1556,7 +1605,9 @@ node::NodeGlobalWhile* Parser::parse_global_while()
 	if (peek() && peek()->type == WHILE) {
 		consume(); // while
 
-		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
 			_while->condition = expr;
 
 			try_consume(COLON, "Expected ':' after boolean expr in global while");
@@ -1593,8 +1644,9 @@ node::NodeGlobalFor* Parser::parse_global_for()
 		consume(); // number
 		_for->indexValIdentifier = consume(); // identifier
 		consume(); // equal
-
-		if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+		size_t verify_arithmetic = 0;
+		if (verify_arithmetic_expr(&verify_arithmetic)) {
+			node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 			_for->indexValExpr = expr;
 		}
 		else {
@@ -1603,8 +1655,9 @@ node::NodeGlobalFor* Parser::parse_global_for()
 		}
 
 		try_consume(COMMA, "Expected ',' after arithmetic expression in global for loop");
-
-		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
 			_for->condition = expr;
 		}
 		else {
@@ -1613,8 +1666,9 @@ node::NodeGlobalFor* Parser::parse_global_for()
 		}
 
 		try_consume(COMMA, "Expected ',' after arithmetic expression in global for loop");
-
-		if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+		size_t verify_arithmetic2 = m_currentIndex;
+		if (verify_arithmetic_expr(&verify_arithmetic2)) {
+			node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 			_for->increment = expr;
 		}
 		else {
@@ -1659,7 +1713,9 @@ node::NodeFunctionIf* Parser::parse_function_if()
 	if (peek() && peek()->type == IF) {
 		consume(); // if
 		node::NodeFunctionIf* _if = new node::NodeFunctionIf();
-		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
 			_if->condition = expr;
 
 			try_consume(COLON, "Expected ':' after boolean expr in global if");
@@ -1682,7 +1738,6 @@ node::NodeFunctionIf* Parser::parse_function_if()
 			}
 
 			return _if;
-
 		}
 		else
 		{
@@ -1700,7 +1755,9 @@ node::NodeFunctionElseIf* Parser::parse_function_else_if()
 		consume(); // else
 		consume(); // if
 		node::NodeFunctionElseIf* _elseif = new node::NodeFunctionElseIf();
-		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
 			_elseif->condition = expr;
 
 			try_consume(COLON, "Expected ':' after boolean expr in global if");
@@ -1713,7 +1770,6 @@ node::NodeFunctionElseIf* Parser::parse_function_else_if()
 
 			try_consume(TAB_DEDENT, "Expected tab dedent after else if statement");
 			return _elseif;
-
 		}
 		else
 		{
@@ -1770,7 +1826,9 @@ node::NodeFunctionWhile* Parser::parse_function_while()
 	if (peek() && peek()->type == WHILE) {
 		consume(); // while
 
-		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
 			_while->condition = expr;
 
 			try_consume(COLON, "Expected ':' after boolean expr in global while");
@@ -1782,8 +1840,8 @@ node::NodeFunctionWhile* Parser::parse_function_while()
 			}
 
 			try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
-
 			return _while;
+
 		}
 		else {
 			std::cerr << "Expected boolean expression for global while loop" << std::endl;
@@ -1807,8 +1865,9 @@ node::NodeFunctionFor* Parser::parse_function_for()
 		consume(); // number
 		_for->indexValIdentifier = consume(); // identifier
 		consume(); // equal
-
-		if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+		size_t verify_arithmetic = 0;
+		if (verify_arithmetic_expr(&verify_arithmetic)) {
+			node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 			_for->indexValExpr = expr;
 		}
 		else {
@@ -1818,7 +1877,9 @@ node::NodeFunctionFor* Parser::parse_function_for()
 
 		try_consume(COMMA, "Expected ',' after arithmetic expression in global for loop");
 
-		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
 			_for->condition = expr;
 		}
 		else {
@@ -1827,8 +1888,10 @@ node::NodeFunctionFor* Parser::parse_function_for()
 		}
 
 		try_consume(COMMA, "Expected ',' after arithmetic expression in global for loop");
+		size_t verify_arithmetic2 = m_currentIndex;
 
-		if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+		if (verify_arithmetic_expr(&verify_arithmetic2)) {
+			node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 			_for->increment = expr;
 		}
 		else {
@@ -2014,4 +2077,521 @@ Token* Parser::parse_type()
 		return &consume();
 	}
 	return nullptr;
+}
+
+bool Parser::verify_arithmetic_expr(size_t* index)
+{
+	if (verify_term(index)) {
+
+
+		if (peek(*index)->type == PLUS) {
+			(*index)++;
+
+			return verify_term(index);
+		}
+
+		if (peek(*index)->type == MINUS) {
+			(*index)++;
+
+			return verify_term(index);
+		}
+		return true;
+	}
+
+	return false;
+}
+
+bool Parser::verify_term(size_t* index)
+{
+	if (verify_factor(index)) {
+
+
+		if (peek(*index)->type == MULTIPLY) {
+			(*index)++;
+			return verify_factor(index);
+		}
+
+		if (peek(*index)->type == DIVIDE) {
+			(*index)++;
+			return verify_factor(index);
+		}
+
+		if (peek(*index)->type == MODULO) {
+			(*index)++;
+			return verify_factor(index);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool Parser::verify_factor(size_t* index)
+{
+	if (peek(*index)->type == DECIMAL) {
+		(*index)++;
+		return true;
+	}
+
+	if (peek(*index)->type == IDENTIFIER) {
+		(*index)++;
+		return true;
+	}
+
+	// (<AExpr>)
+	if (peek(*index)->type == OPEN_PARANTHESIS) {
+		(*index)++;
+		if (verify_arithmetic_expr(index)) {
+			if (peek(*index)->type == CLOSED_PARANTHESIS) {
+				return true;
+			}
+		}
+	}
+
+	return verify_function_call(index);
+
+
+	return false;
+}
+
+bool Parser::verify_function_call(size_t* index)
+{
+	if (peek(*index) && peek(*index)->type == IDENTIFIER &&
+		peek(*index + 1) && peek(*index + 1)->type == OPEN_PARANTHESIS) {
+
+		index += 2;
+
+		do
+		{
+			if (peek(*index) && peek(*index)->type == COMMA)
+				(*index)++;
+
+			if (verify_value(index) == false) {
+				return false;
+			}
+
+		} while (peek(*index) && peek(*index)->type == COMMA);
+
+		if (peek(*index) && peek(*index)->type == CLOSED_PARANTHESIS) {
+			(*index)++;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Parser::verify_value(size_t* index)
+{
+	size_t start_val = *index;
+	// Assume normal function call
+	if (verify_function_call(index)) {
+
+		// Verify if properties are there after function call (also assume function call returns an object)
+		if (peek(*index) && peek(*index)->type == DOT) {
+			(*index)++; // .
+
+			if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+				(*index)++;
+
+				while (peek(*index) && peek(*index)->type == DOT)
+				{
+					(*index)++;
+					if (peek(*index) && peek(*index)->type == IDENTIFIER)
+						(*index)++;
+				}
+
+				//Check if it is an array
+				if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+					(*index)++;
+					if (verify_arithmetic_expr(index)) {
+						if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+							(*index)++;
+							return true;
+						}
+					}
+					else
+						return false;
+				}
+				return true;
+
+			}
+
+
+		}
+
+		//Check if it is an array
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+					(*index)++;
+					return true;
+				}
+			}
+			else
+				return false;
+		}
+		return true;
+	}
+	else
+		*index = start_val;
+
+	// value returns boolean expression
+	if (verify_boolean_expr(index)) {
+
+		//Check if it is an array
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+					(*index)++;
+					return true;
+				}
+			}
+			else return false;
+		}
+		else
+			return true;
+	}
+	else
+		*index = start_val;
+
+	// value returns arithmetic expression
+	if (verify_arithmetic_expr(index)) {
+
+		//Check if it is an array
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+					(*index)++;
+					return true;
+				}
+			}
+			return false;
+		}
+		else
+			return true;
+	}
+	else
+		*index = start_val;
+
+	// value returns string expression
+	if (verify_string_expr(index)) {
+		//Check if it is an array
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+					(*index)++;
+					return true;
+				}
+			}
+			else
+				return false;
+		}
+		else
+			return true;
+	}
+	else
+		*index = start_val;
+
+	
+
+	// value returns identifier (can be of any type)
+	if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+		(*index)++;
+
+		// Verify if properties are there after identifier (also assume identifier is an object)
+		if (peek(*index) && peek(*index)->type == DOT) {
+			(*index)++; // .
+
+			if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+				(*index)++;
+
+				while (peek(*index) && peek(*index)->type == DOT)
+				{
+					(*index)++;
+					if (peek(*index) && peek(*index)->type == IDENTIFIER)
+						(*index)++;
+				}
+			}
+			
+
+			//Check if it is an array
+			if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+				(*index)++;
+				if (verify_arithmetic_expr(index)) {
+					if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+						(*index)++;
+					}
+				}
+				else
+					return false;
+			}
+			else
+				return true;
+		}
+
+		//Check if it is an array
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+					(*index)++;
+					return true;
+				}
+			}
+			else
+				return false;
+		}
+		else
+			return true;
+
+	}
+
+
+	return false;
+}
+
+bool Parser::verify_string_expr(size_t* index)
+{
+
+	if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+		(*index)++;
+
+		if (peek(*index)->type == PLUS) {
+			(*index)++;
+			return verify_string_expr(index);
+				
+		}
+	}
+	else if (verify_function_call(index)) {
+
+		if (peek(*index)->type == PLUS) {
+			(*index)++;
+			return verify_string_expr(index);
+		}
+	}
+
+	return false;
+}
+
+bool Parser::verify_boolean_expr(size_t* index)
+{
+	return verify_or(index);
+}
+
+bool Parser::verify_or(size_t* index)
+{
+
+	if (verify_and(index)) {
+		// check for operator
+		if (peek(*index)->type == OR) {
+			return verify_or_op(index);
+		}
+		return true;
+	}
+	return false;
+}
+
+bool Parser::verify_or_op(size_t* index)
+{
+	if (peek(*index) && peek(*index)->type == OR) {
+		(*index)++;
+		return verify_and(index);
+	}
+	return false;
+}
+
+bool Parser::verify_and(size_t* index)
+{
+
+	if (verify_equal(index)) {
+		// Check for operator
+		if (peek(*index) && peek(*index)->type == AND) {
+			return verify_and_op(index);
+		}
+
+		return true;
+	}
+	return false;
+}
+
+bool Parser::verify_and_op(size_t* index)
+{
+	Token* _and = try_consume(AND);
+
+	if (peek(*index) && peek(*index)->type == AND) {
+		(*index)++;
+		return verify_equal(index);
+
+	}
+	return false;
+}
+
+bool Parser::verify_equal(size_t* index)
+{
+
+	if (verify_real_expr(index)) {
+		// check for operators
+
+		// is not
+		if (peek(*index)->type == IS && peek(*index + 1)->type == NOT) {
+			return verify_equal_is_not(index);
+		}
+
+		// is not
+		if (peek()->type == IS) {
+			return verify_equal_is(index);
+		}
+
+		return true;
+
+	}
+
+	return false;
+}
+
+bool Parser::verify_equal_is_not(size_t* index)
+{
+
+	if (peek(*index) && peek(*index)->type == IS &&
+		peek(*index + 1) && peek(*index + 1)->type == NOT) {
+		(*index) += 2;
+		return verify_real_expr(index);
+	}
+	return false;
+}
+
+bool Parser::verify_equal_is(size_t* index)
+{
+	if (peek(*index) && peek(*index)->type == IS) {
+		(*index)++;
+		return verify_real_expr(index);
+	}
+	return false;
+}
+
+bool Parser::verify_real_expr(size_t* index)
+{
+
+	// Assume arithmetic expression
+	if (verify_arithmetic_expr(index)) {
+		// greater equal
+		if (peek(*index)->type == GREATER && peek(*index + 1)->type == EQUAL) {
+			return verify_greater_equal(index);
+		}
+
+		// less equal
+		if (peek(*index)->type == LESS && peek(*index + 1)->type == EQUAL) {
+			return verify_less_equal(index);
+		}
+
+		// greater
+		if (peek(*index)->type == GREATER) {
+			return verify_greater(index);
+		}
+
+		// less
+		if (peek(*index)->type == LESS) {
+			return verify_less(index);
+		}
+		return false;
+	}
+
+	return verify_not(index);
+}
+
+bool Parser::verify_greater_equal(size_t* index)
+{
+
+	if (peek(*index) && peek(*index)->type == GREATER &&
+		peek(*index + 1) && peek(*index)->type == EQUAL) {
+		(*index) += 2;
+		return verify_arithmetic_expr(index);
+
+	}
+	return false;
+}
+
+bool Parser::verify_less_equal(size_t* index)
+{
+	if (peek(*index) && peek(*index)->type == LESS &&
+		peek(*index + 1) && peek(*index)->type == EQUAL) {
+		(*index) += 2;
+		return verify_arithmetic_expr(index);
+
+	}
+	return false;
+}
+
+bool Parser::verify_greater(size_t* index)
+{
+	if (peek(*index) && peek(*index)->type == GREATER) {
+		(*index)++;
+		return verify_arithmetic_expr(index);
+
+	}
+	return false;
+}
+
+bool Parser::verify_less(size_t* index)
+{
+	if (peek(*index) && peek(*index)->type == LESS) {
+		(*index)++;
+		return verify_arithmetic_expr(index);
+
+	}
+	return false;
+}
+
+bool Parser::verify_not(size_t* index)
+{
+	if (peek(*index)->type == NOT) {
+		return verify_not_op(index);
+	}
+
+	// no not tokens now expects factor
+	return verify_boolean_factor(index);
+}
+
+bool Parser::verify_not_op(size_t* index)
+{
+	if (peek(*index) && peek(*index)->type == NOT) {
+		(*index)++;
+		return verify_not(index);
+	}
+	return false;
+}
+
+bool Parser::verify_boolean_factor(size_t* index)
+{
+	// bool value
+	if (peek(*index) && peek(*index)->type == BOOLVAL) {
+		(*index)++;
+		return true;
+	}
+
+
+	// Identifier
+	if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+		(*index)++;
+		return true;
+	}
+
+	// (<BExpr>)
+	if (peek(*index) && peek(*index)->type == OPEN_PARANTHESIS) {
+		(*index)++;
+		if (verify_boolean_expr(index)) {
+			if (peek(*index) && peek(*index)->type == CLOSED_PARANTHESIS)
+				return true;
+		}
+	}
+
+	if (verify_function_call(index)) {
+		return true;
+	}
+
+	return false;
 }

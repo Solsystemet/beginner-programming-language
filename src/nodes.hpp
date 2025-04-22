@@ -130,7 +130,7 @@ namespace node {
 	};
 
 	struct NodeStmtPrint {
-		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*> var;
+		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*, NodeBooleanExpr*> var;
 	};
 
 	struct NodeFunctionCall {

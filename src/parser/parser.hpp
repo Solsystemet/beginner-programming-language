@@ -112,6 +112,39 @@ private:
 	// will only ever accept number, boolean, string and identifier
 	Token* parse_type();
 
+	bool verify_arithmetic_expr(size_t* index);
+	bool verify_term(size_t* index);
+	bool verify_factor(size_t* index);
+	bool verify_function_call(size_t* index);
+	bool verify_value(size_t* index);
+
+	bool verify_string_expr(size_t* index);
+
+	bool verify_boolean_expr(size_t* index);
+	bool verify_or(size_t* index);
+	bool verify_or_op(size_t* index);
+
+
+	bool verify_and(size_t* index);
+	bool verify_and_op(size_t* index);
+
+
+	bool verify_equal(size_t* index);
+	bool verify_equal_is_not(size_t* index);
+	bool verify_equal_is(size_t* index);
+
+
+	bool verify_real_expr(size_t* index);
+	bool verify_greater_equal(size_t* index);
+	bool verify_less_equal(size_t* index);
+	bool verify_greater(size_t* index);
+	bool verify_less(size_t* index);
+
+
+	bool verify_not(size_t* index);
+	bool verify_not_op(size_t* index);
+	bool verify_boolean_factor(size_t* index);
+
     std::vector<Token> m_tokens;
     size_t m_currentIndex;
 

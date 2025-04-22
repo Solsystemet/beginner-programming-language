@@ -1,2 +1,2 @@
-boolean function is_less(number lhs, number rhs):
-	return lhs < rhs
+number function add(number lhs, number rhs):
+	return lhs + rhs
