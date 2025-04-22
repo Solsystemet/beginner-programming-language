@@ -222,10 +222,23 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 		consume(); // =
 
 		//Assumes empty array
-		if (peek() && peek()->type == OPEN_SQUAREBRACKET &&
-			peek(1) && peek(1)->type == CLOSED_SQUAREBRACKET) {
+		if (
+			peek() && peek()->type == BOOLEAN &&
+			peek() && peek()->value == arr->type.value &&
+			peek(1) && peek(1)->type == OPEN_SQUAREBRACKET
+			) {
+			consume(); // IDENTIFIER
 			consume(); // [
-			consume(); // ]
+
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				numberArray->size = expr;
+			}
+			else
+			{
+				std::cerr << "Expected arithmetic expression for size allocation" << std::endl;
+			}
+
+			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
 			arr->var = numberArray;
 			try_consume(NEW_LINE, "Expected newline after declaration");
 			return arr;
@@ -233,6 +246,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 		// Now assume arithmetic expressions 
 		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
 			consume(); // [
+			size_t size = 0;
 			do
 			{
 				auto* arithmetic_expr = parse_arithmetic_expr();
@@ -242,11 +256,14 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 					exit(EXIT_FAILURE);
 				}
 				numberArray->elements.push_back(arithmetic_expr);
+				size++;
+				
 				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
 					consume(); // ]
 					break;
 				}
 			} while (consume().type == COMMA);
+			numberArray->size = size;
 		}
 
 
@@ -273,10 +290,23 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 		consume(); // =
 
 		//Assumes empty array
-		if (peek() && peek()->type == OPEN_SQUAREBRACKET &&
-			peek(1) && peek(1)->type == CLOSED_SQUAREBRACKET) {
+		if (
+			peek() && peek()->type == BOOLEAN &&
+			peek() && peek()->value == arr->type.value &&
+			peek(1) && peek(1)->type == OPEN_SQUAREBRACKET
+			) {
+			consume(); // IDENTIFIER
 			consume(); // [
-			consume(); // ]
+
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				stringArray->size = expr;
+			}
+			else
+			{
+				std::cerr << "Expected arithmetic expression for size allocation" << std::endl;
+			}
+
+			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
 			arr->var = stringArray;
 			try_consume(NEW_LINE, "Expected newline after declaration");
 			return arr;
@@ -284,6 +314,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 		// Now assume arithmetic expressions 
 		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
 			consume(); // [
+			size_t size = 0;
 			do
 			{
 				auto* string_expr = parse_string_expr();
@@ -293,11 +324,13 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 					exit(EXIT_FAILURE);
 				}
 				stringArray->elements.push_back(string_expr);
+				size++;
 				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
 					consume(); // ]
 					break;
 				}
 			} while (consume().type == COMMA);
+			stringArray->size = size;
 		}
 
 
@@ -323,11 +356,23 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 		arr->identifier = consume();// <identifier>
 		consume(); // =
 
-		//Assumes empty array
-		if (peek() && peek()->type == OPEN_SQUAREBRACKET &&
-			peek(1) && peek(1)->type == CLOSED_SQUAREBRACKET) {
+		if (
+			peek() && peek()->type == BOOLEAN &&
+			peek() && peek()->value == arr->type.value &&
+			peek(1) && peek(1)->type == OPEN_SQUAREBRACKET
+			) {
+			consume(); // IDENTIFIER
 			consume(); // [
-			consume(); // ]
+
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				booleanArray->size = expr;
+			}
+			else
+			{
+				std::cerr << "Expected arithmetic expression for size allocation" << std::endl;
+			}
+
+			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
 			arr->var = booleanArray;
 			try_consume(NEW_LINE, "Expected newline after declaration");
 			return arr;
@@ -335,6 +380,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 		// Now assume boolean expressions 
 		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
 			consume(); // [
+			size_t size = 0;
 			do
 			{
 				auto* boolean_expr = parse_boolean_expr();
@@ -344,11 +390,13 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 					exit(EXIT_FAILURE);
 				}
 				booleanArray->elements.push_back(boolean_expr);
+				size++;
 				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
 					consume(); // ]
 					break;
 				}
 			} while (consume().type == COMMA);
+				booleanArray->size = size;
 		}
 
 		try_consume(NEW_LINE, "Expected newline after declaration");
@@ -357,12 +405,81 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 
 	//TODO: Make object array declerations
 	// example 1
-	// person[] people = []
+	// person[] people = person[5]
 	/* example 2
 	* person[] people = [
 	* person x:
-		name = "Peter"]
+		name = "Peter",
+	  person y:
+		name = "Pete",
+		]
 	*/
+
+	// person[] x =
+	if (
+		peek()->type == IDENTIFIER &&
+		peek(1) && peek(1)->type == OPEN_SQUAREBRACKET &&
+		peek(2) && peek(2)->type == CLOSED_SQUAREBRACKET &&
+		peek(3) && peek(3)->type == IDENTIFIER &&
+		peek(4) && peek(4)->type == EQUAL
+		)
+
+	{
+		auto* arr = new node::NodeArrayDecl();
+		auto* objArray = new node::NodeObjectArrayDecl();
+		arr->type = *parse_type();     // <type>
+		consume(); // [
+		consume(); // ]
+		arr->identifier = consume();// <identifier>
+		consume(); // =
+
+		//Assumes size array
+		if (
+			peek() && peek()->type == IDENTIFIER &&
+			peek() && peek()->value == arr->type.value &&
+			peek(1) && peek(1)->type == OPEN_SQUAREBRACKET
+			) {
+			consume(); // IDENTIFIER
+			consume(); // [
+
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				objArray->size = expr;
+			}
+			else
+			{
+				std::cerr << "Expected arithmetic expression for size allocation" << std::endl;
+			}
+
+			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expressions for size allocation");
+			arr->var = objArray;
+			try_consume(NEW_LINE, "Expected newline after declaration");
+			return arr;
+		}
+		// Now assume boolean expressions 
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume(); // [
+			size_t size = 0;
+			do
+			{
+				auto* obj_decl = parse_object_decleration();
+				if (obj_decl == nullptr) {
+					std::cerr << "Invalid expression in array declaration after '=' at token index "
+						<< m_currentIndex << std::endl;
+					exit(EXIT_FAILURE);
+				}
+				objArray->elements.push_back(obj_decl);
+				size++;
+				if (peek() && peek()->type == CLOSED_SQUAREBRACKET) {
+					consume(); // ]
+					break;
+				}
+			} while (consume().type == COMMA);
+				objArray->size = size;
+		}
+
+		try_consume(NEW_LINE, "Expected newline after declaration");
+		return arr;
+	}
 	
 	return nullptr;
 }

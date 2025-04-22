@@ -253,26 +253,31 @@ namespace node {
 	};
 
 	struct NodeArrayDecl {
+		Token type;
 		Token identifier;
 		mpark::variant<NodeNumberArrayDecl*, NodeStringArrayDecl*, NodeBooleanArrayDecl*, NodeObjectArrayDecl*> var;
 	};
 
 	struct NodeNumberArrayDecl
 	{
+		mpark::variant<NodeArithmeticExpr*, size_t> size;
 		std::vector<NodeArithmeticExpr*> elements;
 	};
 
 	struct NodeStringArrayDecl
 	{
+		mpark::variant<NodeArithmeticExpr*, size_t> size;
 		std::vector<NodeStringExpr*> elements;
 	};
 	struct NodeBooleanArrayDecl
 	{
+		mpark::variant<NodeArithmeticExpr*, size_t> size;
 		std::vector<NodeBooleanExpr*> elements;
 	};
 	// sus
 	struct NodeObjectArrayDecl
 	{
+		mpark::variant<NodeArithmeticExpr*, size_t> size;
 		std::vector<NodeObjectDecl*> elements;
 	};
 
