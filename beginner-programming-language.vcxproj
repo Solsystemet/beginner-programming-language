@@ -128,11 +128,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="beginner-programming-language.cpp" />
-
     <ClCompile Include="src\lexer\flex.flex.cpp" />
+    <ClCompile Include="src\parser\parser.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\arena.hpp" />
+    <ClInclude Include="src\nodes.hpp" />
+    <ClInclude Include="parserHelperFunctions.hpp" />
     <ClInclude Include="src\lexer\lexer.h" />
     <ClInclude Include="src\lexer\flex.flex.h" />
     <ClInclude Include="src\lexer\FlexLexer.h" />

@@ -18,10 +18,10 @@
     <ClCompile Include="beginner-programming-language.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\flex.flex.cpp">
+    <ClCompile Include="src\lexer\flex.flex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\lexer\flex.flex.cpp">
+    <ClCompile Include="src\parser\parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,13 +29,7 @@
     <ClInclude Include="src\tokenvalues.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\FlexLexer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\tokens.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\flex.flex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\lexer\flex.flex.h">
@@ -56,10 +50,10 @@
     <ClInclude Include="src\parser\parser.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\arena.hpp">
+    <ClInclude Include="src\nodes.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\lexer.h">
+    <ClInclude Include="parserHelperFunctions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -73,8 +67,6 @@
     <Text Include="tabtest.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Flex Include="src\flex.l" />
     <Flex Include="src\lexer\flex.l" />
-    <Flex Include="flex.l" />
   </ItemGroup>
 </Project>
