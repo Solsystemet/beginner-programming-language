@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{ef9ea3a8-5f0c-420e-b17f-93cec5408fce}</ProjectGuid>
+    <ProjectGuid>{da580e0b-4371-4942-9b20-0884bdcc598a}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
     <ConfigurationType>Application</ConfigurationType>
@@ -96,16 +96,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h" />
+    <ClInclude Include="lexerTest\pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test.cpp" />
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="lexerTest\lexerTest.cpp" />
+    <ClCompile Include="lexerTest\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\beginner-programming-language.vcxproj">
+      <Project>{af02c8d1-56d6-43c1-9829-4ed337d9256d}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
