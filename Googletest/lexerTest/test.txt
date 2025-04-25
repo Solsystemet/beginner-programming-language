@@ -1,3 +1,0 @@
-number function add(number lhs, number rhs):
-	return lhs + rhs
-	
