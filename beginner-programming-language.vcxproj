@@ -128,10 +128,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="beginner-programming-language.cpp" />
+    <ClCompile Include="src\evaluator\Evaluator.cpp" />
     <ClCompile Include="src\lexer\flex.flex.cpp" />
     <ClCompile Include="src\parser\parser.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\evaluator\Evaluator.h" />
+    <ClInclude Include="src\evaluator\SymbolTable.h" />
     <ClInclude Include="src\nodes.hpp" />
     <ClInclude Include="parserHelperFunctions.hpp" />
     <ClInclude Include="src\lexer\lexer.h" />

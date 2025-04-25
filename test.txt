@@ -1,2 +1,2 @@
-number function add(number lhs, number rhs):
-	return lhs + rhs
+number x = ((2 + 2 * 6) / (1+1)) mod 2
+print(x)
