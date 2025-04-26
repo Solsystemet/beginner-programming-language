@@ -64,25 +64,7 @@ node::NodeStmt* Parser::parse_stmt() {
 		consume();
 		consume();
 		auto* node_stmt_print = new node::NodeStmtPrint();
-		size_t verify_str = 0;
-		size_t verify_arithmetic = 0;
-		size_t verify_bool = 0;
-		if (verify_string_expr(&verify_str)) {
-			const auto string_expr = parse_string_expr();
-			node_stmt_print->var = string_expr;
-		}
-		else if (verify_arithmetic_expr(&verify_arithmetic)) {
-			const auto node_epxr = parse_arithmetic_expr();
-			node_stmt_print->var = node_epxr;
-		}
-		else if (verify_boolean_expr(&verify_bool)) {
-			const auto node_epxr = parse_boolean_expr();
-			node_stmt_print->var = node_epxr;
-		}
-		else {
-			std::cerr << "Invalid expression" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+		node_stmt_print->value = parse_value();
 
 		// consume terminal symbols
 		try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
@@ -570,26 +552,7 @@ node::NodeNestedStmt* Parser::parse_nested_stmt()
 		consume();
 		consume();
 		auto* node_stmt_print = new node::NodeStmtPrint();
-		size_t verify_str = 0;
-		size_t verify_arithmetic = 0;
-		size_t verify_bool = 0;
-		if (verify_string_expr(&verify_str)) {
-			const auto string_expr = parse_string_expr();
-			node_stmt_print->var = string_expr;
-		}
-		// Parse expression rule
-		else if (verify_arithmetic_expr(&verify_arithmetic)) {
-			const auto node_epxr = parse_arithmetic_expr();
-			node_stmt_print->var = node_epxr;
-		}
-		else if (verify_boolean_expr(&verify_bool)) {
-			const auto node_epxr = parse_boolean_expr();
-			node_stmt_print->var = node_epxr;
-		}
-		else {
-			std::cerr << "Invalid expression" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+		node_stmt_print->value = parse_value();
 
 		// consume terminal symbols
 		try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
@@ -660,25 +623,7 @@ node::NodeFunctionStmt* Parser::parse_function_stmt()
 		consume();
 		consume();
 		auto* node_stmt_print = new node::NodeStmtPrint();
-		size_t verify_str = 0;
-		size_t verify_arithmetic = 0;
-		size_t verify_bool = 0;
-		if (verify_string_expr(&verify_str)) {
-			const auto string_expr = parse_string_expr();
-			node_stmt_print->var = string_expr;
-		}
-		else if (verify_arithmetic_expr(&verify_arithmetic)) {
-			const auto node_epxr = parse_arithmetic_expr();
-			node_stmt_print->var = node_epxr;
-		}
-		else if (verify_boolean_expr(&verify_bool)) {
-			const auto node_epxr = parse_boolean_expr();
-			node_stmt_print->var = node_epxr;
-		}
-		else {
-			std::cerr << "Invalid expression" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+		node_stmt_print->value = parse_value();
 
 		// consume terminal symbols
 		try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
@@ -852,7 +797,8 @@ node::NodeBooleanOrOperation* Parser::parse_or_op(node::NodeBooleanOr* lhs)
 		}
 
 		node::NodeBooleanOrOperation* result = new node::NodeBooleanOrOperation();
-		result->lhs = lhs;
+		result->lhs = new node::NodeBooleanOr();
+		result->lhs->var = lhs->var;
 		result->rhs = rhs;
 		return result;
 
@@ -899,7 +845,8 @@ node::NodeBooleanAndOperation* Parser::parse_and_op(node::NodeBooleanAnd* lhs)
 		}
 
 		node::NodeBooleanAndOperation* result = new node::NodeBooleanAndOperation();
-		result->lhs = lhs;
+		result->lhs = new node::NodeBooleanAnd();
+		result->lhs->var = lhs->var;
 		result->rhs = rhs;
 		return result;
 
@@ -960,7 +907,8 @@ node::NodeBooleanEqualIsNot* Parser::parse_equal_is_not(node::NodeBooleanEqual* 
 		}
 
 		node::NodeBooleanEqualIsNot* result = new node::NodeBooleanEqualIsNot();
-		result->lhs = lhs;
+		result->lhs = new node::NodeBooleanEqual();
+		result->lhs->var = lhs->var;
 		result->rhs = rhs;
 		return result;
 
@@ -981,7 +929,8 @@ node::NodeBooleanEqualIs* Parser::parse_equal_is(node::NodeBooleanEqual* lhs)
 		}
 
 		node::NodeBooleanEqualIs* result = new node::NodeBooleanEqualIs();
-		result->lhs = lhs;
+		result->lhs = new node::NodeBooleanEqual();
+		result->lhs->var = lhs->var;
 		result->rhs = rhs;
 		return result;
 
@@ -1058,7 +1007,8 @@ node::NodeBooleanGreaterEqual* Parser::parse_greater_equal(node::NodeArithmeticE
 		}
 
 		node::NodeBooleanGreaterEqual* result = new node::NodeBooleanGreaterEqual();
-		result->lhs = lhs;
+		result->lhs = new node::NodeArithmeticExpr();
+		result->lhs->var = lhs->var;
 		result->rhs = rhs;
 		return result;
 
@@ -1080,7 +1030,8 @@ node::NodeBooleanLessEqual* Parser::parse_less_equal(node::NodeArithmeticExpr* l
 		}
 
 		node::NodeBooleanLessEqual* result = new node::NodeBooleanLessEqual();
-		result->lhs = lhs;
+		result->lhs = new node::NodeArithmeticExpr();
+		result->lhs->var = lhs->var;
 		result->rhs = rhs;
 		return result;
 
@@ -1101,7 +1052,8 @@ node::NodeBooleanGreater* Parser::parse_greater(node::NodeArithmeticExpr* lhs)
 		}
 
 		node::NodeBooleanGreater* result = new node::NodeBooleanGreater();
-		result->lhs = lhs;
+		result->lhs = new node::NodeArithmeticExpr();
+		result->lhs->var = lhs->var;
 		result->rhs = rhs;
 		return result;
 
@@ -1122,7 +1074,8 @@ node::NodeBooleanLess* Parser::parse_less(node::NodeArithmeticExpr* lhs)
 		}
 
 		node::NodeBooleanLess* result = new node::NodeBooleanLess();
-		result->lhs = lhs;
+		result->lhs = new node::NodeArithmeticExpr();
+		result->lhs->var = lhs->var;
 		result->rhs = rhs;
 		return result;
 
@@ -1295,6 +1248,51 @@ node::NodeValue* Parser::parse_value()
 		return val;
 	}
 
+	// value returns identifier (can be of any type)
+	if (peek() && peek()->type == IDENTIFIER) {
+		node::NodeValueIdentifier* val_ident = new node::NodeValueIdentifier();
+		val_ident->identifier = consume();
+
+		// Verify if properties are there after identifier (also assume identifier is an object)
+		if (peek() && peek()->type == DOT) {
+			consume(); // .
+			node::NodeValueIdentifierProperty* ident_props = new node::NodeValueIdentifierProperty();
+			ident_props->identfierHead = val_ident->identifier;
+			ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
+				"Expected identifier after '.' after a function call"));
+			while (peek() && peek()->type == DOT)
+			{
+				ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
+					"Expected identifier after '.' after a function call"));
+			}
+
+			//Check if it is an array
+			if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+				consume();
+				if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+					val->index = expr;
+					try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+				}
+			}
+			val->var = ident_props;
+			return val;
+		}
+
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				val->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+		}
+
+		val->var = val_ident;
+		return val;
+
+	}
+
+
 	// value returns boolean expression
 	size_t verify_bool = 0;
 	if (verify_boolean_expr(&verify_bool)) {
@@ -1351,52 +1349,6 @@ node::NodeValue* Parser::parse_value()
 		}
 
 		return val;
-	}
-
-	
-
-	// value returns identifier (can be of any type)
-	if (peek() && peek()->type == IDENTIFIER) {
-		node::NodeValueIdentifier* val_ident = new node::NodeValueIdentifier();
-		val_ident->identifier = consume();
-
-		// Verify if properties are there after identifier (also assume identifier is an object)
-		if (peek() && peek()->type == DOT) {
-			consume(); // .
-			node::NodeValueIdentifierProperty* ident_props = new node::NodeValueIdentifierProperty();
-			ident_props->identfierHead = val_ident->identifier;
-			ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
-				"Expected identifier after '.' after a function call"));
-			while (peek() && peek()->type == DOT)
-			{
-				ident_props->identifierproperties.push_back(*try_consume(IDENTIFIER,
-					"Expected identifier after '.' after a function call"));
-			}
-
-			//Check if it is an array
-			if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
-				consume();
-				if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
-					val->index = expr;
-					try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
-				}
-			}
-			val->var = ident_props;
-			return val;
-		}
-
-		//Check if it is an array
-		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
-			consume();
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
-				val->index = expr;
-				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
-			}
-		}
-
-		val->var = val_ident;
-		return val;
-
 	}
 
 	return nullptr;
@@ -2507,7 +2459,7 @@ bool Parser::verify_greater_equal(size_t* index)
 {
 
 	if (peek(*index) && peek(*index)->type == GREATER &&
-		peek(*index + 1) && peek(*index)->type == EQUAL) {
+		peek(*index + 1) && peek(*index + 1)->type == EQUAL) {
 		(*index) += 2;
 		return verify_arithmetic_expr(index);
 
@@ -2518,7 +2470,7 @@ bool Parser::verify_greater_equal(size_t* index)
 bool Parser::verify_less_equal(size_t* index)
 {
 	if (peek(*index) && peek(*index)->type == LESS &&
-		peek(*index + 1) && peek(*index)->type == EQUAL) {
+		peek(*index + 1) && peek(*index + 1)->type == EQUAL) {
 		(*index) += 2;
 		return verify_arithmetic_expr(index);
 

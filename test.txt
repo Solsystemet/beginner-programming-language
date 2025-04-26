@@ -1,2 +1,2 @@
-number x = ((2 + 2 * 6) / (1+1)) mod 2
+boolean x = not not(8 >= 10) is false
 print(x)

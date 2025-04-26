@@ -175,6 +175,7 @@ std::vector<Token> Lexer::Tokenize()
         case GREATER:
             t.type = GREATER;
             result.push_back(t);
+            break;
         case BOOLEAN:
             t.type = BOOLEAN;
             result.push_back(t);

@@ -130,7 +130,8 @@ namespace node {
 	};
 
 	struct NodeStmtPrint {
-		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*, NodeBooleanExpr*> var;
+		//TODO: make it handle conantations like "I am " + 20 + " years old\n"
+		mpark::variant<NodeValue*> value;
 	};
 
 	struct NodeFunctionCall {
@@ -345,7 +346,7 @@ namespace node {
 	};
 
 	struct NodeBooleanExpr {
-		NodeBooleanOr* expr;
+		mpark::variant<NodeBooleanOr*> expr;
 	};
 
 	struct NodeBooleanOrOperation {

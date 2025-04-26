@@ -28,6 +28,16 @@ public:
 	void evaluate_term(const node::NodeTerm* term);
 	void evaluate_factor(const node::NodeFactor* factor);
 
+	void evaluate_boolean_expression(const node::NodeBooleanExpr* expr);
+	void evaluate_boolean_or(const node::NodeBooleanOr* _or);
+	void evaluate_boolean_and(const node::NodeBooleanAnd* _and);
+	void evaluate_boolean_equal(const node::NodeBooleanEqual* equal);
+	void evaluate_real_expr(const node::NodeBooleanRealExpression* expr);
+	void evaluate_not(const node::NodeBooleanNot* _not);
+	void evaluate_bool_factor(const node::NodeBooleanFactor* factor);
+
+	void evaluate_value(const node::NodeValue* value);
+
 private:
 	node::NodeProg m_prog;
 
