@@ -1,2 +1,3 @@
-boolean x = not not(8 >= 10) is false
+string y = "to "
+string x = "Hello " + y + "my " + "world!!!"
 print(x)

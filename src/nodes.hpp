@@ -331,9 +331,19 @@ namespace node {
 		NodeStringExpr* rhs;
 	};
 
-	struct NodeStringExpr {
-		mpark::variant<Token, NodeStringExprConcat*, NodeFunctionCall*> var;
+	struct NodeStringValue {
+		Token value;
 	};
+
+	struct NodeStringIdentifier {
+		Token ident;
+	};
+
+	struct NodeStringExpr {
+		mpark::variant<NodeStringValue*, NodeStringIdentifier*, NodeFunctionCall* , NodeStringExprConcat*> var;
+	};
+
+	
 
 	struct NodeArithmeticExpr
 	{

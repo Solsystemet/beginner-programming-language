@@ -64,6 +64,9 @@ void Evaluator::evaluate_print(const node::NodeStmtPrint* print_stmt)
 					else if (symbol->type == "boolean") {
 						std::cout << mpark::get<bool>(symbol->value);
 					}
+					else if (symbol->type == "string") {
+						std::cout << mpark::get<std::string>(symbol->value);
+					}
 				}
 			}
 		}
@@ -120,12 +123,19 @@ void Evaluator::evaluate_simple_decleration(const node::NodeSimpleDecl* simp_dec
 			evaluator->evaluate_boolean_expression(b_expr);
 			boolean.value = evaluator->m_stack.top(); // get evaluated value from expression
 			evaluator->m_stack.pop();
-			evaluator->m_symbolTable.insert(boolean); // number decleration inserted into symbol table
+			evaluator->m_symbolTable.insert(boolean); // boolean decleration inserted into symbol table
 		}
 
 		// string expression
 		void operator()(const node::NodeStringExpr* s_expr) const {
-			std::cout << "string expression" << std::endl;
+			Symbol string;
+			string.name = mpark::get<std::string>(evaluator->m_stack.top()); // gets identifier name
+			evaluator->m_stack.pop();
+			string.type = "string";
+			evaluator->evaluate_string_expression(s_expr);
+			string.value = evaluator->m_stack.top(); // get evaluated value from expression
+			evaluator->m_stack.pop();
+			evaluator->m_symbolTable.insert(string); // string decleration inserted into symbol table
 		}
 
 	};
@@ -676,4 +686,58 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 
 	};
 	mpark::visit(BooleanFactorVisitor{ this }, factor->var);
+}
+
+void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
+{
+	struct StringExpressionVisitor {
+		Evaluator* evaluator;
+
+		// string value
+		void operator()(const node::NodeStringValue* val) const {
+			evaluator->m_stack.push(val->value.value);
+		}
+		// identifier
+		void operator()(const node::NodeStringIdentifier* ident) const {
+			if (evaluator->m_symbolTable.contains(ident->ident.value)) {
+				evaluator->m_stack.push(evaluator->m_symbolTable.lookup(ident->ident.value)->value);
+			}
+			else {
+				std::cerr << "Undeclared identifier: " << ident->ident.value << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+		// string value
+		void operator()(const node::NodeStringExprConcat* concat) const {
+			evaluator->evaluate_string_expression(concat->lhs);
+			evaluator->evaluate_string_expression(concat->rhs);
+
+			//assign the right hand side
+			//check if top of stack is a variable
+			std::string rhs;
+			std::string lhs;
+			if (mpark::holds_alternative<std::string>(evaluator->m_stack.top())) {
+				rhs = mpark::get<std::string>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
+			}
+			else {
+				std::cerr << "expected value of type string" << std::endl;
+			}
+
+			if (mpark::holds_alternative<std::string>(evaluator->m_stack.top())) {
+				lhs = mpark::get<std::string>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
+			}
+			else {
+				std::cerr << "expected value of type string" << std::endl;
+			}
+			evaluator->m_stack.push(lhs + rhs);
+		}
+		// TODO: function call
+		void operator()(const node::NodeFunctionCall* function_call) const {
+			std::cerr << "Function calls not implemented yet" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	};
+	mpark::visit(StringExpressionVisitor{ this }, expr->var);
 }

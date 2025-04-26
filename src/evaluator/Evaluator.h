@@ -36,7 +36,7 @@ public:
 	void evaluate_not(const node::NodeBooleanNot* _not);
 	void evaluate_bool_factor(const node::NodeBooleanFactor* factor);
 
-	void evaluate_value(const node::NodeValue* value);
+	void evaluate_string_expression(const node::NodeStringExpr* expr);
 
 private:
 	node::NodeProg m_prog;

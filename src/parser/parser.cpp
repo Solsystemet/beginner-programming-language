@@ -707,12 +707,37 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 	auto* string_expr = new node::NodeStringExpr();
 
 	if (Token* t = try_consume(STRING_VAL)) {
-		string_expr->var = *t;
+		node::NodeStringValue* val = new node::NodeStringValue();
+		val->value = *t;
+		string_expr->var = val;
 
 		if (peek()->type == PLUS) {
 			consume();
 			auto* concat = new node::NodeStringExprConcat();
-			concat->lhs = string_expr;
+			concat->lhs = new node::NodeStringExpr();
+			concat->lhs->var = string_expr->var;
+
+			node::NodeStringExpr* rhs = parse_string_expr();
+			if (rhs == nullptr) {
+				std::cerr << "Expected string expression after '+'" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			concat->rhs = rhs;
+			string_expr->var = concat;
+		}
+
+		return string_expr;
+	}
+	else if (Token* t = try_consume(IDENTIFIER)) {
+		node::NodeStringIdentifier* ident = new node::NodeStringIdentifier();
+		ident->ident = *t;
+		string_expr->var = ident;
+
+		if (peek()->type == PLUS) {
+			consume();
+			auto* concat = new node::NodeStringExprConcat();
+			concat->lhs = new node::NodeStringExpr();
+			concat->lhs->var = string_expr->var;
 
 			node::NodeStringExpr* rhs = parse_string_expr();
 			if (rhs == nullptr) {
@@ -731,7 +756,8 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 		if (peek()->type == PLUS) {
 			consume();
 			auto* concat = new node::NodeStringExprConcat();
-			concat->lhs = string_expr;
+			concat->lhs = new node::NodeStringExpr();
+			concat->lhs->var = string_expr->var;
 
 			node::NodeStringExpr* rhs = parse_string_expr();
 			if (rhs == nullptr) {
@@ -2309,21 +2335,37 @@ bool Parser::verify_value(size_t* index)
 bool Parser::verify_string_expr(size_t* index)
 {
 
-	if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+	if (peek(*index) && peek(*index)->type == STRING_VAL) {
 		(*index)++;
 
 		if (peek(*index)->type == PLUS) {
 			(*index)++;
+
 			return verify_string_expr(index);
-				
 		}
+
+		return true;
+	}
+	else if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+		(*index)++;
+
+		if (peek(*index)->type == PLUS) {
+			(*index)++;
+
+			return verify_string_expr(index);
+		}
+
+		return true;
 	}
 	else if (verify_function_call(index)) {
 
 		if (peek(*index)->type == PLUS) {
 			(*index)++;
+
 			return verify_string_expr(index);
 		}
+
+		return true;
 	}
 
 	return false;
