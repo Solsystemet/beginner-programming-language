@@ -6,7 +6,11 @@
 struct Symbol {
 	std::string name;
 	std::string type;
-    mpark::variant<double, std::string, bool> value; // the primitive value a symbol point to
+    mpark::variant<double,
+        std::string,
+        bool,
+        std::vector<mpark::variant<double, std::string, bool>>
+        > value; // the primitive value a symbol point to
 	int scopeLevel; // not using yet
 };
 
@@ -32,7 +36,6 @@ public:
         }
         return false;
     }
-
     // dev tool
     void print() const {
         for (const auto& pair : table) {

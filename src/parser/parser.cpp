@@ -265,6 +265,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 				}
 			} while (consume().type == COMMA);
 			numberArray->size = size;
+			arr->var = numberArray;
 		}
 
 

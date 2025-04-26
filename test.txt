@@ -1,3 +1,1 @@
-string y = "to "
-string x = "Hello " + y + "my " + "world!!!"
-print(x)
+number[] x = [5, 4, 3, 2, 1]

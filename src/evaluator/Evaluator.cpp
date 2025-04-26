@@ -91,7 +91,33 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 
 		// array declare
 		void operator()(const node::NodeArrayDecl* arr_decl) const {
-			std::cout << "array declare" << std::endl;
+			if (arr_decl->type.type == NUMBER && 
+				mpark::holds_alternative<node::NodeNumberArrayDecl*>(arr_decl->var)) {
+				double arraySize = evaluator->evaluate_number_array(mpark::get<node::NodeNumberArrayDecl*>(arr_decl->var));
+				
+
+				Symbol symbol;
+				symbol.name = arr_decl->identifier.value;
+				symbol.type = "number[]";
+
+				// Make array into correct size if it is assigned fixed size
+				std::vector<mpark::variant<double, std::string, bool>> arr;
+				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
+					arr.push_back(0.0);
+				}
+				// populate array if it was assigned elements
+				if (evaluator->m_stack.size() > 0) {
+					//populate backwards
+					for (size_t i = 0; i < arraySize ;i++)
+					{
+						arr.push_back(mpark::get<double>(evaluator->m_stack.top()));
+						evaluator->m_stack.pop();
+					}
+				}
+				std::reverse(arr.begin(), arr.end());
+				symbol.value = arr;
+				evaluator->m_symbolTable.insert(symbol);
+			}
 		}
 	};
 	mpark::visit(DeclVisitor{ this }, decl->var);
@@ -740,4 +766,20 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 		}
 	};
 	mpark::visit(StringExpressionVisitor{ this }, expr->var);
+}
+
+double Evaluator::evaluate_number_array(const node::NodeNumberArrayDecl* arr)
+{
+	if (arr->elements.size() > 0) {
+		for (node::NodeArithmeticExpr* expr : arr->elements) {
+			this->evaluate_arithmetic_expression(expr);
+		}
+		return mpark::get<size_t>(arr->size);
+	}
+	else if (mpark::holds_alternative<node::NodeArithmeticExpr*>(arr->size)) {
+		this->evaluate_arithmetic_expression(mpark::get<node::NodeArithmeticExpr*>(arr->size));
+		double size = mpark::get<double>(this->m_stack.top());
+		m_stack.pop();
+		return size;
+	}
 }

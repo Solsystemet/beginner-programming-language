@@ -38,11 +38,18 @@ public:
 
 	void evaluate_string_expression(const node::NodeStringExpr* expr);
 
+	// Have a return type which is the size of the array
+	double evaluate_number_array(const node::NodeNumberArrayDecl* arr);
+
 private:
 	node::NodeProg m_prog;
 
 	SymbolTable m_symbolTable; // this is for the global scope EXCLUSIVELY
 	
-	std::stack<mpark::variant<double, std::string, bool>> m_stack;
+	std::stack<mpark::variant<double,
+		std::string,
+		bool,
+		std::vector<mpark::variant<double, std::string, bool>>
+		>> m_stack;
 };
 
