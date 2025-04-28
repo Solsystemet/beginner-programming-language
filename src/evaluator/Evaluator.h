@@ -40,6 +40,7 @@ public:
 
 	// Have a return type which is the size of the array
 	double evaluate_number_array(const node::NodeNumberArrayDecl* arr);
+	double evaluate_string_array(const node::NodeStringArrayDecl* arr);
 
 private:
 	node::NodeProg m_prog;

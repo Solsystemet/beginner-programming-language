@@ -338,6 +338,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 				
 			} while (consume().type == COMMA);
 			stringArray->size = size;
+			arr->var = stringArray;
 		}
 
 
