@@ -134,6 +134,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\evaluator\Evaluator.h" />
+    <ClInclude Include="src\evaluator\FunctionTable.h" />
     <ClInclude Include="src\evaluator\SymbolTable.h" />
     <ClInclude Include="src\nodes.hpp" />
     <ClInclude Include="parserHelperFunctions.hpp" />
