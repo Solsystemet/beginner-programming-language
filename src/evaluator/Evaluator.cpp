@@ -24,7 +24,7 @@ void Evaluator::evaluate_stmt(const node::NodeStmt* stmt)
 		}
 		// assignment
 		void operator()(const node::NodeAssignment* assignment) const {
-			std::cout << "assignment" << std::endl;
+			evaluator->evaluate_assignment(assignment);
 		}
 		// global control flow
 		void operator()(const node::NodeGlobalControlFlow* global_control_flow) const {
@@ -98,7 +98,8 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 
 				Symbol symbol;
 				symbol.name = arr_decl->identifier.value;
-				symbol.type = "number[]";
+				symbol.type = "number";
+				symbol.isAnArray = true;
 
 				// Make array into correct size if it is assigned fixed size
 				std::vector<mpark::variant<double, std::string, bool>> arr;
@@ -125,7 +126,8 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 
 				Symbol symbol;
 				symbol.name = arr_decl->identifier.value;
-				symbol.type = "string[]";
+				symbol.type = "string";
+				symbol.isAnArray = true;
 
 				// Make array into correct size if it is assigned fixed size
 				std::vector<mpark::variant<double, std::string, bool>> arr;
@@ -152,7 +154,8 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 
 				Symbol symbol;
 				symbol.name = arr_decl->identifier.value;
-				symbol.type = "boolean[]";
+				symbol.type = "boolean";
+				symbol.isAnArray = true;
 
 				// Make array into correct size if it is assigned fixed size
 				std::vector<mpark::variant<double, std::string, bool>> arr;
@@ -876,4 +879,229 @@ double Evaluator::evaluate_boolean_array(const node::NodeBooleanArrayDecl* arr)
 		m_stack.pop();
 		return size;
 	}
+}
+
+// TODO: implement assignments with function calls, identifier property and function call property.
+void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
+{
+	if (Symbol* symbol_lhs = m_symbolTable.lookup(assignment->identifierHead.value)) {
+
+		// handle if symbol is an array
+		if (assignment->index != nullptr) {
+			size_t lhs_index = get_array_index(assignment->index);
+
+			std::vector<mpark::variant<double, std::string, bool>> arr =
+				mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol_lhs->value);
+
+			if (arr.size() <= lhs_index) {
+				std::cerr << "Array bound of bounds" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// Handle right hand side
+			if (mpark::holds_alternative<node::NodeValueIdentifier*>(assignment->rhs->var)) {
+				node::NodeValueIdentifier* ident = mpark::get<node::NodeValueIdentifier*>(assignment->rhs->var);
+
+				if (Symbol* symbol_rhs = m_symbolTable.lookup(ident->identifier.value)) {
+
+					if (assignment->rhs->index != nullptr) {
+						size_t rhs_index = get_array_index(assignment->rhs->index);
+						std::vector<mpark::variant<double, std::string, bool>> arr_rhs =
+							mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol_rhs->value);
+						if (arr_rhs.size() <= rhs_index) {
+							std::cerr << "Array bound of bounds" << std::endl;
+							exit(EXIT_FAILURE);
+						}
+
+						//Check if type matches
+						if (symbol_lhs->type == symbol_rhs->type) {
+							if (symbol_lhs->type == "number") {
+								arr[lhs_index] = mpark::get<double>(arr_rhs[rhs_index]);
+								symbol_lhs->value = arr;
+							}
+							else if (symbol_lhs->type == "string") {
+								arr[lhs_index] = mpark::get<std::string>(arr_rhs[rhs_index]);
+								symbol_lhs->value = arr;
+							}
+							else if (symbol_lhs->type == "boolean") {
+								arr[lhs_index] = mpark::get<bool>(arr_rhs[rhs_index]);
+								symbol_lhs->value = arr;
+							}
+						}
+						return;
+
+					}
+
+					//Check if type matches
+					if (symbol_lhs->type == symbol_rhs->type) {
+						if (symbol_lhs->type == "number") {
+							arr[lhs_index] = mpark::get<double>(symbol_rhs->value);
+							symbol_lhs->value = arr;
+						}
+						else if (symbol_lhs->type == "string") {
+							arr[lhs_index] = mpark::get<std::string>(symbol_rhs->value);
+							symbol_lhs->value = arr;
+						}
+						else if (symbol_lhs->type == "boolean") {
+							arr[lhs_index] = mpark::get<bool>(symbol_rhs->value);
+							symbol_lhs->value = arr;
+						}
+					}
+
+				}
+				else {
+					std::cerr << "Assignment on right hand side is an undeclared variable!" << std::endl;
+				}
+			}
+			else if (mpark::holds_alternative<node::NodeValueArithmeticExpression*>(assignment->rhs->var)) {
+				//Check if type matches
+				if (symbol_lhs->type == "number") {
+					evaluate_arithmetic_expression(mpark::get<node::NodeValueArithmeticExpression*>(assignment->rhs->var)->expr);
+					arr[lhs_index] = mpark::get<double>(m_stack.top());
+					m_stack.pop();
+					symbol_lhs->value = arr;
+				}
+				else {
+					std::cerr << "lhs is not of type number" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
+			}
+			else if (mpark::holds_alternative<node::NodeValueStringExpression*>(assignment->rhs->var)) {
+				//Check if type matches
+				if (symbol_lhs->type == "string") {
+					evaluate_string_expression(mpark::get<node::NodeValueStringExpression*>(assignment->rhs->var)->expr);
+					arr[lhs_index] = mpark::get<std::string>(m_stack.top());
+					m_stack.pop();
+					symbol_lhs->value = arr;
+				}
+				else {
+					std::cerr << "lhs is not of type number" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
+			}
+			else if (mpark::holds_alternative<node::NodeValueBooleanExpression*>(assignment->rhs->var)) {
+				//Check if type matches
+				if (symbol_lhs->type == "boolean") {
+					evaluate_boolean_expression(mpark::get<node::NodeValueBooleanExpression*>(assignment->rhs->var)->expr);
+					arr[lhs_index] = mpark::get<bool>(m_stack.top());
+					m_stack.pop();
+					symbol_lhs->value = arr;
+				}
+				else {
+					std::cerr << "lhs is not of type number" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
+			}
+
+		}
+		// TODO: handle identifier properties when object evaluation is implemented
+		if (assignment->props.size() > 0) {
+
+		}
+		
+		// Handle right hand side
+		if (mpark::holds_alternative<node::NodeValueIdentifier*>(assignment->rhs->var)) {
+			node::NodeValueIdentifier* ident = mpark::get<node::NodeValueIdentifier*>(assignment->rhs->var);
+			
+			if (Symbol* symbol_rhs = m_symbolTable.lookup(ident->identifier.value)) {
+
+				if (assignment->rhs->index != nullptr) {
+					size_t rhs_index = get_array_index(assignment->rhs->index);
+					std::vector<mpark::variant<double, std::string, bool>> arr_rhs =
+						mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol_rhs->value);
+					if (arr_rhs.size() <= rhs_index) {
+						std::cerr << "Array bound of bounds" << std::endl;
+						exit(EXIT_FAILURE);
+					}
+
+					//Check if type matches
+					if (symbol_lhs->type == symbol_rhs->type) {
+						if (symbol_lhs->type == "number") {
+							symbol_lhs->value = mpark::get<double>(arr_rhs[rhs_index]);
+						}
+						else if (symbol_lhs->type == "string") {
+							symbol_lhs->value = mpark::get<std::string>(arr_rhs[rhs_index]);
+						}
+						else if (symbol_lhs->type == "boolean") {
+							symbol_lhs->value = mpark::get<bool>(arr_rhs[rhs_index]);
+						}
+					}
+					return;
+
+				}
+
+				//Check if type matches
+				if (symbol_lhs->type == symbol_rhs->type) {
+					if (symbol_lhs->type == "number") {
+						symbol_lhs->value = mpark::get<double>(symbol_rhs->value);
+					}
+					else if (symbol_lhs->type == "string") {
+						symbol_lhs->value = mpark::get<std::string>(symbol_rhs->value);
+					}
+					else if (symbol_lhs->type == "boolean") {
+						symbol_lhs->value = mpark::get<bool>(symbol_rhs->value);
+					}
+				}
+
+			}
+			else {
+				std::cerr << "Assignment on right hand side is an undeclared variable!" << std::endl;
+			}
+		}
+		else if (mpark::holds_alternative<node::NodeValueArithmeticExpression*>(assignment->rhs->var)) {
+			//Check if type matches
+			if (symbol_lhs->type == "number") {
+				evaluate_arithmetic_expression(mpark::get<node::NodeValueArithmeticExpression*>(assignment->rhs->var)->expr);
+				symbol_lhs->value = m_stack.top();
+				m_stack.pop();
+			}
+			else {
+				std::cerr << "lhs is not of type number" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+		}
+		else if (mpark::holds_alternative<node::NodeValueStringExpression*>(assignment->rhs->var)) {
+			//Check if type matches
+			if (symbol_lhs->type == "string") {
+				evaluate_string_expression(mpark::get<node::NodeValueStringExpression*>(assignment->rhs->var)->expr);
+				symbol_lhs->value = m_stack.top();
+				m_stack.pop();
+			}
+			else {
+				std::cerr << "lhs is not of type number" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+		}
+		else if (mpark::holds_alternative<node::NodeValueBooleanExpression*>(assignment->rhs->var)) {
+			//Check if type matches
+			if (symbol_lhs->type == "boolean") {
+				evaluate_boolean_expression(mpark::get<node::NodeValueBooleanExpression*>(assignment->rhs->var)->expr);
+				symbol_lhs->value = m_stack.top();
+				m_stack.pop();
+			}
+			else {
+				std::cerr << "lhs is not of type number" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+		}
+
+	}
+	else
+	{
+		std::cerr << "Assignment on left hand side is an undeclared variable!" << std::endl;
+	}
+}
+
+size_t Evaluator::get_array_index(const node::NodeArithmeticExpr* expr)
+{
+	this->evaluate_arithmetic_expression(expr);
+	size_t size = mpark::get<double>(this->m_stack.top());
+	m_stack.pop();
+	return size;
 }

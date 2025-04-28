@@ -6,6 +6,7 @@
 struct Symbol {
 	std::string name;
 	std::string type;
+    bool isAnArray = false;
     mpark::variant<double,
         std::string,
         bool,

@@ -43,6 +43,10 @@ public:
 	double evaluate_string_array(const node::NodeStringArrayDecl* arr);
 	double evaluate_boolean_array(const node::NodeBooleanArrayDecl* arr);
 
+	void evaluate_assignment(const node::NodeAssignment* assignment);
+
+	size_t get_array_index(const node::NodeArithmeticExpr* expr);
+
 private:
 	node::NodeProg m_prog;
 

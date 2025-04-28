@@ -1442,7 +1442,7 @@ node::NodeAssignment* Parser::parse_assignment()
 		}
 
 		try_consume(EQUAL, "Expects '=' after lhs");
-		size_t verify_val = m_currentIndex;
+		size_t verify_val = 0;
 		if (verify_value(&verify_val)) {
 			node::NodeValue* val = parse_value();
 			assignment->rhs = val;
