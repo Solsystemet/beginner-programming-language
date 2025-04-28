@@ -408,6 +408,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 				
 			} while (consume().type == COMMA);
 			booleanArray->size = size;
+			arr->var = booleanArray;
 		}
 
 		try_consume(NEW_LINE, "Expected newline after declaration");
@@ -477,6 +478,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 				}
 			} while (consume().type == COMMA);
 				objArray->size = size;
+				arr->var = objArray;
 		}
 
 		try_consume(NEW_LINE, "Expected newline after declaration");

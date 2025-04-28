@@ -142,11 +142,43 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 					}
 				}
 				std::reverse(arr.begin(), arr.end());
+				symbol.value = arr;
+				evaluator->m_symbolTable.insert(symbol);
+			}
+			else if (arr_decl->type.type == BOOLEAN &&
+				mpark::holds_alternative<node::NodeBooleanArrayDecl*>(arr_decl->var)) {
+				double arraySize = evaluator->evaluate_boolean_array(mpark::get<node::NodeBooleanArrayDecl*>(arr_decl->var));
+
+
+				Symbol symbol;
+				symbol.name = arr_decl->identifier.value;
+				symbol.type = "boolean[]";
+
+				// Make array into correct size if it is assigned fixed size
+				std::vector<mpark::variant<double, std::string, bool>> arr;
+				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
+					arr.push_back(0.0);
+				}
+				// populate array if it was assigned elements
+				if (evaluator->m_stack.size() > 0) {
+					//populate backwards
+					for (size_t i = 0; i < arraySize; i++)
+					{
+						arr.push_back(mpark::get<bool>(evaluator->m_stack.top()));
+						evaluator->m_stack.pop();
+					}
+				}
+				std::reverse(arr.begin(), arr.end());
 				for (mpark::variant<double, std::string, bool> val : arr) {
-					std::cout << mpark::get<std::string>(val);
+					std::cout << mpark::get<bool>(val);
 				}
 				symbol.value = arr;
 				evaluator->m_symbolTable.insert(symbol);
+			}
+			// Assume object array decleration
+			// TODO: implement object array decleration
+			else {
+
 			}
 		}
 	};
@@ -819,6 +851,22 @@ double Evaluator::evaluate_string_array(const node::NodeStringArrayDecl* arr)
 	if(arr->elements.size() > 0) {
 		for (node::NodeStringExpr* expr : arr->elements) {
 			this->evaluate_string_expression(expr);
+		}
+		return mpark::get<size_t>(arr->size);
+	}
+	else if (mpark::holds_alternative<node::NodeArithmeticExpr*>(arr->size)) {
+		this->evaluate_arithmetic_expression(mpark::get<node::NodeArithmeticExpr*>(arr->size));
+		double size = mpark::get<double>(this->m_stack.top());
+		m_stack.pop();
+		return size;
+	}
+}
+
+double Evaluator::evaluate_boolean_array(const node::NodeBooleanArrayDecl* arr)
+{
+	if (arr->elements.size() > 0) {
+		for (node::NodeBooleanExpr* expr : arr->elements) {
+			this->evaluate_boolean_expression(expr);
 		}
 		return mpark::get<size_t>(arr->size);
 	}

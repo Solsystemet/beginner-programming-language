@@ -1,1 +1,1 @@
-string[] x = ["Hello, ", "World!!"]
+boolean[] x = [true, 5<6]
