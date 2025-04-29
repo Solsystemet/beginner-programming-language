@@ -27,7 +27,7 @@
 ">"                             { return GREATER; }
 [ ]+                            ; // Ignore spaces
 
-\"([^\"\\]|\\.)*\"              { return STRING_VAL; }
+\"([^|"\\]\\.)*\"             { return STRING_VAL; }
 
 [a-zA-Z_][a-zA-Z_0-9]* {
     if (strcmp(yytext, "number") == 0) return NUMBER;
