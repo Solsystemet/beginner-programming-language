@@ -45,6 +45,9 @@ public:
 
 	void evaluate_assignment(const node::NodeAssignment* assignment);
 
+	void evaluate_definition(const node::NodeDefinition* definition);
+	void evaluate_function_definition(const node::NodeFunctionDefinition* func_def);
+
 	size_t get_array_index(const node::NodeArithmeticExpr* expr);
 
 private:

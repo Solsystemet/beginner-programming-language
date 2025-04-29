@@ -38,7 +38,7 @@ void Evaluator::evaluate_stmt(const node::NodeStmt* stmt)
 
 		// definition
 		void operator()(const node::NodeDefinition* definition) const {
-			std::cout << "definition" << std::endl;
+			evaluator->evaluate_definition(definition);
 		}
 
 	};
@@ -1096,6 +1096,30 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 	{
 		std::cerr << "Assignment on left hand side is an undeclared variable!" << std::endl;
 	}
+}
+
+void Evaluator::evaluate_definition(const node::NodeDefinition* definition)
+{
+	struct DefinitionVisitor
+	{
+		Evaluator* evaluator;
+		// Function definition 
+		void operator()(const node::NodeFunctionDefinition* func_def) const {
+			evaluator->evaluate_function_definition(func_def);
+		}
+
+		// TODO: Implement object definitions 
+		void operator()(const node::NodeObjectDefinition* obj_def) const {
+			std::cerr << "object definition" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	};
+	mpark::visit(DefinitionVisitor{ this }, definition->var);
+}
+
+void Evaluator::evaluate_function_definition(const node::NodeFunctionDefinition* func_def)
+{
+
 }
 
 size_t Evaluator::get_array_index(const node::NodeArithmeticExpr* expr)

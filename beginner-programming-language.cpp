@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     FILE* input = fopen("test.txt", "r");
 
     Lexer lexer = Lexer(input);
-    std::vector<Token> result = lexer.Tokenize(); 
+     std::vector<Token> result = lexer.Tokenize();
     fclose(yyin);
 
     Parser parser = Parser(result);
