@@ -144,6 +144,7 @@ private:
 	bool verify_not(size_t* index);
 	bool verify_not_op(size_t* index);
 	bool verify_boolean_factor(size_t* index);
+	bool operator_check(size_t* index);
 
     std::vector<Token> m_tokens;
     size_t m_currentIndex;

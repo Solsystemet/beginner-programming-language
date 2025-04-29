@@ -6,6 +6,7 @@
 #include "../mpark/variant.hpp"
 #include "../nodes.hpp"
 #include "./SymbolTable.h"
+#include "./FunctionTable.h"
 
 
 
@@ -54,6 +55,7 @@ private:
 	node::NodeProg m_prog;
 
 	SymbolTable m_symbolTable; // this is for the global scope EXCLUSIVELY
+	FunctionTable m_functionTable;
 	
 	std::stack<mpark::variant<double,
 		std::string,

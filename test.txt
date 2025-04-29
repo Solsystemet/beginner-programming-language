@@ -1,2 +1,2 @@
-number x = 5
-print(x)
+number function add(number lhs, number rhs):
+	return lhs + rhs

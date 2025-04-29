@@ -1277,9 +1277,9 @@ node::NodeValue* Parser::parse_value()
 		val->var = v_func_call;
 		return val;
 	}
-
+	size_t verify_operator = 0;
 	// value returns identifier (can be of any type)
-	if (peek() && peek()->type == IDENTIFIER) {
+	if (peek() && peek()->type == IDENTIFIER && operator_check(&verify_operator) == false) {
 		node::NodeValueIdentifier* val_ident = new node::NodeValueIdentifier();
 		val_ident->identifier = consume();
 
@@ -2592,4 +2592,80 @@ bool Parser::verify_boolean_factor(size_t* index)
 	}
 
 	return false;
+}
+
+bool Parser::operator_check(size_t* index)
+{
+	node::NodeValueIdentifier* val_ident = new node::NodeValueIdentifier();
+	if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+		(*index)++;
+	}
+
+	// Verify if properties are there after identifier (also assume identifier is an object)
+	if (peek(*index) && peek(*index)->type == DOT) {
+		(*index)++;
+		if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+			(*index)++;
+		}
+		while (peek(*index) && peek(*index)->type == DOT)
+		{
+			(*index)++;
+			if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+				(*index)++;
+			}
+		}
+
+		//Check if it is an array
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+					(*index)++;
+				}
+			}
+		}
+		switch (peek(*index)->type)
+		{
+		case PLUS:
+		case MINUS:
+		case MULTIPLY:
+		case DIVIDE:
+		case MODULO:
+		case LESS:
+		case GREATER:
+		case IS:
+		case NOT:
+			return true;
+		default:
+			return false;
+			break;
+		}
+	}
+
+	//Check if it is an array
+	if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+		(*index)++;
+		if (verify_arithmetic_expr(index)) {
+			if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+				(*index)++;
+			}
+		}
+	}
+
+	switch (peek(*index)->type)
+	{
+	case PLUS:
+	case MINUS:
+	case MULTIPLY:
+	case DIVIDE:
+	case MODULO:
+	case LESS:
+	case GREATER:
+	case IS:
+	case NOT:
+		return true;
+	default:
+		return false;
+		break;
+	}
 }

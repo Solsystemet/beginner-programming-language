@@ -15,7 +15,7 @@ struct Function {
     SymbolTable args;
 
     // The beginning of the functions code content
-    node::NodeFunctionStmt* stmts;
+    std::vector <node::NodeFunctionStmt*> stmts;
 };
 
 class FunctionTable {

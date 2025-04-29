@@ -1119,7 +1119,75 @@ void Evaluator::evaluate_definition(const node::NodeDefinition* definition)
 
 void Evaluator::evaluate_function_definition(const node::NodeFunctionDefinition* func_def)
 {
+	if (m_functionTable.contains(func_def->functionName.value)) {
+		std::cerr << "Function " << func_def->functionName.value << " is already defined!" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	Function func;
+	func.name = func_def->functionName.value;
+	if (func_def->type != nullptr) {
+		func.type = func_def->type->value;
+		switch (func_def->type->type)
+		{
+		case NUMBER:
+			func.type = "number";
+			break;
+		case BOOLEAN:
+			func.type = "boolean";
+			break;
+		case STRING:
+			func.type = "string";
+			break;
+		case IDENTIFIER:
+			//TODO: check if type is of a defined ofbject. If not produce error
+			std::cerr << "Object types not implemented yet!" << std::endl;
+			exit(EXIT_FAILURE);
+			break;
+		default:
 
+			std::cerr << "Argument is not a valid type: " << func_def->type->type << std::endl;
+			exit(EXIT_FAILURE);
+			break;
+		}
+		func.isAnArray = func_def->isAnArray;
+	}
+
+	for (node::NodeFunctionArg* arg : func_def->args) {
+		Symbol symbol;
+		symbol.name = arg->identifier.value;
+		symbol.type = arg->type.value;
+		switch (arg->type.type)
+		{
+		case NUMBER:
+			symbol.type = "number";
+			break;
+		case BOOLEAN:
+			symbol.type = "boolean";
+			break;
+		case STRING:
+			symbol.type = "string";
+			break;
+		case IDENTIFIER:
+			//TODO: check if type is of a defined ofbject. If not produce error
+			std::cerr << "Object types not implemented yet!" << std::endl;
+			exit(EXIT_FAILURE);
+			break;
+		default:
+
+			std::cerr << "Argument is not a valid type: " << arg->identifier.type << std::endl;
+			exit(EXIT_FAILURE);
+			break;
+		}
+		symbol.isAnArray = arg->isTypeAnArray;
+		if (func.args.contains(symbol.name)) {
+			std::cerr << "Argument is already decleared previously! " << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		func.args.insert(symbol);
+	}
+
+	func.stmts = func_def->stmts;
+	m_functionTable.insert(func);
 }
 
 size_t Evaluator::get_array_index(const node::NodeArithmeticExpr* expr)
