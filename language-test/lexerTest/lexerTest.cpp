@@ -1,4 +1,4 @@
-#include "pch.h"
+#include "../pch.h"
 #include <filesystem>
 class LexerTest : public testing::Test {
 
@@ -9,7 +9,7 @@ public:
     void SetUp() override {
 
         //Arrange 
-        file = fopen("../testtest.txt", "r");
+        file = fopen("../test.txt", "r");
         ASSERT_NE(file, nullptr) << "Failed to open file";
         lexer = new Lexer(file);
         
