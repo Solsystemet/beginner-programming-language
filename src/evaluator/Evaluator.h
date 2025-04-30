@@ -51,6 +51,8 @@ public:
 
 	void evaluate_function_call(const node::NodeFunctionCall* func_call);
 
+	void evaluate_value(const node::NodeValue* val);
+
 	size_t get_array_index(const node::NodeArithmeticExpr* expr);
 
 private:

@@ -12,7 +12,7 @@ struct Function {
     bool isAnArray = false;
 
     // function stores arguments in its own symbol table
-    SymbolTable args;
+    std::vector<Symbol> args;
 
     // The beginning of the functions code content
     std::vector <node::NodeFunctionStmt*> stmts;

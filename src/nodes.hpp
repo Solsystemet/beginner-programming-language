@@ -153,7 +153,8 @@ namespace node {
 			NodeValueStringExpression*,
 			NodeValueBooleanExpression*,
 			NodeValueIdentifierProperty*,
-			NodeValueFunctionCallProperty*> var;
+			NodeValueFunctionCallProperty*
+		> var;
 
 		//if node value is from an array
 		NodeArithmeticExpr* index = nullptr;

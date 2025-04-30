@@ -1179,11 +1179,11 @@ void Evaluator::evaluate_function_definition(const node::NodeFunctionDefinition*
 			break;
 		}
 		symbol.isAnArray = arg->isTypeAnArray;
-		if (func.args.contains(symbol.name)) {
+		/*if (func.args.contains(symbol.name)) {
 			std::cerr << "Argument is already decleared previously! " << std::endl;
 			exit(EXIT_FAILURE);
-		}
-		func.args.insert(symbol);
+		}*/
+		func.args.push_back(symbol);
 	}
 
 	func.stmts = func_def->stmts;
@@ -1202,6 +1202,32 @@ void Evaluator::evaluate_function_call(const node::NodeFunctionCall* func_call)
 		std::cerr << "Function: " << func_call->functionName.value << " not defined!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
+}
+
+void Evaluator::evaluate_value(const node::NodeValue* val)
+{
+	struct ValueVisittor
+	{
+		Evaluator* evaluator;
+		node::NodeArithmeticExpr* expr;
+
+		// boolean value 
+		void operator()(const node::NodeValueIdentifier* ident) const {
+		}
+		void operator()(const node::NodeValueFunctionCall* func_call) const {
+		}
+		void operator()(const node::NodeValueArithmeticExpression* expr) const {
+		}
+		void operator()(const node::NodeValueStringExpression* expr) const {
+		}
+		void operator()(const node::NodeValueBooleanExpression* expr) const {
+		}
+		void operator()(const node::NodeValueIdentifierProperty* props) const {
+		}
+		void operator()(const node::NodeValueFunctionCallProperty* props) const {
+		}
+	};
+	mpark::visit(ValueVisittor{ this, val->index }, val->var);
 }
 
 size_t Evaluator::get_array_index(const node::NodeArithmeticExpr* expr)
