@@ -691,6 +691,10 @@ node::NodeFactor* Parser::parse_factor() {
 	if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeFactorDecimal()))
 		nodefactor = factor;
 
+	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
+		nodefactor = new node::NodeFactor();
+		nodefactor->var = func_Call;
+	}
 
 	// Identifier
 	if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeFactorIdentifier()))
@@ -700,9 +704,7 @@ node::NodeFactor* Parser::parse_factor() {
 	if (node::NodeFactor* factor = try_consume_symbol(t, new node::NodeArithmeticExpr()))
 		nodefactor = factor;
 
-	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
-		nodefactor->var = func_Call;
-	}
+	
 
 	return nodefactor;
 }
@@ -2114,6 +2116,10 @@ bool Parser::verify_factor(size_t* index)
 		return true;
 	}
 
+	if (verify_function_call(index)) {
+		return true;
+	}
+
 	if (peek(*index)->type == IDENTIFIER) {
 		(*index)++;
 		return true;
@@ -2129,8 +2135,6 @@ bool Parser::verify_factor(size_t* index)
 		}
 	}
 
-	return verify_function_call(index);
-
 
 	return false;
 }
@@ -2140,7 +2144,7 @@ bool Parser::verify_function_call(size_t* index)
 	if (peek(*index) && peek(*index)->type == IDENTIFIER &&
 		peek(*index + 1) && peek(*index + 1)->type == OPEN_PARANTHESIS) {
 
-		index += 2;
+		*index += 2;
 
 		do
 		{

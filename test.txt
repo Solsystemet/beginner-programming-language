@@ -1,2 +1,4 @@
 number function add(number lhs, number rhs):
 	return lhs + rhs
+number x = add(2,2)
+print(x)
