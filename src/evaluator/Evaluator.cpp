@@ -1190,6 +1190,20 @@ void Evaluator::evaluate_function_definition(const node::NodeFunctionDefinition*
 	m_functionTable.insert(func);
 }
 
+void Evaluator::evaluate_function_call(const node::NodeFunctionCall* func_call)
+{
+	if (m_functionTable.contains(func_call->functionName.value)) {
+		Function* func = m_functionTable.lookup(func_call->functionName.value);
+
+
+
+	}
+	else {
+		std::cerr << "Function: " << func_call->functionName.value << " not defined!" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
+
 size_t Evaluator::get_array_index(const node::NodeArithmeticExpr* expr)
 {
 	this->evaluate_arithmetic_expression(expr);
