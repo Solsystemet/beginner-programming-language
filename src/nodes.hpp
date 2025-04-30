@@ -57,6 +57,7 @@ namespace node {
 	// Statement rules
 	struct NodeDecl;
 	struct NodeStmtPrint; // special function call stmt
+	struct NodeStmtInput;
 	
 	struct NodeFunctionCall;
 	// for function call arguments
@@ -110,19 +111,19 @@ namespace node {
 	struct NodeStmt
 	{
 		mpark::variant<NodeDecl*,NodeFunctionCall*,NodeAssignment*,
-			NodeGlobalControlFlow*, NodeStmtPrint*, NodeDefinition*> var;
+			NodeGlobalControlFlow*, NodeStmtPrint*, NodeDefinition*, NodeStmtInput*> var;
 	};
 
 	struct NodeNestedStmt
 	{
 		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
-			NodeGlobalControlFlow*, NodeStmtPrint*> var;
+			NodeGlobalControlFlow*, NodeStmtPrint*, NodeStmtInput*> var;
 	};
 
 	struct NodeFunctionStmt
 	{
 		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
-			NodeFunctionControlFlow*, NodeFunctionReturn*, NodeStmtPrint*> var;
+			NodeFunctionControlFlow*, NodeFunctionReturn*, NodeStmtPrint*, NodeStmtInput*> var;
 	};
 
 	struct NodeFunctionReturn {
@@ -133,6 +134,10 @@ namespace node {
 		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*, NodeBooleanExpr*> var;
 	};
 
+	struct NodeStmtInput
+	{
+
+	};
 	struct NodeFunctionCall {
 		Token functionName;
 		std::vector<NodeArgs*> args;
