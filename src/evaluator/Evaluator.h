@@ -24,20 +24,14 @@ public:
 	void evaluate_print(const node::NodeStmtPrint* print_stmt);
 
 	void evaluate_declecration(const node::NodeDecl* decl);
-	void evaluate_declecration(const node::NodeDecl* decl, Function* func);
 
 
 	void evaluate_simple_decleration(const node::NodeSimpleDecl* simp_decl);
-	void evaluate_simple_decleration(const node::NodeSimpleDecl* simp_decl, Function* func);
 
 
 	void evaluate_arithmetic_expression(const node::NodeArithmeticExpr* expr);
 	void evaluate_term(const node::NodeTerm* term);
 	void evaluate_factor(const node::NodeFactor* factor);
-
-	void evaluate_arithmetic_expression(const node::NodeArithmeticExpr* expr, Function* func);
-	void evaluate_term(const node::NodeTerm* term, Function* func);
-	void evaluate_factor(const node::NodeFactor* factor, Function* func);
 
 	void evaluate_boolean_expression(const node::NodeBooleanExpr* expr);
 	void evaluate_boolean_or(const node::NodeBooleanOr* _or);
@@ -62,7 +56,6 @@ public:
 	void evaluate_function_call(const node::NodeFunctionCall* func_call);
 
 	void evaluate_value(const node::NodeValue* val);
-	void evaluate_value(const node::NodeValue* val, Function* func);
 
 	void evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Function* func, bool* _break);
 
@@ -74,6 +67,8 @@ public:
 	SymbolTable m_symbolTable; // this is for the global scope EXCLUSIVELY
 	FunctionTable m_functionTable;
 	
+	std::vector<SymbolTable> m_scopedTables;
+
 	std::stack<mpark::variant<double,
 		std::string,
 		bool,
