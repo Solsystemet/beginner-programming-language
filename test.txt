@@ -1,4 +1,7 @@
 number function add(number lhs, number rhs):
-	return lhs + rhs
+	number x = lhs
+	number y = rhs
+	x = x + y
+	return x
 number x = add(2,2)
 print(x)

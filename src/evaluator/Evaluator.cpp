@@ -933,6 +933,78 @@ double Evaluator::evaluate_boolean_array(const node::NodeBooleanArrayDecl* arr)
 // TODO: implement assignments with function calls, identifier property and function call property.
 void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 {
+	if (m_scopedTables.size() > 0) {
+		for (size_t i = m_scopedTables.size() - 1; i >= 0; i--)
+		{
+			if (m_scopedTables[i].contains(assignment->identifierHead.value)) {
+
+				if (Symbol* symbol_lhs = m_scopedTables[i].lookup(assignment->identifierHead.value)) {
+
+					// handle if symbol is an array
+					if (assignment->index != nullptr) {
+						size_t lhs_index = get_array_index(assignment->index);
+
+						std::vector<mpark::variant<double, std::string, bool>> arr =
+							mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol_lhs->value);
+
+						if (arr.size() <= lhs_index) {
+							std::cerr << "Array bound of bounds" << std::endl;
+							exit(EXIT_FAILURE);
+						}
+
+						// Handle right hand side
+						evaluate_value(assignment->rhs);
+						auto rhs = m_stack.top();
+						m_stack.pop();
+
+						if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool>>>(rhs)) {
+							auto rhs_arr = mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(rhs);
+							if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) {
+								arr = rhs_arr;
+								symbol_lhs->value = arr;
+							}
+							else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) {
+								arr = rhs_arr;
+								symbol_lhs->value = arr;
+							}
+							else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) {
+								arr = rhs_arr;
+								symbol_lhs->value = arr;
+							}
+							else {
+								std::cerr << "Identifiers types do not match!" << std::endl;
+								exit(EXIT_FAILURE);
+							}
+						}
+						return;
+
+					}
+					evaluate_value(assignment->rhs);
+					auto rhs = m_stack.top();
+					m_stack.pop();
+
+					if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs)) {
+						symbol_lhs->value = rhs;
+					}
+					else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs)) {
+						symbol_lhs->value = rhs;
+					}
+					else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs)) {
+						symbol_lhs->value = rhs;
+					}
+					else {
+						std::cerr << "Identifiers types do not match!" << std::endl;
+						exit(EXIT_FAILURE);
+					}
+
+
+				}
+
+				return;
+			}
+		}
+	}
+
 	if (Symbol* symbol_lhs = m_symbolTable.lookup(assignment->identifierHead.value)) {
 
 		// handle if symbol is an array
@@ -1182,6 +1254,47 @@ void Evaluator::evaluate_value(const node::NodeValue* val)
 
 		// boolean value 
 		void operator()(const node::NodeValueIdentifier* ident) const {
+
+			if (evaluator->m_scopedTables.size() > 0) {
+				for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
+				{
+					if (evaluator->m_scopedTables[i].contains(ident->identifier.value)) {
+						Symbol* symbol = evaluator->m_scopedTables[i].lookup(ident->identifier.value);
+
+						//Handle if symbol is an array
+						if (symbol->isAnArray == true && expr != nullptr) {
+							std::vector<mpark::variant<double, std::string, bool>> val =
+								mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol->value);
+							size_t index = evaluator->get_array_index(expr);
+
+							if (mpark::holds_alternative<double>(val[index])) {
+								evaluator->m_stack.push(mpark::get<double>(val[index]));
+							}
+							else if (mpark::holds_alternative<bool>(val[index])) {
+								evaluator->m_stack.push(mpark::get<bool>(val[index]));
+							}
+							else if (mpark::holds_alternative<std::string>(val[index])) {
+								evaluator->m_stack.push(mpark::get<std::string>(val[index]));
+							}
+
+						}
+						// type is just an array of a primitive type
+						else if (symbol->isAnArray == true && expr == nullptr) {
+							evaluator->m_stack.push(symbol->value);
+						}
+						// symbol is just primitive
+						else if (symbol->isAnArray == false && expr == nullptr) {
+							evaluator->m_stack.push(symbol->value);
+						}
+						else {
+							std::cerr << "Identifier is not an array" << std::endl;
+							exit(EXIT_FAILURE);
+						}
+						return;
+					}
+				}
+			}
+
 			if (evaluator->m_symbolTable.contains(ident->identifier.value)) {
 				Symbol* symbol = evaluator->m_symbolTable.lookup(ident->identifier.value);
 
