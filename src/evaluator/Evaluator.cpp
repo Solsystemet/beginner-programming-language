@@ -30,7 +30,7 @@ void Evaluator::evaluate_stmt(const node::NodeStmt* stmt)
 		}
 		// global control flow
 		void operator()(const node::NodeGlobalControlFlow* global_control_flow) const {
-			std::cout << "global control flow" << std::endl;
+			evaluator->evaluate_global_control_flow(global_control_flow);
 		}
 
 		// print stmt
@@ -45,6 +45,41 @@ void Evaluator::evaluate_stmt(const node::NodeStmt* stmt)
 
 	};
 	mpark::visit(StmtVisitor{this}, stmt->var);
+}
+
+void Evaluator::evaluate_nested_stmt(const node::NodeNestedStmt* stmt, bool* _break)
+{
+	struct StmtVisitor
+	{
+		Evaluator* evaluator;
+		bool* _break;
+
+		// decleration
+		void operator()(const node::NodeDecl* decl) const {
+
+			evaluator->evaluate_declecration(decl);
+		}
+
+		// function call
+		void operator()(const node::NodeFunctionCall* stmt_function_call) const {
+			evaluator->evaluate_function_call(stmt_function_call);
+		}
+		// assignment
+		void operator()(const node::NodeAssignment* assignment) const {
+			evaluator->evaluate_assignment(assignment);
+		}
+		// global control flow
+		void operator()(const node::NodeGlobalControlFlow* global_control_flow) const {
+			evaluator->evaluate_global_control_flow(global_control_flow);
+		}
+
+		// print stmt
+		void operator()(const node::NodeStmtPrint* stmt_print) const {
+			evaluator->evaluate_print(stmt_print);
+		}
+
+	};
+	mpark::visit(StmtVisitor{ this, _break }, stmt->var);
 }
 
 void Evaluator::evaluate_print(const node::NodeStmtPrint* print_stmt)
@@ -431,13 +466,16 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 		}
 		// identifier
 		void operator()(const node::NodeFactorIdentifier* identifier) const {
-			for (size_t i = evaluator->m_scopedTables.size()-1; i >= 0; i--)
-			{
-				if (evaluator->m_scopedTables[i].contains(identifier->identifier.value)) {
-					evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(identifier->identifier.value)->value);
-					return;
+			if (evaluator->m_scopedTables.empty() == false) {
+				for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
+				{
+					if (evaluator->m_scopedTables[i].contains(identifier->identifier.value)) {
+						evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(identifier->identifier.value)->value);
+						return;
+					}
 				}
 			}
+			
 
 			if(evaluator->m_symbolTable.contains(identifier->identifier.value)){
 				evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
@@ -560,6 +598,7 @@ void Evaluator::evaluate_boolean_equal(const node::NodeBooleanEqual* equal)
 
 		// real Expression
 		void operator()(const node::NodeBooleanRealExpression* real_expr) const {
+
 			evaluator->evaluate_real_expr(real_expr);
 		}
 
@@ -660,6 +699,7 @@ void Evaluator::evaluate_real_expr(const node::NodeBooleanRealExpression* expr)
 		// less equal
 		void operator()(const node::NodeBooleanLessEqual* less_equal) const {
 			evaluator->evaluate_arithmetic_expression(less_equal->lhs);
+			
 			evaluator->evaluate_arithmetic_expression(less_equal->rhs);
 
 			// assign the right hand side
@@ -787,11 +827,13 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 		// identifier 
 		void operator()(const node::NodeBooleanFactorIdentifier* identifier) const {
 
-			for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
-			{
-				if (evaluator->m_scopedTables[i].contains(identifier->identifier.value)) {
-					evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(identifier->identifier.value)->value);
-					return;
+			if (evaluator->m_scopedTables.empty() == false) {
+				for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
+				{
+					if (evaluator->m_scopedTables[i].contains(identifier->identifier.value)) {
+						evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(identifier->identifier.value)->value);
+						return;
+					}
 				}
 			}
 
@@ -831,11 +873,13 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 		// identifier
 		void operator()(const node::NodeStringIdentifier* ident) const {
 
-			for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
-			{
-				if (evaluator->m_scopedTables[i].contains(ident->ident.value)) {
-					evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(ident->ident.value)->value);
-					return;
+			if (evaluator->m_scopedTables.empty() == false) {
+				for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
+				{
+					if (evaluator->m_scopedTables[i].contains(ident->ident.value)) {
+						evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(ident->ident.value)->value);
+						return;
+					}
 				}
 			}
 
@@ -1449,6 +1493,86 @@ void Evaluator::evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Funct
 
 	};
 	mpark::visit(StmtVisitor{ this, func, _break }, stmt->var);
+}
+
+void Evaluator::evaluate_global_control_flow(const node::NodeGlobalControlFlow* flow)
+{
+	struct ControlFlowVisitor {
+		Evaluator* evaluator;
+
+		// if statement
+		void operator()(const node::NodeGlobalIf* _if) const {
+			evaluator->evaluate_boolean_expression(_if->condition);
+			auto cond = evaluator->m_stack.top();
+			evaluator->m_stack.pop();
+
+			// Initial if statement 
+			if (mpark::get<bool>(cond) == true) {
+				
+				SymbolTable table;
+				evaluator->m_scopedTables.push_back(table);
+				bool _break = false;
+				for (node::NodeNestedStmt* stmt : _if->stmts) {
+					if (_break == true) {
+						break;
+					}
+					evaluator->evaluate_nested_stmt(stmt, &_break);
+				}
+
+				evaluator->m_scopedTables.pop_back();
+				return;
+			}
+
+			// Check else ifs
+			for (node::NodeGlobalElseIf* _elseif : _if->elseifs) {
+				evaluator->evaluate_boolean_expression(_elseif->condition);
+				auto cond = evaluator->m_stack.top();
+				evaluator->m_stack.pop();
+
+				// Initial if statement 
+				if (mpark::get<bool>(cond) == true) {
+
+					SymbolTable table;
+					evaluator->m_scopedTables.push_back(table);
+					//std::cout << evaluator->m_scopedTables.size();
+					bool _break = false;
+
+					for (node::NodeNestedStmt* stmt : _elseif->stmts) {
+						if (_break == true) {
+							break;
+						}
+						evaluator->evaluate_nested_stmt(stmt, &_break);
+					}
+
+					evaluator->m_scopedTables.pop_back();
+					return;
+				}
+			}
+
+			if (_if->_else != nullptr) {
+
+				SymbolTable table;
+				evaluator->m_scopedTables.push_back(table);
+				bool _break = false;
+
+				for (node::NodeNestedStmt* stmt : _if->_else->stmts) {
+					if (_break == true) {
+						break;
+					}
+					evaluator->evaluate_nested_stmt(stmt, &_break);
+				}
+
+				evaluator->m_scopedTables.pop_back();
+				return;
+			}
+		}
+
+		// loop statement
+		void operator()(const node::NodeGlobalLoop* _loop) const {
+		}
+
+	};
+	mpark::visit(ControlFlowVisitor{ this}, flow->var);
 }
 
 size_t Evaluator::get_array_index(const node::NodeArithmeticExpr* expr)

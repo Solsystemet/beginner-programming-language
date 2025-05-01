@@ -146,6 +146,8 @@ private:
 	bool verify_boolean_factor(size_t* index);
 	bool operator_check(size_t* index);
 
+	// check for boolean operators after verify arithmetic expression
+	bool arithmetic_operator_check(size_t* index);
     std::vector<Token> m_tokens;
     size_t m_currentIndex;
 

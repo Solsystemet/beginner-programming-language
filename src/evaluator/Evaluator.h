@@ -20,6 +20,7 @@ public:
 	void evaluate_prog();
 
 	void evaluate_stmt(const node::NodeStmt* stmt);
+	void evaluate_nested_stmt(const node::NodeNestedStmt* stmt, bool* _break);
 
 	void evaluate_print(const node::NodeStmtPrint* print_stmt);
 
@@ -58,6 +59,8 @@ public:
 	void evaluate_value(const node::NodeValue* val);
 
 	void evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Function* func, bool* _break);
+
+	void evaluate_global_control_flow(const node::NodeGlobalControlFlow* flow);
 
 	size_t get_array_index(const node::NodeArithmeticExpr* expr);
 

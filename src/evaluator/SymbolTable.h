@@ -31,6 +31,8 @@ public:
     }
     bool contains(const std::string& name)
     {
+        if (table.empty())
+            return false;
         auto it = table.find(name);
         if (it != table.end()) {
             return true;

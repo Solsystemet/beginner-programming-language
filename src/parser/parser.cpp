@@ -976,44 +976,48 @@ node::NodeBooleanRealExpression* Parser::parse_real_expr()
 	node::NodeBooleanRealExpression* result = new node::NodeBooleanRealExpression();
 
 	// Assume arithmetic expression
-	node::NodeArithmeticExpr* expr_lhs = parse_arithmetic_expr();
-	if (expr_lhs != nullptr) {
-		// greater equal
-		if (peek()->type == GREATER && peek(1)->type == EQUAL) {
-			node::NodeBooleanGreaterEqual* ge = parse_greater_equal(expr_lhs);
-			if (ge != nullptr) {
-				result->var = ge;
-				return result;
+	size_t verify_arith = 0;
+	if (verify_arithmetic_expr(&verify_arith)) {
+		node::NodeArithmeticExpr* expr_lhs = parse_arithmetic_expr();
+		if (expr_lhs != nullptr) {
+			// greater equal
+			if (peek()->type == GREATER && peek(1)->type == EQUAL) {
+				node::NodeBooleanGreaterEqual* ge = parse_greater_equal(expr_lhs);
+				if (ge != nullptr) {
+					result->var = ge;
+					return result;
+				}
 			}
-		}
 
-		// less equal
-		if (peek()->type == LESS && peek(1)->type == EQUAL) {
-			node::NodeBooleanLessEqual* le = parse_less_equal(expr_lhs);
-			if (le != nullptr) {
-				result->var = le;
-				return result;
+			// less equal
+			if (peek()->type == LESS && peek(1)->type == EQUAL) {
+				node::NodeBooleanLessEqual* le = parse_less_equal(expr_lhs);
+				if (le != nullptr) {
+					result->var = le;
+					return result;
+				}
 			}
-		}
 
-		// greater
-		if (peek()->type == GREATER) {
-			node::NodeBooleanGreater* g = parse_greater(expr_lhs);
-			if (g != nullptr) {
-				result->var = g;
-				return result;
+			// greater
+			if (peek()->type == GREATER) {
+				node::NodeBooleanGreater* g = parse_greater(expr_lhs);
+				if (g != nullptr) {
+					result->var = g;
+					return result;
+				}
 			}
-		}
 
-		// less
-		if (peek()->type == LESS) {
-			node::NodeBooleanLess* l = parse_less(expr_lhs);
-			if (l != nullptr) {
-				result->var = l;
-				return result;
+			// less
+			if (peek()->type == LESS) {
+				node::NodeBooleanLess* l = parse_less(expr_lhs);
+				if (l != nullptr) {
+					result->var = l;
+					return result;
+				}
 			}
 		}
 	}
+	
 
 	// if no arithmetic expression
 	node::NodeBooleanNot* not_result = parse_not();
@@ -2477,7 +2481,9 @@ bool Parser::verify_equal_is(size_t* index)
 
 bool Parser::verify_real_expr(size_t* index)
 {
-
+	if (verify_not(index)) {
+		return true;
+	}
 	// Assume arithmetic expression
 	if (verify_arithmetic_expr(index)) {
 		// greater equal
@@ -2502,7 +2508,7 @@ bool Parser::verify_real_expr(size_t* index)
 		return false;
 	}
 
-	return verify_not(index);
+	return false;
 }
 
 bool Parser::verify_greater_equal(size_t* index)
@@ -2670,6 +2676,21 @@ bool Parser::operator_check(size_t* index)
 		return true;
 	default:
 		return false;
+		break;
+	}
+}
+
+bool Parser::arithmetic_operator_check(size_t* index)
+{
+	switch (peek(*index)->type)
+	{
+	case LESS:
+	case GREATER:
+	case IS:
+	case NOT:
+		return false;
+	default:
+		return true;
 		break;
 	}
 }
