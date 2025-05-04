@@ -62,6 +62,16 @@ public:
 
 	void evaluate_global_control_flow(const node::NodeGlobalControlFlow* flow);
 
+	void evaluate_global_loop(const node::NodeGlobalLoop* loop);
+	void evaluate_global_while(const node::NodeGlobalWhile* _while);
+	void evaluate_global_for(const node::NodeGlobalFor* _for);
+
+	void evaluate_function_control_flow(const node::NodeFunctionControlFlow* flow, Function* func, bool* _break);
+
+	void evaluate_function_loop(const node::NodeFunctionLoop* loop, Function* func, bool* _break);
+	void evaluate_function_while(const node::NodeFunctionWhile* _while, Function* func, bool* _break);
+	void evaluate_function_for(const node::NodeFunctionFor* _for, Function* func, bool* _break);
+
 	size_t get_array_index(const node::NodeArithmeticExpr* expr);
 
 //private:

@@ -105,6 +105,28 @@ void Evaluator::evaluate_print(const node::NodeStmtPrint* print_stmt)
 						std::cout << mpark::get<std::string>(symbol->value);
 					}
 				}
+				else if (evaluator->m_scopedTables.empty() == false) {
+					for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
+					{
+						if (evaluator->m_scopedTables[i].contains(ident->identifier.value)) {
+							Symbol* symbol = evaluator->m_scopedTables[i].lookup(ident->identifier.value);
+							if (symbol->type == "number") {
+								std::cout << mpark::get<double>(symbol->value);
+							}
+							else if (symbol->type == "boolean") {
+								std::cout << mpark::get<bool>(symbol->value);
+							}
+							else if (symbol->type == "string") {
+								std::cout << mpark::get<std::string>(symbol->value);
+							}
+							return;
+						}
+					}
+				}
+				else {
+					std::cerr << "Undeclared identifier: " << ident->identifier.value << std::endl;
+					exit(EXIT_FAILURE);
+				}
 			}
 		}
 
@@ -466,7 +488,10 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 		}
 		// identifier
 		void operator()(const node::NodeFactorIdentifier* identifier) const {
-			if (evaluator->m_scopedTables.empty() == false) {
+			if (evaluator->m_symbolTable.contains(identifier->identifier.value)) {
+				evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
+			}
+			else if (evaluator->m_scopedTables.empty() == false) {
 				for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
 				{
 					if (evaluator->m_scopedTables[i].contains(identifier->identifier.value)) {
@@ -474,11 +499,6 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 						return;
 					}
 				}
-			}
-			
-
-			if(evaluator->m_symbolTable.contains(identifier->identifier.value)){
-				evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
 			}
 			else {
 				std::cerr << "Undeclared identifier: " << identifier->identifier.value << std::endl;
@@ -826,8 +846,10 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 
 		// identifier 
 		void operator()(const node::NodeBooleanFactorIdentifier* identifier) const {
-
-			if (evaluator->m_scopedTables.empty() == false) {
+			if (evaluator->m_symbolTable.contains(identifier->identifier.value)) {
+				evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
+			}
+			else if (evaluator->m_scopedTables.empty() == false) {
 				for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
 				{
 					if (evaluator->m_scopedTables[i].contains(identifier->identifier.value)) {
@@ -835,10 +857,6 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 						return;
 					}
 				}
-			}
-
-			if (evaluator->m_symbolTable.contains(identifier->identifier.value)) {
-				evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
 			}
 			else {
 				std::cerr << "Undeclared identifier: " << identifier->identifier.value << std::endl;
@@ -977,7 +995,69 @@ double Evaluator::evaluate_boolean_array(const node::NodeBooleanArrayDecl* arr)
 // TODO: implement assignments with function calls, identifier property and function call property.
 void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 {
-	if (m_scopedTables.size() > 0) {
+
+	if (Symbol* symbol_lhs = m_symbolTable.lookup(assignment->identifierHead.value)) {
+
+		// handle if symbol is an array
+		if (assignment->index != nullptr) {
+			size_t lhs_index = get_array_index(assignment->index);
+
+			std::vector<mpark::variant<double, std::string, bool>> arr =
+				mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol_lhs->value);
+
+			if (arr.size() <= lhs_index) {
+				std::cerr << "Array bound of bounds" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// Handle right hand side
+			evaluate_value(assignment->rhs);
+			auto rhs = m_stack.top();
+			m_stack.pop();
+
+			if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool>>>(rhs)) {
+				auto rhs_arr = mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(rhs);
+				if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) {
+					arr = rhs_arr;
+					symbol_lhs->value = arr;
+				}
+				else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) {
+					arr = rhs_arr;
+					symbol_lhs->value = arr;
+				}
+				else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) {
+					arr = rhs_arr;
+					symbol_lhs->value = arr;
+				}
+				else {
+					std::cerr << "Identifiers types do not match!" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+			return;
+
+		}
+		evaluate_value(assignment->rhs);
+		auto rhs = m_stack.top();
+		m_stack.pop();
+
+		if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs)) {
+			symbol_lhs->value = rhs;
+		}
+		else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs)) {
+			symbol_lhs->value = rhs;
+		}
+		else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs)) {
+			symbol_lhs->value = rhs;
+		}
+		else {
+			std::cerr << "Identifiers types do not match!" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+
+	}
+	else if (m_scopedTables.size() > 0) {
 		for (size_t i = m_scopedTables.size() - 1; i >= 0; i--)
 		{
 			if (m_scopedTables[i].contains(assignment->identifierHead.value)) {
@@ -1048,72 +1128,12 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 			}
 		}
 	}
-
-	if (Symbol* symbol_lhs = m_symbolTable.lookup(assignment->identifierHead.value)) {
-
-		// handle if symbol is an array
-		if (assignment->index != nullptr) {
-			size_t lhs_index = get_array_index(assignment->index);
-
-			std::vector<mpark::variant<double, std::string, bool>> arr =
-				mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol_lhs->value);
-
-			if (arr.size() <= lhs_index) {
-				std::cerr << "Array bound of bounds" << std::endl;
-				exit(EXIT_FAILURE);
-			}
-
-			// Handle right hand side
-			evaluate_value(assignment->rhs);
-			auto rhs = m_stack.top();
-			m_stack.pop();
-
-			if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool>>>(rhs)) {
-				auto rhs_arr = mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(rhs);
-				if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) {
-					arr = rhs_arr;
-					symbol_lhs->value = arr;
-				}
-				else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) {
-					arr = rhs_arr;
-					symbol_lhs->value = arr;
-				}
-				else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) {
-					arr = rhs_arr;
-					symbol_lhs->value = arr;
-				}
-				else {
-					std::cerr << "Identifiers types do not match!" << std::endl;
-					exit(EXIT_FAILURE);
-				}
-			}
-			return;
-			
-		}
-		evaluate_value(assignment->rhs);
-		auto rhs = m_stack.top();
-		m_stack.pop();
-
-		if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs)) {
-			symbol_lhs->value = rhs;
-		}
-		else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs)) {
-			symbol_lhs->value = rhs;
-		}
-		else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs)) {
-			symbol_lhs->value = rhs;
-		}
-		else {
-			std::cerr << "Identifiers types do not match!" << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		
-
-	}
 	else
 	{
 		std::cerr << "Assignment on left hand side is an undeclared variable!" << std::endl;
 	}
+
+	
 }
 
 void Evaluator::evaluate_definition(const node::NodeDefinition* definition)
@@ -1298,8 +1318,41 @@ void Evaluator::evaluate_value(const node::NodeValue* val)
 
 		// boolean value 
 		void operator()(const node::NodeValueIdentifier* ident) const {
+			
+			if (evaluator->m_symbolTable.contains(ident->identifier.value)) {
+				Symbol* symbol = evaluator->m_symbolTable.lookup(ident->identifier.value);
 
-			if (evaluator->m_scopedTables.size() > 0) {
+				//Handle if symbol is an array
+				if (symbol->isAnArray == true && expr != nullptr) {
+					std::vector<mpark::variant<double, std::string, bool>> val =
+						mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol->value);
+					size_t index = evaluator->get_array_index(expr);
+
+					if (mpark::holds_alternative<double>(val[index])) {
+						evaluator->m_stack.push(mpark::get<double>(val[index]));
+					}
+					else if (mpark::holds_alternative<bool>(val[index])) {
+						evaluator->m_stack.push(mpark::get<bool>(val[index]));
+					}
+					else if (mpark::holds_alternative<std::string>(val[index])) {
+						evaluator->m_stack.push(mpark::get<std::string>(val[index]));
+					}
+
+				}
+				// type is just an array of a primitive type
+				else if (symbol->isAnArray == true && expr == nullptr) {
+					evaluator->m_stack.push(symbol->value);
+				}
+				// symbol is just primitive
+				else if (symbol->isAnArray == false && expr == nullptr) {
+					evaluator->m_stack.push(symbol->value);
+				}
+				else {
+					std::cerr << "Identifier is not an array" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+			else if (evaluator->m_scopedTables.size() > 0) {
 				for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
 				{
 					if (evaluator->m_scopedTables[i].contains(ident->identifier.value)) {
@@ -1336,40 +1389,6 @@ void Evaluator::evaluate_value(const node::NodeValue* val)
 						}
 						return;
 					}
-				}
-			}
-
-			if (evaluator->m_symbolTable.contains(ident->identifier.value)) {
-				Symbol* symbol = evaluator->m_symbolTable.lookup(ident->identifier.value);
-
-				//Handle if symbol is an array
-				if (symbol->isAnArray == true && expr != nullptr) {
-					std::vector<mpark::variant<double, std::string, bool>> val =
-						mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol->value);
-					size_t index = evaluator->get_array_index(expr);
-
-					if (mpark::holds_alternative<double>(val[index])) {
-						evaluator->m_stack.push(mpark::get<double>(val[index]));
-					}
-					else if (mpark::holds_alternative<bool>(val[index])) {
-						evaluator->m_stack.push(mpark::get<bool>(val[index]));
-					}
-					else if (mpark::holds_alternative<std::string>(val[index])) {
-						evaluator->m_stack.push(mpark::get<std::string>(val[index]));
-					}
-					
-				}
-				// type is just an array of a primitive type
-				else if(symbol->isAnArray == true && expr == nullptr){
-					evaluator->m_stack.push(symbol->value);
-				}
-				// symbol is just primitive
-				else if (symbol->isAnArray == false && expr == nullptr) {
-					evaluator->m_stack.push(symbol->value);
-				}
-				else {
-					std::cerr << "Identifier is not an array" << std::endl;
-					exit(EXIT_FAILURE);
 				}
 			}
 			else
@@ -1569,10 +1588,289 @@ void Evaluator::evaluate_global_control_flow(const node::NodeGlobalControlFlow* 
 
 		// loop statement
 		void operator()(const node::NodeGlobalLoop* _loop) const {
+			evaluator->evaluate_global_loop(_loop);
 		}
 
 	};
 	mpark::visit(ControlFlowVisitor{ this}, flow->var);
+}
+
+void Evaluator::evaluate_global_loop(const node::NodeGlobalLoop* loop)
+{
+	struct LoopVisitor {
+		Evaluator* evaluator;
+
+		// while statement
+		void operator()(const node::NodeGlobalWhile* _while) const {
+			evaluator->evaluate_global_while(_while);
+		}
+
+		// for statement
+		void operator()(const node::NodeGlobalFor* _for) const {
+			evaluator->evaluate_global_for(_for);
+		}
+
+	};
+
+	mpark::visit(LoopVisitor{ this }, loop->var);
+}
+
+void Evaluator::evaluate_global_while(const node::NodeGlobalWhile* _while)
+{
+	evaluate_boolean_expression(_while->condition);
+	auto cond = m_stack.top();
+	m_stack.pop();
+	SymbolTable table;
+	m_scopedTables.push_back(table);
+	// Initial if statement 
+	while (mpark::get<bool>(cond) == true) {
+
+		
+		bool _break = false;
+		for (node::NodeNestedStmt* stmt : _while->stmts) {
+			if (_break == true) {
+				break;
+			}
+			evaluate_nested_stmt(stmt, &_break);
+		}
+		
+		// Break out of while loop if break was true
+		if (_break)
+			break;
+		// recalculate condition for while loop
+		evaluate_boolean_expression(_while->condition);
+		cond = m_stack.top();
+		m_stack.pop();
+	}
+
+	m_scopedTables.pop_back();
+
+}
+
+void Evaluator::evaluate_global_for(const node::NodeGlobalFor* _for)
+{
+	Symbol index;
+	index.name = _for->indexValIdentifier.value;
+	index.type = "number";
+	evaluate_arithmetic_expression(_for->indexValExpr);
+	auto indexVal = m_stack.top();
+	m_stack.pop();
+	index.value = indexVal;
+
+	SymbolTable table;
+	table.insert(index);
+	m_scopedTables.push_back(table);
+
+	evaluate_arithmetic_expression(_for->increment);
+	auto increment = m_stack.top();
+	m_stack.pop();
+
+	evaluate_boolean_expression(_for->condition);
+	auto cond = m_stack.top();
+	m_stack.pop();
+
+	Symbol* indexRef = m_scopedTables[m_scopedTables.size()-1].lookup(index.name);
+
+	// our "for loop"
+	while (mpark::get<bool>(cond) == true) {
+		bool _break = false;
+		for (node::NodeNestedStmt* stmt : _for->stmts) {
+			if (_break == true) {
+				break;
+			}
+			evaluate_nested_stmt(stmt, &_break);
+		}
+
+		// Break out of while loop if break was true
+		if (_break)
+			break;
+
+		// simulate the for loop by incrementing
+		mpark::get<double>(indexRef->value) += (size_t)mpark::get<double>(increment);
+		evaluate_boolean_expression(_for->condition);
+		cond = m_stack.top();
+		m_stack.pop();
+	}
+	
+
+}
+
+void Evaluator::evaluate_function_control_flow(const node::NodeFunctionControlFlow* flow, Function* func, bool* _break)
+{
+	struct FunctionControlFlowVisitor
+	{
+		Evaluator* evaluator;
+		Function* func;
+		bool* _break;
+
+		// if statement
+		void operator()(const node::NodeFunctionIf* _if) const {
+			evaluator->evaluate_boolean_expression(_if->condition);
+			auto cond = evaluator->m_stack.top();
+			evaluator->m_stack.pop();
+
+			// Initial if statement 
+			if (mpark::get<bool>(cond) == true) {
+
+				SymbolTable table;
+				evaluator->m_scopedTables.push_back(table);
+				for (node::NodeFunctionStmt* stmt : _if->stmts) {
+					if (*_break == true) {
+						break;
+					}
+					evaluator->evaluate_function_stmt(stmt,func, _break);
+				}
+
+				evaluator->m_scopedTables.pop_back();
+				return;
+			}
+
+			// Check else ifs
+			for (node::NodeFunctionElseIf* _elseif : _if->elseifs) {
+				evaluator->evaluate_boolean_expression(_elseif->condition);
+				auto cond = evaluator->m_stack.top();
+				evaluator->m_stack.pop();
+
+				// Initial if statement 
+				if (mpark::get<bool>(cond) == true) {
+
+					SymbolTable table;
+					evaluator->m_scopedTables.push_back(table);
+					//std::cout << evaluator->m_scopedTables.size();
+
+					for (node::NodeFunctionStmt* stmt : _elseif->stmts) {
+						if (*_break == true) {
+							break;
+						}
+						evaluator->evaluate_function_stmt(stmt, func, _break);
+					}
+
+					evaluator->m_scopedTables.pop_back();
+					return;
+				}
+			}
+
+			if (_if->_else != nullptr) {
+
+				SymbolTable table;
+				evaluator->m_scopedTables.push_back(table);
+
+				for (node::NodeFunctionStmt* stmt : _if->_else->stmts) {
+					if (*_break == true) {
+						break;
+					}
+					evaluator->evaluate_function_stmt(stmt, func ,_break);
+				}
+
+				evaluator->m_scopedTables.pop_back();
+				return;
+			}
+		}
+
+		// loop statement
+		void operator()(const node::NodeFunctionLoop* _loop) const {
+			evaluator->evaluate_function_loop(_loop, func, _break);
+		}
+
+	};
+
+
+	mpark::visit(FunctionControlFlowVisitor{ this, func, _break }, flow->var);
+}
+
+void Evaluator::evaluate_function_loop(const node::NodeFunctionLoop* loop, Function* func, bool* _break)
+{
+	struct LoopVisitor {
+		Evaluator* evaluator;
+		Function* func;
+		bool* _break;
+
+		// while statement
+		void operator()(const node::NodeFunctionWhile* _while) const {
+			evaluator->evaluate_function_while(_while, func, _break);
+		}
+
+		// for statement
+		void operator()(const node::NodeFunctionFor* _for) const {
+			evaluator->evaluate_function_for(_for, func, _break);
+		}
+
+	};
+
+	mpark::visit(LoopVisitor{ this, func, _break }, loop->var);
+}
+
+void Evaluator::evaluate_function_while(const node::NodeFunctionWhile* _while, Function* func, bool* _break)
+{
+	evaluate_boolean_expression(_while->condition);
+	auto cond = m_stack.top();
+	m_stack.pop();
+	SymbolTable table;
+	m_scopedTables.push_back(table);
+	// Initial if statement 
+	while (mpark::get<bool>(cond) == true) {
+		for (node::NodeFunctionStmt* stmt : _while->stmts) {
+			if (*_break == true) {
+				break;
+			}
+			evaluate_function_stmt(stmt, func, _break);
+		}
+
+		// Break out of while loop if break was true
+		if (_break)
+			break;
+		// recalculate condition for while loop
+		evaluate_boolean_expression(_while->condition);
+		cond = m_stack.top();
+		m_stack.pop();
+	}
+
+	m_scopedTables.pop_back();
+}
+
+void Evaluator::evaluate_function_for(const node::NodeFunctionFor* _for, Function* func, bool* _break)
+{
+	Symbol index;
+	index.name = _for->indexValIdentifier.value;
+	index.type = "number";
+	evaluate_arithmetic_expression(_for->indexValExpr);
+	auto indexVal = m_stack.top();
+	m_stack.pop();
+	index.value = indexVal;
+
+	SymbolTable table;
+	table.insert(index);
+	m_scopedTables.push_back(table);
+
+	evaluate_arithmetic_expression(_for->increment);
+	auto increment = m_stack.top();
+	m_stack.pop();
+
+	evaluate_boolean_expression(_for->condition);
+	auto cond = m_stack.top();
+	m_stack.pop();
+
+	Symbol* indexRef = m_scopedTables[m_scopedTables.size() - 1].lookup(index.name);
+
+	// our "for loop"
+	while (mpark::get<bool>(cond) == true) {
+		for (node::NodeFunctionStmt* stmt : _for->stmts) {
+			if (*_break == true) {
+				break;
+			}
+			evaluate_function_stmt(stmt, func, _break);
+		}
+
+		// Break out of while loop if break was true
+		if (*_break)
+			break;
+
+		// simulate the for loop by incrementing
+		mpark::get<double>(indexRef->value) += (size_t)mpark::get<double>(increment);
+		evaluate_boolean_expression(_for->condition);
+		cond = m_stack.top();
+		m_stack.pop();
+	}
 }
 
 size_t Evaluator::get_array_index(const node::NodeArithmeticExpr* expr)

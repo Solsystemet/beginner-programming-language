@@ -1328,13 +1328,12 @@ node::NodeValue* Parser::parse_value()
 
 	}
 
-
-	// value returns boolean expression
-	size_t verify_bool = 0;
-	if (verify_boolean_expr(&verify_bool)) {
-		node::NodeBooleanExpr* b_epxr = parse_boolean_expr();
-		node::NodeValueBooleanExpression* val_expr = new node::NodeValueBooleanExpression();
-		val_expr->expr = b_epxr;
+	// value returns arithmetic expression
+	size_t verify_arithmetic = 0;
+	if (verify_arithmetic_expr(&verify_arithmetic)) {
+		node::NodeArithmeticExpr* a_epxr = parse_arithmetic_expr();
+		node::NodeValueArithmeticExpression* val_expr = new node::NodeValueArithmeticExpression();
+		val_expr->expr = a_epxr;
 		val->var = val_expr;
 
 		//Check if it is an array
@@ -1349,12 +1348,14 @@ node::NodeValue* Parser::parse_value()
 		return val;
 	}
 
-	// value returns arithmetic expression
-	size_t verify_arithmetic = 0;
-	if (verify_arithmetic_expr(&verify_arithmetic)) {
-		node::NodeArithmeticExpr* a_epxr = parse_arithmetic_expr();
-		node::NodeValueArithmeticExpression* val_expr = new node::NodeValueArithmeticExpression();
-		val_expr->expr = a_epxr;
+
+	// value returns boolean expression
+	size_t verify_bool = 0;
+	size_t verify_arith = 0;
+	if (verify_boolean_expr(&verify_bool) && verify_arithmetic_expr(&verify_arith) == false) {
+		node::NodeBooleanExpr* b_epxr = parse_boolean_expr();
+		node::NodeValueBooleanExpression* val_expr = new node::NodeValueBooleanExpression();
+		val_expr->expr = b_epxr;
 		val->var = val_expr;
 
 		//Check if it is an array
@@ -1654,7 +1655,7 @@ node::NodeGlobalFor* Parser::parse_global_for()
 		}
 
 		try_consume(COMMA, "Expected ',' after arithmetic expression in global for loop");
-		size_t verify_arithmetic2 = m_currentIndex;
+		size_t verify_arithmetic2 = 0;
 		if (verify_arithmetic_expr(&verify_arithmetic2)) {
 			node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 			_for->increment = expr;
@@ -2226,26 +2227,6 @@ bool Parser::verify_value(size_t* index)
 	else
 		*index = start_val;
 
-	// value returns boolean expression
-	if (verify_boolean_expr(index)) {
-
-		//Check if it is an array
-		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
-			(*index)++;
-			if (verify_arithmetic_expr(index)) {
-				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
-					(*index)++;
-					return true;
-				}
-			}
-			else return false;
-		}
-		else
-			return true;
-	}
-	else
-		*index = start_val;
-
 	// value returns arithmetic expression
 	if (verify_arithmetic_expr(index)) {
 
@@ -2259,6 +2240,26 @@ bool Parser::verify_value(size_t* index)
 				}
 			}
 			return false;
+		}
+		else
+			return true;
+	}
+	else
+		*index = start_val;
+
+	// value returns boolean expression
+	if (verify_boolean_expr(index)) {
+
+		//Check if it is an array
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+					(*index)++;
+					return true;
+				}
+			}
+			else return false;
 		}
 		else
 			return true;
