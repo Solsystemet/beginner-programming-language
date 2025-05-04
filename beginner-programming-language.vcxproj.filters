@@ -68,6 +68,9 @@
     <ClInclude Include="src\evaluator\FunctionTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\evaluator\StructTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="a.exe" />

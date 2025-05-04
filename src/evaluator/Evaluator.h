@@ -7,6 +7,7 @@
 #include "../nodes.hpp"
 #include "./SymbolTable.h"
 #include "./FunctionTable.h"
+#include "StructTable.h"
 
 
 
@@ -29,6 +30,10 @@ public:
 
 	void evaluate_simple_decleration(const node::NodeSimpleDecl* simp_decl);
 
+	void evaluate_object_declecration(const node::NodeDecl* decl, SymbolTable* table);
+
+
+	void evaluate_simple_object_decleration(const node::NodeSimpleDecl* simp_decl, SymbolTable* table);
 
 	void evaluate_arithmetic_expression(const node::NodeArithmeticExpr* expr);
 	void evaluate_term(const node::NodeTerm* term);
@@ -53,6 +58,7 @@ public:
 
 	void evaluate_definition(const node::NodeDefinition* definition);
 	void evaluate_function_definition(const node::NodeFunctionDefinition* func_def);
+	void evaluate_object_definition(const node::NodeObjectDefinition* obj_def);
 
 	void evaluate_function_call(const node::NodeFunctionCall* func_call);
 
@@ -79,6 +85,8 @@ public:
 
 	SymbolTable m_symbolTable; // this is for the global scope EXCLUSIVELY
 	FunctionTable m_functionTable;
+	StructTable m_structDefinitionTable; // includes objects definitions
+	StructTable m_structVariableTable; // includes objectdeclerations
 	
 	std::vector<SymbolTable> m_scopedTables;
 

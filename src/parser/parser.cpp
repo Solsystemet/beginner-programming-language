@@ -1430,7 +1430,7 @@ node::NodeAssignment* Parser::parse_assignment()
 		}
 
 	}
-	else if (peek() && peek()->type == IDENTIFIER) {
+	else if (peek() && peek()->type == IDENTIFIER && peek(1) && peek(1)->type != COLON) {
 
 		assignment->identifierHead = consume(); // identifier
 		

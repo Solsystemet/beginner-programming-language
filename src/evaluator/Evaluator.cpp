@@ -315,6 +315,167 @@ void Evaluator::evaluate_simple_decleration(const node::NodeSimpleDecl* simp_dec
 	mpark::visit(SimpDeclVisitor{ this }, simp_decl->expr);
 }
 
+void Evaluator::evaluate_object_declecration(const node::NodeDecl* decl, SymbolTable* table)
+{
+	struct DeclVisitor {
+		Evaluator* evaluator;
+		SymbolTable* table;
+		// simple declare
+		void operator()(const node::NodeSimpleDecl* simp_decl) const {
+			evaluator->m_stack.push(simp_decl->identifier.value);
+			evaluator->evaluate_simple_object_decleration(simp_decl, table);
+		}
+
+		// object declare
+		void operator()(const node::NodeObjectDecl* obj_decl) const {
+			std::cout << "object declare" << std::endl;
+		}
+
+		// array declare
+		void operator()(const node::NodeArrayDecl* arr_decl) const {
+			if (arr_decl->type.type == NUMBER &&
+				mpark::holds_alternative<node::NodeNumberArrayDecl*>(arr_decl->var)) {
+				double arraySize = evaluator->evaluate_number_array(mpark::get<node::NodeNumberArrayDecl*>(arr_decl->var));
+
+
+				Symbol symbol;
+				symbol.name = arr_decl->identifier.value;
+				symbol.type = "number";
+				symbol.isAnArray = true;
+
+				// Make array into correct size if it is assigned fixed size
+				std::vector<mpark::variant<double, std::string, bool>> arr;
+				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
+					arr.push_back(0.0);
+				}
+				// populate array if it was assigned elements
+				if (evaluator->m_stack.size() > 0) {
+					//populate backwards
+					for (size_t i = 0; i < arraySize; i++)
+					{
+						arr.push_back(mpark::get<double>(evaluator->m_stack.top()));
+						evaluator->m_stack.pop();
+					}
+				}
+				std::reverse(arr.begin(), arr.end());
+				symbol.value = arr;
+				table->insert(symbol);
+			}
+			else if (arr_decl->type.type == STRING &&
+				mpark::holds_alternative<node::NodeStringArrayDecl*>(arr_decl->var)) {
+				double arraySize = evaluator->evaluate_string_array(mpark::get<node::NodeStringArrayDecl*>(arr_decl->var));
+
+
+				Symbol symbol;
+				symbol.name = arr_decl->identifier.value;
+				symbol.type = "string";
+				symbol.isAnArray = true;
+
+				// Make array into correct size if it is assigned fixed size
+				std::vector<mpark::variant<double, std::string, bool>> arr;
+				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
+					arr.push_back(0.0);
+				}
+				// populate array if it was assigned elements
+				if (evaluator->m_stack.size() > 0) {
+					//populate backwards
+					for (size_t i = 0; i < arraySize; i++)
+					{
+						arr.push_back(mpark::get<std::string>(evaluator->m_stack.top()));
+						evaluator->m_stack.pop();
+					}
+				}
+				std::reverse(arr.begin(), arr.end());
+				symbol.value = arr;
+				table->insert(symbol);
+			}
+			else if (arr_decl->type.type == BOOLEAN &&
+				mpark::holds_alternative<node::NodeBooleanArrayDecl*>(arr_decl->var)) {
+				double arraySize = evaluator->evaluate_boolean_array(mpark::get<node::NodeBooleanArrayDecl*>(arr_decl->var));
+
+
+				Symbol symbol;
+				symbol.name = arr_decl->identifier.value;
+				symbol.type = "boolean";
+				symbol.isAnArray = true;
+
+				// Make array into correct size if it is assigned fixed size
+				std::vector<mpark::variant<double, std::string, bool>> arr;
+				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
+					arr.push_back(0.0);
+				}
+				// populate array if it was assigned elements
+				if (evaluator->m_stack.size() > 0) {
+					//populate backwards
+					for (size_t i = 0; i < arraySize; i++)
+					{
+						arr.push_back(mpark::get<bool>(evaluator->m_stack.top()));
+						evaluator->m_stack.pop();
+					}
+				}
+				std::reverse(arr.begin(), arr.end());
+				for (mpark::variant<double, std::string, bool> val : arr) {
+					std::cout << mpark::get<bool>(val);
+				}
+				symbol.value = arr;
+				table->insert(symbol);
+			}
+			// Assume object array decleration
+			// TODO: implement object array decleration
+			else {
+
+			}
+		}
+	};
+	mpark::visit(DeclVisitor{ this, table }, decl->var);
+}
+
+void Evaluator::evaluate_simple_object_decleration(const node::NodeSimpleDecl* simp_decl, SymbolTable* table)
+{
+	struct SimpDeclVisitor {
+		Evaluator* evaluator;
+		SymbolTable* table;
+
+		// arithmetic expression
+		void operator()(const node::NodeArithmeticExpr* a_expr) const {
+			Symbol number;
+			number.name = mpark::get<std::string>(evaluator->m_stack.top()); // gets identifier name
+			evaluator->m_stack.pop();
+			number.type = "number";
+			evaluator->evaluate_arithmetic_expression(a_expr);
+			number.value = evaluator->m_stack.top(); // get evaluated value from expression
+			evaluator->m_stack.pop();
+			table->insert(number); // number decleration inserted into symbol table
+		}
+
+		// boolean expression
+		void operator()(const node::NodeBooleanExpr* b_expr) const {
+			Symbol boolean;
+			boolean.name = mpark::get<std::string>(evaluator->m_stack.top()); // gets identifier name
+			evaluator->m_stack.pop();
+			boolean.type = "boolean";
+			evaluator->evaluate_boolean_expression(b_expr);
+			boolean.value = evaluator->m_stack.top(); // get evaluated value from expression
+			evaluator->m_stack.pop();
+			table->insert(boolean); // boolean decleration inserted into symbol table
+		}
+
+		// string expression
+		void operator()(const node::NodeStringExpr* s_expr) const {
+			Symbol string;
+			string.name = mpark::get<std::string>(evaluator->m_stack.top()); // gets identifier name
+			evaluator->m_stack.pop();
+			string.type = "string";
+			evaluator->evaluate_string_expression(s_expr);
+			string.value = evaluator->m_stack.top(); // get evaluated value from expression
+			evaluator->m_stack.pop();
+			table->insert(string); // string decleration inserted into symbol table
+		}
+
+	};
+	mpark::visit(SimpDeclVisitor{ this, table }, simp_decl->expr);
+}
+
 void Evaluator::evaluate_arithmetic_expression(const node::NodeArithmeticExpr* expr)
 {
 	struct ArithmeticExprVisitor
@@ -1148,8 +1309,7 @@ void Evaluator::evaluate_definition(const node::NodeDefinition* definition)
 
 		// TODO: Implement object definitions 
 		void operator()(const node::NodeObjectDefinition* obj_def) const {
-			std::cerr << "object definition" << std::endl;
-			exit(EXIT_FAILURE);
+			evaluator->evaluate_object_definition(obj_def);
 		}
 	};
 	mpark::visit(DefinitionVisitor{ this }, definition->var);
@@ -1226,6 +1386,25 @@ void Evaluator::evaluate_function_definition(const node::NodeFunctionDefinition*
 
 	func.stmts = func_def->stmts;
 	m_functionTable.insert(func);
+}
+
+void Evaluator::evaluate_object_definition(const node::NodeObjectDefinition* obj_def)
+{
+	if (!m_structDefinitionTable.contains(obj_def->identifier.value)) {
+		Struct obj;
+		obj.name = obj_def->identifier.value;
+
+		for (node::NodeDecl* decl : obj_def->props)
+		{
+			evaluate_object_declecration(decl, &obj.table);
+		}
+		m_structDefinitionTable.insert(obj);
+	}
+	else
+	{
+		std::cerr << "Object of type: " << obj_def->identifier.value << " already has a definition!" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 }
 
 void Evaluator::evaluate_function_call(const node::NodeFunctionCall* func_call)
