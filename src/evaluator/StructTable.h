@@ -4,9 +4,12 @@
 #include <string>
 #include "../mpark/variant.hpp"
 #include "SymbolTable.h"
+
+struct SymbolTable;
+
 struct Struct {
     std::string name;
-    SymbolTable table;
+    SymbolTable* table;
     
 };
 

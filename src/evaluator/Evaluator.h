@@ -26,13 +26,11 @@ public:
 	void evaluate_print(const node::NodeStmtPrint* print_stmt);
 
 	void evaluate_declecration(const node::NodeDecl* decl);
-
-
+	void evaluate_object_declare(const node::NodeObjectDecl* decl);
+	void evaluate_object_declare_to_stack(const node::NodeObjectDecl* decl);
 	void evaluate_simple_decleration(const node::NodeSimpleDecl* simp_decl);
 
 	void evaluate_object_declecration(const node::NodeDecl* decl, SymbolTable* table);
-
-
 	void evaluate_simple_object_decleration(const node::NodeSimpleDecl* simp_decl, SymbolTable* table);
 
 	void evaluate_arithmetic_expression(const node::NodeArithmeticExpr* expr);
@@ -53,8 +51,10 @@ public:
 	double evaluate_number_array(const node::NodeNumberArrayDecl* arr);
 	double evaluate_string_array(const node::NodeStringArrayDecl* arr);
 	double evaluate_boolean_array(const node::NodeBooleanArrayDecl* arr);
+	double evaluate_object_array(const node::NodeObjectArrayDecl* arr);
 
 	void evaluate_assignment(const node::NodeAssignment* assignment);
+	void evaluate_assignment_object(const node::NodeAssignment* assignment, SymbolTable* table);
 
 	void evaluate_definition(const node::NodeDefinition* definition);
 	void evaluate_function_definition(const node::NodeFunctionDefinition* func_def);
@@ -63,6 +63,7 @@ public:
 	void evaluate_function_call(const node::NodeFunctionCall* func_call);
 
 	void evaluate_value(const node::NodeValue* val);
+	void evaluate_value_object(const node::NodeValue* val, SymbolTable* table);
 
 	void evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Function* func, bool* _break);
 
@@ -93,7 +94,8 @@ public:
 	std::stack<mpark::variant<double,
 		std::string,
 		bool,
-		std::vector<mpark::variant<double, std::string, bool>>
+		Struct*,
+		std::vector<mpark::variant<double, std::string, bool, Struct*>>
 		>> m_stack;
 };
 

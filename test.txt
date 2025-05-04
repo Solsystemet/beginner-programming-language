@@ -1,3 +1,6 @@
 person:
 	string name = "John Doe"
 	number age = 18
+person yo:
+	name = "Kasper"
+	age = 21

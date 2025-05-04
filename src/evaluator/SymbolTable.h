@@ -3,6 +3,10 @@
 #include <unordered_map>
 #include <string>
 #include "../mpark/variant.hpp"
+#include "StructTable.h"
+
+struct Struct;
+
 struct Symbol {
 	std::string name;
 	std::string type;
@@ -10,7 +14,8 @@ struct Symbol {
     mpark::variant<double,
         std::string,
         bool,
-        std::vector<mpark::variant<double, std::string, bool>>
+        Struct*,
+        std::vector<mpark::variant<double, std::string, bool, Struct*>>
         > value; // the primitive value a symbol point to
 	int scopeLevel; // not using yet
 };

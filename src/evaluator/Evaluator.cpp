@@ -145,7 +145,7 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 
 		// object declare
 		void operator()(const node::NodeObjectDecl* obj_decl) const {
-			std::cout << "object declare" << std::endl;
+			evaluator->evaluate_object_declare(obj_decl);
 		}
 
 		// array declare
@@ -161,7 +161,7 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 				symbol.isAnArray = true;
 
 				// Make array into correct size if it is assigned fixed size
-				std::vector<mpark::variant<double, std::string, bool>> arr;
+				std::vector<mpark::variant<double, std::string, bool, Struct*>> arr;
 				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
 					arr.push_back(0.0);
 				}
@@ -193,9 +193,9 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 				symbol.isAnArray = true;
 
 				// Make array into correct size if it is assigned fixed size
-				std::vector<mpark::variant<double, std::string, bool>> arr;
+				std::vector<mpark::variant<double, std::string, bool, Struct*>> arr;
 				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
-					arr.push_back(0.0);
+					arr.push_back("");
 				}
 				// populate array if it was assigned elements
 				if (evaluator->m_stack.size() > 0) {
@@ -225,9 +225,9 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 				symbol.isAnArray = true;
 
 				// Make array into correct size if it is assigned fixed size
-				std::vector<mpark::variant<double, std::string, bool>> arr;
+				std::vector<mpark::variant<double, std::string, bool, Struct*>> arr;
 				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
-					arr.push_back(0.0);
+					arr.push_back(false);
 				}
 				// populate array if it was assigned elements
 				if (evaluator->m_stack.size() > 0) {
@@ -239,9 +239,6 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 					}
 				}
 				std::reverse(arr.begin(), arr.end());
-				for (mpark::variant<double, std::string, bool> val : arr) {
-					std::cout << mpark::get<bool>(val);
-				}
 				symbol.value = arr;
 				if (evaluator->m_scopedTables.size() > 0) {
 					evaluator->m_scopedTables.at(evaluator->m_scopedTables.size() - 1).insert(symbol);
@@ -249,14 +246,96 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 				else
 					evaluator->m_symbolTable.insert(symbol);
 			}
-			// Assume object array decleration
-			// TODO: implement object array decleration
-			else {
+			else if (arr_decl->type.type == IDENTIFIER &&
+				mpark::holds_alternative<node::NodeObjectArrayDecl*>(arr_decl->var)){
+				
+					auto decl = mpark::get<node::NodeObjectArrayDecl*>(arr_decl->var);
+					if (evaluator->m_structDefinitionTable.contains(decl->objectType.value)) {
 
+						double arraySize = evaluator->evaluate_object_array(decl);
+
+
+						Symbol symbol;
+						symbol.name = arr_decl->identifier.value;
+						symbol.type = "object";
+						symbol.isAnArray = true;
+
+						// Make array into correct size if it is assigned fixed size
+						std::vector<mpark::variant<double, std::string, bool, Struct*>> arr;
+						while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
+							Struct obj = *evaluator->m_structDefinitionTable.lookup(decl->objectType.value);
+							arr.push_back(&obj);
+						}
+						// populate array if it was assigned elements
+						if (evaluator->m_stack.size() > 0) {
+							//populate backwards
+							for (size_t i = 0; i < arraySize; i++)
+							{
+								arr.push_back(mpark::get<Struct*>(evaluator->m_stack.top()));
+								evaluator->m_stack.pop();
+							}
+						}
+						std::reverse(arr.begin(), arr.end());
+						symbol.value = arr;
+						if (evaluator->m_scopedTables.size() > 0) {
+							evaluator->m_scopedTables.at(evaluator->m_scopedTables.size() - 1).insert(symbol);
+						}
+						else
+							evaluator->m_symbolTable.insert(symbol);
+					}
+					else {
+						std::cerr << "Object of type: " << decl->objectType.value << " has no definition!!" << std::endl;
+						exit(EXIT_FAILURE);
+					}
+
+			}
+			else {
+				std::cerr << "HOW TF";
+				exit(EXIT_FAILURE);
 			}
 		}
 	};
 	mpark::visit(DeclVisitor{ this }, decl->var);
+}
+void Evaluator::evaluate_object_declare(const node::NodeObjectDecl* decl)
+{
+	if (m_structDefinitionTable.contains(decl->objectType.value)) {
+		Struct obj = *m_structDefinitionTable.lookup(decl->objectType.value);
+
+		for (node::NodeAssignment* ass : decl->properties) {
+			evaluate_assignment_object(ass, obj.table);
+		}
+
+		Symbol obj_symbol;
+		obj_symbol.name = decl->identifier.value;
+		obj_symbol.type = "object";
+		obj_symbol.value = &obj;
+		if (m_scopedTables.size() > 0) {
+			m_scopedTables.at(m_scopedTables.size() - 1).insert(obj_symbol);
+		}
+		else
+			m_symbolTable.insert(obj_symbol);
+	}
+	else {
+		std::cerr << "Object of type: " << decl->objectType.value << " has no definition!!" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
+void Evaluator::evaluate_object_declare_to_stack(const node::NodeObjectDecl* decl)
+{
+	if (m_structDefinitionTable.contains(decl->objectType.value)) {
+		Struct obj = *m_structDefinitionTable.lookup(decl->objectType.value);
+
+		for (node::NodeAssignment* ass : decl->properties) {
+			evaluate_assignment_object(ass, obj.table);
+		}
+
+		m_stack.push(&obj);
+	}
+	else {
+		std::cerr << "Object of type: " << decl->objectType.value << " has no definition!!" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 }
 void Evaluator::evaluate_simple_decleration(const node::NodeSimpleDecl* simp_decl)
 {
@@ -344,7 +423,7 @@ void Evaluator::evaluate_object_declecration(const node::NodeDecl* decl, SymbolT
 				symbol.isAnArray = true;
 
 				// Make array into correct size if it is assigned fixed size
-				std::vector<mpark::variant<double, std::string, bool>> arr;
+				std::vector<mpark::variant<double, std::string, bool, Struct*>> arr;
 				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
 					arr.push_back(0.0);
 				}
@@ -372,7 +451,7 @@ void Evaluator::evaluate_object_declecration(const node::NodeDecl* decl, SymbolT
 				symbol.isAnArray = true;
 
 				// Make array into correct size if it is assigned fixed size
-				std::vector<mpark::variant<double, std::string, bool>> arr;
+				std::vector<mpark::variant<double, std::string, bool, Struct*>> arr;
 				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
 					arr.push_back(0.0);
 				}
@@ -400,7 +479,7 @@ void Evaluator::evaluate_object_declecration(const node::NodeDecl* decl, SymbolT
 				symbol.isAnArray = true;
 
 				// Make array into correct size if it is assigned fixed size
-				std::vector<mpark::variant<double, std::string, bool>> arr;
+				std::vector<mpark::variant<double, std::string, bool, Struct*>> arr;
 				while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
 					arr.push_back(0.0);
 				}
@@ -414,7 +493,7 @@ void Evaluator::evaluate_object_declecration(const node::NodeDecl* decl, SymbolT
 					}
 				}
 				std::reverse(arr.begin(), arr.end());
-				for (mpark::variant<double, std::string, bool> val : arr) {
+				for (mpark::variant<double, std::string, bool, Struct*> val : arr) {
 					std::cout << mpark::get<bool>(val);
 				}
 				symbol.value = arr;
@@ -1153,6 +1232,22 @@ double Evaluator::evaluate_boolean_array(const node::NodeBooleanArrayDecl* arr)
 	}
 }
 
+double Evaluator::evaluate_object_array(const node::NodeObjectArrayDecl* arr)
+{
+	if (arr->elements.size() > 0) {
+		for (node::NodeObjectDecl* decl : arr->elements) {
+			this->evaluate_object_declare_to_stack(decl);
+		}
+		return mpark::get<size_t>(arr->size);
+	}
+	else if (mpark::holds_alternative<node::NodeArithmeticExpr*>(arr->size)) {
+		this->evaluate_arithmetic_expression(mpark::get<node::NodeArithmeticExpr*>(arr->size));
+		double size = mpark::get<double>(this->m_stack.top());
+		m_stack.pop();
+		return size;
+	}
+}
+
 // TODO: implement assignments with function calls, identifier property and function call property.
 void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 {
@@ -1163,8 +1258,8 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 		if (assignment->index != nullptr) {
 			size_t lhs_index = get_array_index(assignment->index);
 
-			std::vector<mpark::variant<double, std::string, bool>> arr =
-				mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol_lhs->value);
+			std::vector<mpark::variant<double, std::string, bool, Struct*>> arr =
+				mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(symbol_lhs->value);
 
 			if (arr.size() <= lhs_index) {
 				std::cerr << "Array bound of bounds" << std::endl;
@@ -1176,8 +1271,8 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 			auto rhs = m_stack.top();
 			m_stack.pop();
 
-			if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool>>>(rhs)) {
-				auto rhs_arr = mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(rhs);
+			if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(rhs)) {
+				auto rhs_arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(rhs);
 				if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) {
 					arr = rhs_arr;
 					symbol_lhs->value = arr;
@@ -1229,8 +1324,8 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 					if (assignment->index != nullptr) {
 						size_t lhs_index = get_array_index(assignment->index);
 
-						std::vector<mpark::variant<double, std::string, bool>> arr =
-							mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol_lhs->value);
+						std::vector<mpark::variant<double, std::string, bool, Struct*>> arr =
+							mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(symbol_lhs->value);
 
 						if (arr.size() <= lhs_index) {
 							std::cerr << "Array bound of bounds" << std::endl;
@@ -1242,8 +1337,8 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 						auto rhs = m_stack.top();
 						m_stack.pop();
 
-						if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool>>>(rhs)) {
-							auto rhs_arr = mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(rhs);
+						if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(rhs)) {
+							auto rhs_arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(rhs);
 							if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) {
 								arr = rhs_arr;
 								symbol_lhs->value = arr;
@@ -1295,6 +1390,82 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 	}
 
 	
+}
+
+void Evaluator::evaluate_assignment_object(const node::NodeAssignment* assignment, SymbolTable* table)
+{
+	if (Symbol* symbol_lhs = table->lookup(assignment->identifierHead.value)) {
+
+		// handle if symbol is an array
+		if (assignment->index != nullptr) {
+			size_t lhs_index = get_array_index(assignment->index);
+
+			std::vector<mpark::variant<double, std::string, bool, Struct*>> arr =
+				mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(symbol_lhs->value);
+
+			if (arr.size() <= lhs_index) {
+				std::cerr << "Array bound of bounds" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			// Handle right hand side
+			evaluate_value(assignment->rhs);
+			auto rhs = m_stack.top();
+			m_stack.pop();
+
+			if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(rhs)) {
+				auto rhs_arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(rhs);
+				if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) {
+					arr = rhs_arr;
+					symbol_lhs->value = arr;
+				}
+				else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) {
+					arr = rhs_arr;
+					symbol_lhs->value = arr;
+				}
+				else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) {
+					arr = rhs_arr;
+					symbol_lhs->value = arr;
+				}
+				else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct*>(rhs_arr[0])) {
+					arr = rhs_arr;
+					symbol_lhs->value = arr;
+				}
+				else {
+					std::cerr << "Identifiers types do not match!" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+			return;
+
+		}
+		evaluate_value(assignment->rhs);
+		auto rhs = m_stack.top();
+		m_stack.pop();
+
+		if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs)) {
+			symbol_lhs->value = rhs;
+		}
+		else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs)) {
+			symbol_lhs->value = rhs;
+		}
+		else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs)) {
+			symbol_lhs->value = rhs;
+		}
+		else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct*>(rhs)) {
+			symbol_lhs->value = rhs;
+		}
+		else {
+			std::cerr << "Identifiers types do not match!" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+
+	}
+	else
+	{
+		std::cerr << "Assignment on left hand side is an undeclared variable!" << std::endl;
+	}
 }
 
 void Evaluator::evaluate_definition(const node::NodeDefinition* definition)
@@ -1393,10 +1564,11 @@ void Evaluator::evaluate_object_definition(const node::NodeObjectDefinition* obj
 	if (!m_structDefinitionTable.contains(obj_def->identifier.value)) {
 		Struct obj;
 		obj.name = obj_def->identifier.value;
+		obj.table = new SymbolTable();
 
 		for (node::NodeDecl* decl : obj_def->props)
 		{
-			evaluate_object_declecration(decl, &obj.table);
+			evaluate_object_declecration(decl, obj.table);
 		}
 		m_structDefinitionTable.insert(obj);
 	}
@@ -1421,9 +1593,9 @@ void Evaluator::evaluate_function_call(const node::NodeFunctionCall* func_call)
 				m_stack.pop();
 
 				
-				if(func->args[i].isAnArray == true &&mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool>>>(val)) {
+				if(func->args[i].isAnArray == true &&mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(val)) {
 
-					auto arr = mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(val);
+					auto arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(val);
 
 					if (func->args[i].type == "number" && mpark::holds_alternative<double>(arr[0])) {
 						func->args[i].value = arr;
@@ -1503,8 +1675,8 @@ void Evaluator::evaluate_value(const node::NodeValue* val)
 
 				//Handle if symbol is an array
 				if (symbol->isAnArray == true && expr != nullptr) {
-					std::vector<mpark::variant<double, std::string, bool>> val =
-						mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol->value);
+					std::vector<mpark::variant<double, std::string, bool, Struct*>> val =
+						mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(symbol->value);
 					size_t index = evaluator->get_array_index(expr);
 
 					if (mpark::holds_alternative<double>(val[index])) {
@@ -1539,8 +1711,8 @@ void Evaluator::evaluate_value(const node::NodeValue* val)
 
 						//Handle if symbol is an array
 						if (symbol->isAnArray == true && expr != nullptr) {
-							std::vector<mpark::variant<double, std::string, bool>> val =
-								mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(symbol->value);
+							std::vector<mpark::variant<double, std::string, bool, Struct*>> val =
+								mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(symbol->value);
 							size_t index = evaluator->get_array_index(expr);
 
 							if (mpark::holds_alternative<double>(val[index])) {
@@ -1601,6 +1773,84 @@ void Evaluator::evaluate_value(const node::NodeValue* val)
 	mpark::visit(ValueVisittor{ this, val->index }, val->var);
 }
 
+void Evaluator::evaluate_value_object(const node::NodeValue* val, SymbolTable* table)
+{
+	struct ValueVisittor
+	{
+		Evaluator* evaluator;
+		node::NodeArithmeticExpr* expr;
+		SymbolTable* table;
+
+		// boolean value 
+		void operator()(const node::NodeValueIdentifier* ident) const {
+
+			if (table->contains(ident->identifier.value)) {
+				Symbol* symbol = table->lookup(ident->identifier.value);
+
+				//Handle if symbol is an array
+				if (symbol->isAnArray == true && expr != nullptr) {
+					std::vector<mpark::variant<double, std::string, bool, Struct*>> val =
+						mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(symbol->value);
+					size_t index = evaluator->get_array_index(expr);
+
+					if (mpark::holds_alternative<double>(val[index])) {
+						evaluator->m_stack.push(mpark::get<double>(val[index]));
+					}
+					else if (mpark::holds_alternative<bool>(val[index])) {
+						evaluator->m_stack.push(mpark::get<bool>(val[index]));
+					}
+					else if (mpark::holds_alternative<std::string>(val[index])) {
+						evaluator->m_stack.push(mpark::get<std::string>(val[index]));
+					}
+					else if (mpark::holds_alternative<Struct*>(val[index])) {
+						evaluator->m_stack.push(mpark::get<Struct*>(val[index]));
+					}
+
+				}
+				// type is just an array of a primitive type
+				else if (symbol->isAnArray == true && expr == nullptr) {
+					evaluator->m_stack.push(symbol->value);
+				}
+				// symbol is just primitive
+				else if (symbol->isAnArray == false && expr == nullptr) {
+					evaluator->m_stack.push(symbol->value);
+				}
+				else {
+					std::cerr << "Identifier is not an array" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+			else
+			{
+				std::cerr << "Undeclared identifier! " << ident->identifier.value << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+		void operator()(const node::NodeValueFunctionCall* func_call) const {
+
+			evaluator->evaluate_function_call(func_call->functionCall);
+
+			//TODO: make it handle if function call return an array
+		}
+		void operator()(const node::NodeValueArithmeticExpression* expr) const {
+			evaluator->evaluate_arithmetic_expression(expr->expr);
+		}
+		void operator()(const node::NodeValueStringExpression* expr) const {
+			evaluator->evaluate_string_expression(expr->expr);
+		}
+		void operator()(const node::NodeValueBooleanExpression* expr) const {
+			evaluator->evaluate_boolean_expression(expr->expr);
+		}
+		void operator()(const node::NodeValueIdentifierProperty* props) const {
+			//TODO: implement this
+		}
+		void operator()(const node::NodeValueFunctionCallProperty* props) const {
+			//TODO: implement this
+		}
+	};
+	mpark::visit(ValueVisittor{ this, val->index, table }, val->var);
+}
+
 void Evaluator::evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Function* func, bool* _break)
 {
 	struct StmtVisitor
@@ -1637,9 +1887,9 @@ void Evaluator::evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Funct
 			auto val = evaluator->m_stack.top();
 			evaluator->m_stack.pop();
 
-			if (func->isAnArray == true && mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool>>>(val)) {
+			if (func->isAnArray == true && mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(val)) {
 
-				auto arr = mpark::get<std::vector<mpark::variant<double, std::string, bool>>>(val);
+				auto arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct*>>>(val);
 
 				if (func->type == "number" && mpark::holds_alternative<double>(arr[0])) {
 					evaluator->m_stack.push(arr);

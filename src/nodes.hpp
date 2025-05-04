@@ -279,6 +279,7 @@ namespace node {
 	// sus
 	struct NodeObjectArrayDecl
 	{
+		Token objectType;
 		mpark::variant<NodeArithmeticExpr*, size_t> size;
 		std::vector<NodeObjectDecl*> elements;
 	};
