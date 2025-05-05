@@ -6,22 +6,21 @@
 #include <vector>
 #include "tokenvalues.h"
 #include "flex.flex.h"
-#include "FlexLexer.h"
 
 
 class Lexer
 {
 private:
     // Sanitizes the tokens to have correct amount of indents and dedents
-    void FixTabIndent(std::vector<Token>* tokens);
+    inline void FixTabIndent(std::vector<Token>* tokens);
 
     // helper function for verifying indent and dedent count. move elsewhere or delete
     void CountIndentDedent(std::vector<Token> tokens);
 
 public:
-    Lexer(FILE* file);
-    std::vector<Token> Tokenize();
-    ~Lexer();
+    inline Lexer(FILE* file);
+    inline std::vector<Token> Tokenize();
+    inline ~Lexer();
 };
 
 Lexer::Lexer(FILE* file)
@@ -184,6 +183,10 @@ std::vector<Token> Lexer::Tokenize()
             t.type = STRING;
             result.push_back(t);
             break;
+        case INPUT:
+            t.type = INPUT;
+            result.push_back(t);
+            break;
         case STRING_VAL:
             t.type = STRING_VAL;
             t.value = yytext;
@@ -203,7 +206,7 @@ std::vector<Token> Lexer::Tokenize()
     return result;
 }
 
-void Lexer::FixTabIndent(std::vector<Token>* tokens) {
+inline void Lexer::FixTabIndent(std::vector<Token>* tokens) {
 
     int maxTabIndent = 0;
     int currentTabIndent = 0;

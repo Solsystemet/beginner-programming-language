@@ -27,7 +27,7 @@
 ">"                             { return GREATER; }
 [ ]+                            ; // Ignore spaces
 
-\"([^\"\\]|\\.)*\"              { return STRING_VAL; }
+\"([^|"\\]\\.)*\"             { return STRING_VAL; }
 
 [a-zA-Z_][a-zA-Z_0-9]* {
     if (strcmp(yytext, "number") == 0) return NUMBER;
@@ -46,6 +46,7 @@
     if (strcmp(yytext, "else") == 0) return ELSE;
     if (strcmp(yytext, "return") == 0) return RETURN;
     if (strcmp(yytext, "is") == 0) return IS;
+    if (strcmp(yytext, "input") == 0) RETURN INPUT;
     return IDENTIFIER;
 }
 

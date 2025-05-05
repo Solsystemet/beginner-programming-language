@@ -29,6 +29,20 @@ node::NodeStmt* Parser::parse_stmt() {
 		stmt->var = decl;
 		return stmt;
 	}
+	if (peek() && peek()->type == INPUT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS &&
+		peek(2) && peek(2)->type == CLOSED_PARANTHESIS
+		) {
+		consume();
+		consume();
+		consume();
+		node::NodeStmt* stmt = new node::NodeStmt();
+		node::NodeStmtInput*
+			input = new node::NodeStmtInput();
+		stmt->var = input;
+		try_consume(NEW_LINE, "Expected new_line after function call");
+		return stmt;
+	}
 
 	// <Stmt> -> <Function Call>
 	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
