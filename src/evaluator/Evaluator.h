@@ -63,6 +63,10 @@ public:
 	void evaluate_function_call(const node::NodeFunctionCall* func_call);
 
 	void evaluate_value(const node::NodeValue* val);
+
+	void evaluate_identifier_property(const node::NodeValueIdentifierProperty* props);
+	void evaluate_function_call_property(const node::NodeValueFunctionCallProperty* props);
+
 	void evaluate_value_object(const node::NodeValue* val, SymbolTable* table);
 
 	void evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Function* func, bool* _break);

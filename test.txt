@@ -4,3 +4,4 @@ person:
 person yo:
 	name = "Kasper"
 	age = 21
+print(yo.name)

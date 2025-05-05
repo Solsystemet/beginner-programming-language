@@ -89,44 +89,20 @@ void Evaluator::evaluate_print(const node::NodeStmtPrint* print_stmt)
 		Evaluator* evaluator;
 
 		// node value
-		// TODO: actually evalua not fucking hard code it
 		void operator()(const node::NodeValue* val) const {
-			if (mpark::holds_alternative<node::NodeValueIdentifier*>(val->var)) {
-				node::NodeValueIdentifier* ident = mpark::get<node::NodeValueIdentifier*>(val->var);
-				if (evaluator->m_symbolTable.contains(ident->identifier.value)) {
-					Symbol* symbol = evaluator->m_symbolTable.lookup(ident->identifier.value);
-					if (symbol->type == "number") {
-						std::cout << mpark::get<double>(symbol->value);
-					}
-					else if (symbol->type == "boolean") {
-						std::cout << mpark::get<bool>(symbol->value);
-					}
-					else if (symbol->type == "string") {
-						std::cout << mpark::get<std::string>(symbol->value);
-					}
-				}
-				else if (evaluator->m_scopedTables.empty() == false) {
-					for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
-					{
-						if (evaluator->m_scopedTables[i].contains(ident->identifier.value)) {
-							Symbol* symbol = evaluator->m_scopedTables[i].lookup(ident->identifier.value);
-							if (symbol->type == "number") {
-								std::cout << mpark::get<double>(symbol->value);
-							}
-							else if (symbol->type == "boolean") {
-								std::cout << mpark::get<bool>(symbol->value);
-							}
-							else if (symbol->type == "string") {
-								std::cout << mpark::get<std::string>(symbol->value);
-							}
-							return;
-						}
-					}
-				}
-				else {
-					std::cerr << "Undeclared identifier: " << ident->identifier.value << std::endl;
-					exit(EXIT_FAILURE);
-				}
+			evaluator->evaluate_value(val);
+
+			auto result = evaluator->m_stack.top();
+			evaluator->m_stack.pop();
+
+			if (mpark::holds_alternative<double>(result)) {
+				std::cout << mpark::get<double>(result);
+			}
+			else if (mpark::holds_alternative<bool>(result)) {
+				std::cout << mpark::get<bool>(result);
+			}
+			else if (mpark::holds_alternative<std::string>(result)) {
+				std::cout << mpark::get<std::string>(result);
 			}
 		}
 
@@ -499,10 +475,48 @@ void Evaluator::evaluate_object_declecration(const node::NodeDecl* decl, SymbolT
 				symbol.value = arr;
 				table->insert(symbol);
 			}
-			// Assume object array decleration
-			// TODO: implement object array decleration
-			else {
+			else if (arr_decl->type.type == IDENTIFIER &&
+				mpark::holds_alternative<node::NodeObjectArrayDecl*>(arr_decl->var)) {
 
+				auto decl = mpark::get<node::NodeObjectArrayDecl*>(arr_decl->var);
+				if (evaluator->m_structDefinitionTable.contains(decl->objectType.value)) {
+
+					double arraySize = evaluator->evaluate_object_array(decl);
+
+
+					Symbol symbol;
+					symbol.name = arr_decl->identifier.value;
+					symbol.type = "object";
+					symbol.isAnArray = true;
+
+					// Make array into correct size if it is assigned fixed size
+					std::vector<mpark::variant<double, std::string, bool, Struct*>> arr;
+					while (arr.size() < arraySize && evaluator->m_stack.size() == 0) {
+						Struct obj = *evaluator->m_structDefinitionTable.lookup(decl->objectType.value);
+						arr.push_back(&obj);
+					}
+					// populate array if it was assigned elements
+					if (evaluator->m_stack.size() > 0) {
+						//populate backwards
+						for (size_t i = 0; i < arraySize; i++)
+						{
+							arr.push_back(mpark::get<Struct*>(evaluator->m_stack.top()));
+							evaluator->m_stack.pop();
+						}
+					}
+					std::reverse(arr.begin(), arr.end());
+					symbol.value = arr;
+					table->insert(symbol);
+				}
+				else {
+					std::cerr << "Object of type: " << decl->objectType.value << " has no definition!!" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
+			}
+			else {
+				std::cerr << "HOW TF";
+				exit(EXIT_FAILURE);
 			}
 		}
 	};
@@ -1108,11 +1122,25 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 		void operator()(const node::NodeBooleanExpr* expr) const {
 			evaluator->evaluate_boolean_expression(expr);
 		}
-
-		// TODO: function call
 		void operator()(const node::NodeFunctionCall* function_call) const {
-			std::cerr << "Function calls not implemented yet" << std::endl;
-			exit(EXIT_FAILURE);
+			evaluator->evaluate_function_call(function_call);
+
+			if (evaluator->m_stack.empty() == false) {
+				auto val = evaluator->m_stack.top();
+				evaluator->m_stack.pop();
+
+				if (mpark::holds_alternative<bool>(val)) {
+					evaluator->m_stack.push(mpark::get<bool>(val));
+				}
+				else {
+					std::cerr << "Function does not return type of boolean!!" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+			else {
+				std::cerr << "Function does not return type of boolean!!" << std::endl;
+				exit(EXIT_FAILURE);
+			}
 		}
 
 	};
@@ -1130,8 +1158,10 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 		}
 		// identifier
 		void operator()(const node::NodeStringIdentifier* ident) const {
-
-			if (evaluator->m_scopedTables.empty() == false) {
+			if (evaluator->m_symbolTable.contains(ident->ident.value)) {
+				evaluator->m_stack.push(evaluator->m_symbolTable.lookup(ident->ident.value)->value);
+			}
+			else if (evaluator->m_scopedTables.empty() == false) {
 				for (size_t i = evaluator->m_scopedTables.size() - 1; i >= 0; i--)
 				{
 					if (evaluator->m_scopedTables[i].contains(ident->ident.value)) {
@@ -1139,10 +1169,6 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 						return;
 					}
 				}
-			}
-
-			if (evaluator->m_symbolTable.contains(ident->ident.value)) {
-				evaluator->m_stack.push(evaluator->m_symbolTable.lookup(ident->ident.value)->value);
 			}
 			else {
 				std::cerr << "Undeclared identifier: " << ident->ident.value << std::endl;
@@ -1175,10 +1201,26 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 			}
 			evaluator->m_stack.push(lhs + rhs);
 		}
-		// TODO: function call
+		// Function call
 		void operator()(const node::NodeFunctionCall* function_call) const {
-			std::cerr << "Function calls not implemented yet" << std::endl;
-			exit(EXIT_FAILURE);
+			evaluator->evaluate_function_call(function_call);
+
+			if (evaluator->m_stack.empty() == false) {
+				auto val = evaluator->m_stack.top();
+				evaluator->m_stack.pop();
+
+				if (mpark::holds_alternative<std::string>(val)) {
+					evaluator->m_stack.push(mpark::get<std::string>(val));
+				}
+				else {
+					std::cerr << "Function does not return type of string!!" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+			else {
+				std::cerr << "Function does not return type of string!!" << std::endl;
+				exit(EXIT_FAILURE);
+			}
 		}
 	};
 	mpark::visit(StringExpressionVisitor{ this }, expr->var);
@@ -1248,7 +1290,6 @@ double Evaluator::evaluate_object_array(const node::NodeObjectArrayDecl* arr)
 	}
 }
 
-// TODO: implement assignments with function calls, identifier property and function call property.
 void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 {
 
@@ -1285,6 +1326,10 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 					arr = rhs_arr;
 					symbol_lhs->value = arr;
 				}
+				else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct*>(rhs_arr[0])) {
+					arr = rhs_arr;
+					symbol_lhs->value = arr;
+				}
 				else {
 					std::cerr << "Identifiers types do not match!" << std::endl;
 					exit(EXIT_FAILURE);
@@ -1304,6 +1349,9 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 			symbol_lhs->value = rhs;
 		}
 		else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs)) {
+			symbol_lhs->value = rhs;
+		}
+		else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct*>(rhs)) {
 			symbol_lhs->value = rhs;
 		}
 		else {
@@ -1351,6 +1399,10 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 								arr = rhs_arr;
 								symbol_lhs->value = arr;
 							}
+							else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct*>(rhs_arr[0])) {
+								arr = rhs_arr;
+								symbol_lhs->value = arr;
+							}
 							else {
 								std::cerr << "Identifiers types do not match!" << std::endl;
 								exit(EXIT_FAILURE);
@@ -1370,6 +1422,9 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 						symbol_lhs->value = rhs;
 					}
 					else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs)) {
+						symbol_lhs->value = rhs;
+					}
+					else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct*>(rhs)) {
 						symbol_lhs->value = rhs;
 					}
 					else {
@@ -1478,7 +1533,7 @@ void Evaluator::evaluate_definition(const node::NodeDefinition* definition)
 			evaluator->evaluate_function_definition(func_def);
 		}
 
-		// TODO: Implement object definitions 
+		// Object definition
 		void operator()(const node::NodeObjectDefinition* obj_def) const {
 			evaluator->evaluate_object_definition(obj_def);
 		}
@@ -1508,9 +1563,7 @@ void Evaluator::evaluate_function_definition(const node::NodeFunctionDefinition*
 			func.type = "string";
 			break;
 		case IDENTIFIER:
-			//TODO: check if type is of a defined ofbject. If not produce error
-			std::cerr << "Object types not implemented yet!" << std::endl;
-			exit(EXIT_FAILURE);
+			func.type = "object";
 			break;
 		default:
 
@@ -1537,9 +1590,7 @@ void Evaluator::evaluate_function_definition(const node::NodeFunctionDefinition*
 			symbol.type = "string";
 			break;
 		case IDENTIFIER:
-			//TODO: check if type is of a defined ofbject. If not produce error
-			std::cerr << "Object types not implemented yet!" << std::endl;
-			exit(EXIT_FAILURE);
+			symbol.type = "object";
 			break;
 		default:
 
@@ -1764,13 +1815,122 @@ void Evaluator::evaluate_value(const node::NodeValue* val)
 			evaluator->evaluate_boolean_expression(expr->expr);
 		}
 		void operator()(const node::NodeValueIdentifierProperty* props) const {
-			//TODO: implement this
+			evaluator->evaluate_identifier_property(props);
 		}
 		void operator()(const node::NodeValueFunctionCallProperty* props) const {
-			//TODO: implement this
+			evaluator->evaluate_function_call_property(props);
 		}
 	};
 	mpark::visit(ValueVisittor{ this, val->index }, val->var);
+}
+
+// TODO: Support arrays
+void Evaluator::evaluate_identifier_property(const node::NodeValueIdentifierProperty* props)
+{
+	if (m_symbolTable.contains(props->identfierHead.value)) {
+		Symbol* symbol = m_symbolTable.lookup(props->identfierHead.value);
+
+		if (symbol->type == "object") {
+			Symbol* prop = new Symbol();
+			// the assumption is that up till the last element its all structs
+			for (size_t i = 0; i < props->identifierproperties.size()-1; i++)
+			{
+				prop = mpark::get<Struct*>(symbol->value)->table->lookup(props->identifierproperties[i].value);
+				if (prop->type == "object") {
+					// go into the object and store in symbol
+					symbol = prop;
+				}
+				else {
+					std::cerr << "identifier property is not of type object!!" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			// We at the end of identifier properties
+			m_stack.push(mpark::get<Struct*>(symbol->value)->table->lookup(props->identifierproperties[props->identifierproperties.size() - 1].value)->value);
+		}
+	}
+	else if (m_scopedTables.empty() == false) {
+		for (size_t i = m_scopedTables.size() - 1; i >= 0; i--)
+		{
+			if (m_scopedTables[i].contains(props->identfierHead.value)) {
+				Symbol* symbol = m_scopedTables[i].lookup(props->identfierHead.value);
+
+				if (symbol->type == "object") {
+					Symbol* prop = new Symbol();
+					// the assumption is that up till the last element its all structs
+					for (size_t i = 0; i < props->identifierproperties.size() - 1; i++)
+					{
+						prop = mpark::get<Struct*>(symbol->value)->table->lookup(props->identifierproperties[i].value);
+						if (prop->type == "object") {
+							// go into the object and store in symbol
+							symbol = prop;
+						}
+						else {
+							std::cerr << "identifier property is not of type object!!" << std::endl;
+							exit(EXIT_FAILURE);
+						}
+					}
+
+					// We at the end of identifier properties
+					m_stack.push(mpark::get<Struct*>(symbol->value)->table->lookup(props->identifierproperties[props->identifierproperties.size() - 1].value)->value);
+				}
+				return;
+			}
+		}
+	}
+	else {
+		std::cerr << "Undeclared identifier: " << props->identfierHead.value << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
+
+void Evaluator::evaluate_function_call_property(const node::NodeValueFunctionCallProperty* props)
+{
+	evaluate_function_call(props->functionCall);
+
+	if (m_stack.empty() == false) {
+		auto value = m_stack.top();
+		m_stack.pop();
+
+		if (mpark::holds_alternative<Struct*>(value)) {
+			Symbol* symbol = mpark::get<Struct*>(value)->table->lookup(props->identifierproperties->identifierproperties[0].value);
+
+			if (symbol != nullptr) {
+				if (symbol->type == "object") {
+					Symbol* prop = new Symbol();
+					// the assumption is that up till the last element its all structs
+					for (size_t i = 1; i < props->identifierproperties->identifierproperties.size() - 1; i++)
+					{
+						prop = mpark::get<Struct*>(symbol->value)->table->lookup(props->identifierproperties->identifierproperties[i].value);
+						if (prop->type == "object") {
+							// go into the object and store in symbol
+							symbol = prop;
+						}
+						else {
+							std::cerr << "identifier property is not of type object!!" << std::endl;
+							exit(EXIT_FAILURE);
+						}
+					}
+
+					// We at the end of identifier properties
+					m_stack.push(mpark::get<Struct*>(symbol->value)->table->lookup(props->identifierproperties->identifierproperties[props->identifierproperties->identifierproperties.size() - 1].value)->value);
+				}
+			}
+			else {
+				std::cerr << "Object does not have symbol: " << props->identifierproperties->identifierproperties[0].value << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+		else {
+			std::cerr << "Function call did not return a value of type object" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	else {
+		std::cerr << "Function call did not return a value" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 }
 
 void Evaluator::evaluate_value_object(const node::NodeValue* val, SymbolTable* table)
@@ -1842,10 +2002,10 @@ void Evaluator::evaluate_value_object(const node::NodeValue* val, SymbolTable* t
 			evaluator->evaluate_boolean_expression(expr->expr);
 		}
 		void operator()(const node::NodeValueIdentifierProperty* props) const {
-			//TODO: implement this
+			evaluator->evaluate_identifier_property(props);
 		}
 		void operator()(const node::NodeValueFunctionCallProperty* props) const {
-			//TODO: implement this
+			evaluator->evaluate_function_call_property(props);
 		}
 	};
 	mpark::visit(ValueVisittor{ this, val->index, table }, val->var);
