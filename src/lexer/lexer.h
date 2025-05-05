@@ -182,6 +182,10 @@ std::vector<Token> Lexer::Tokenize()
             t.type = STRING;
             result.push_back(t);
             break;
+        case INPUT:
+            t.type = INPUT;
+            result.push_back(t);
+            break;
         case STRING_VAL:
             t.type = STRING_VAL;
             t.value = yytext;

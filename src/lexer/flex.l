@@ -46,6 +46,7 @@
     if (strcmp(yytext, "else") == 0) return ELSE;
     if (strcmp(yytext, "return") == 0) return RETURN;
     if (strcmp(yytext, "is") == 0) return IS;
+    if (strcmp(yytext, "input") == 0) RETURN INPUT;
     return IDENTIFIER;
 }
 
