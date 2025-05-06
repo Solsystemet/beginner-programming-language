@@ -91,7 +91,6 @@ public:
 	SymbolTable m_symbolTable; // this is for the global scope EXCLUSIVELY
 	FunctionTable m_functionTable;
 	StructTable m_structDefinitionTable; // includes objects definitions
-	StructTable m_structVariableTable; // includes objectdeclerations
 	
 	std::vector<SymbolTable> m_scopedTables;
 
