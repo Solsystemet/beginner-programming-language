@@ -1,12 +1,12 @@
-#include "../pch.h"
-#include <filesystem>
+
+#include "../../pch.h"
 class LexerTest : public testing::Test {
 public:
     Lexer* lexer;
     FILE* file;
     std::vector<Token> tokens;
     void SetUp() override {
-        file = fopen( "C:\\repos\\beginner-programming-language\\language-test\\test.txt", "r");
+        file = fopen("C:\\repos\\beginner-programming-language\\language-test\\test.txt", "r");
         ASSERT_NE(file, nullptr) << "Failed to open file";
         lexer = new Lexer(file);
         tokens = lexer->Tokenize();

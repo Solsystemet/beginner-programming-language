@@ -146,7 +146,6 @@
   <ItemGroup>
     <Flex Include="src\lexer\flex.l" />
     <None Include=".gitignore" />
-    <None Include="a.exe" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="stringtest.txt" />

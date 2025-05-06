@@ -52,8 +52,8 @@ private:
 
 
 	node::NodeArithmeticExpr* parse_arithmetic_expr();
-	node::NodeTerm* parse_term();
-	node::NodeFactor* parse_factor();
+	virtual node::NodeTerm* parse_term();
+	virtual node::NodeFactor* parse_factor();
 
 	node::NodeStringExpr* parse_string_expr();
 

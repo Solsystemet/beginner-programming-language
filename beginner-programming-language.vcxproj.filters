@@ -58,7 +58,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="a.exe" />
     <None Include=".gitignore" />
   </ItemGroup>
   <ItemGroup>

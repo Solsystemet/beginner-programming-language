@@ -1,2 +1,0 @@
-number z = 2 + 2
-print(z)
