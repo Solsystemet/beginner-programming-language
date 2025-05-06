@@ -97,8 +97,8 @@ public:
 	std::stack<mpark::variant<double,
 		std::string,
 		bool,
-		Struct*,
-		std::vector<mpark::variant<double, std::string, bool, Struct*>>
+		Struct,
+		std::vector<mpark::variant<double, std::string, bool, Struct>>
 		>> m_stack;
 };
 

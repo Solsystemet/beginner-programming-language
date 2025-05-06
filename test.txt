@@ -1,7 +1,13 @@
 person:
 	string name = "John Doe"
 	number age = 18
-person yo:
-	name = "Kasper"
+	boolean isAFurry = false
+person Blach:
+	name = "Blach"
 	age = 21
-print(yo.name)
+	isAFurry = true
+string x = ""
+x = Blach.name
+print(Blach.name)
+print(Blach.age)
+print(x)
