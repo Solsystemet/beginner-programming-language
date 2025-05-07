@@ -13,7 +13,7 @@
 
 class Evaluator
 {
-
+	
 public:
 	Evaluator(node::NodeProg prog):
 		m_prog(std::move(prog)) {}
@@ -84,6 +84,10 @@ public:
 	void evaluate_function_for(const node::NodeFunctionFor* _for, Function* func, bool* _break);
 
 	size_t get_array_index(const node::NodeArithmeticExpr* expr);
+
+
+	void assign_function_args(Function* func, const node::NodeFunctionCall* func_call);
+	std::string get_type(const Token type);
 
 //private:
 	node::NodeProg m_prog;

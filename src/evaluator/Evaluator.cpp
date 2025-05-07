@@ -1561,26 +1561,7 @@ void Evaluator::evaluate_function_definition(const node::NodeFunctionDefinition*
 	func.name = func_def->functionName.value;
 	if (func_def->type != nullptr) {
 		func.type = func_def->type->value;
-		switch (func_def->type->type)
-		{
-		case NUMBER:
-			func.type = "number";
-			break;
-		case BOOLEAN:
-			func.type = "boolean";
-			break;
-		case STRING:
-			func.type = "string";
-			break;
-		case IDENTIFIER:
-			func.type = "object";
-			break;
-		default:
-
-			std::cerr << "Argument is not a valid type: " << func_def->type->type << std::endl;
-			exit(EXIT_FAILURE);
-			break;
-		}
+		func.type = get_type(*func_def->type); 
 		func.isAnArray = func_def->isAnArray;
 	}
 
@@ -1588,31 +1569,8 @@ void Evaluator::evaluate_function_definition(const node::NodeFunctionDefinition*
 		Symbol symbol;
 		symbol.name = arg->identifier.value;
 		symbol.type = arg->type.value;
-		switch (arg->type.type)
-		{
-		case NUMBER:
-			symbol.type = "number";
-			break;
-		case BOOLEAN:
-			symbol.type = "boolean";
-			break;
-		case STRING:
-			symbol.type = "string";
-			break;
-		case IDENTIFIER:
-			symbol.type = "object";
-			break;
-		default:
-
-			std::cerr << "Argument is not a valid type: " << arg->identifier.type << std::endl;
-			exit(EXIT_FAILURE);
-			break;
-		}
+		symbol.type = get_type(arg->type);
 		symbol.isAnArray = arg->isTypeAnArray;
-		/*if (func.args.contains(symbol.name)) {
-			std::cerr << "Argument is already decleared previously! " << std::endl;
-			exit(EXIT_FAILURE);
-		}*/
 		func.args.push_back(symbol);
 	}
 
@@ -1647,47 +1605,8 @@ void Evaluator::evaluate_function_call(const node::NodeFunctionCall* func_call)
 		Function* func = m_functionTable.lookup(func_call->functionName.value);
 
 		if (func->args.size() == func_call->args.size()) {
-			for (size_t i = 0; i < func->args.size(); i++)
-			{
-				evaluate_value(func_call->args[i]->value);
-				auto val = m_stack.top();
-				m_stack.pop();
 
-				
-				if(func->args[i].isAnArray == true &&mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct>>>(val)) {
-
-					auto arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(val);
-
-					if (func->args[i].type == "number" && mpark::holds_alternative<double>(arr[0])) {
-						func->args[i].value = arr;
-					}
-					else if (func->args[i].type == "boolean" && mpark::holds_alternative<bool>(arr[0])) {
-						func->args[i].value = arr;
-					}
-					else if (func->args[i].type == "string" && mpark::holds_alternative<std::string>(arr[0])) {
-						func->args[i].value = arr;
-					}
-					else {
-						std::cerr << "Parameter does not match argument" << std::endl;
-						exit(EXIT_FAILURE);
-					}
-
-				}
-				else if (func->args[i].type == "number" && mpark::holds_alternative<double>(val)) {
-					func->args[i].value = val;
-				}
-				else if (func->args[i].type == "boolean" && mpark::holds_alternative<bool>(val)) {
-					func->args[i].value = val;
-				}
-				else if (func->args[i].type == "string" && mpark::holds_alternative<std::string>(val)) {
-					func->args[i].value = val;
-				}
-				else {
-					std::cerr << "Parameter does not match argument" << std::endl;
-					exit(EXIT_FAILURE);
-				}
-
-			}
+			assign_function_args(func, func_call);
 
 			bool _break = false;
 			SymbolTable table;
@@ -1711,9 +1630,6 @@ void Evaluator::evaluate_function_call(const node::NodeFunctionCall* func_call)
 			std::cerr << "function arguments do not match!" << std::endl;
 			exit(EXIT_FAILURE);
 		}
-
-		
-
 	}
 	else {
 		std::cerr << "Function: " << func_call->functionName.value << " not defined!" << std::endl;
@@ -2483,4 +2399,79 @@ size_t Evaluator::get_array_index(const node::NodeArithmeticExpr* expr)
 	size_t size = mpark::get<double>(this->m_stack.top());
 	m_stack.pop();
 	return size;
+}
+
+void Evaluator::assign_function_args(Function* func, const node::NodeFunctionCall * func_call)
+{
+	for (size_t i = 0; i < func->args.size(); i++)
+	{
+		evaluate_value(func_call->args[i]->value);
+		auto val = m_stack.top();
+		m_stack.pop();
+
+
+		if (func->args[i].isAnArray == true && mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct>>>(val)) {
+
+			auto arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(val);
+
+			if (func->args[i].type == "number" && mpark::holds_alternative<double>(arr[0])) {
+				func->args[i].value = arr;
+			}
+			else if (func->args[i].type == "boolean" && mpark::holds_alternative<bool>(arr[0])) {
+				func->args[i].value = arr;
+			}
+			else if (func->args[i].type == "string" && mpark::holds_alternative<std::string>(arr[0])) {
+				func->args[i].value = arr;
+			}
+			else if (func->args[i].type == "object" && mpark::holds_alternative<Struct>(arr[0])) {
+				func->args[i].value = arr;
+			}
+			else {
+				std::cerr << "Parameter does not match argument" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+		}
+		else if (func->args[i].type == "number" && mpark::holds_alternative<double>(val)) {
+			func->args[i].value = val;
+		}
+		else if (func->args[i].type == "boolean" && mpark::holds_alternative<bool>(val)) {
+			func->args[i].value = val;
+		}
+		else if (func->args[i].type == "string" && mpark::holds_alternative<std::string>(val)) {
+			func->args[i].value = val;
+		}
+		else if (func->args[i].type == "object" && mpark::holds_alternative<Struct>(val)) {
+			func->args[i].value = val;
+		}
+		else {
+			std::cerr << "Parameter does not match argument" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+	}
+}
+
+std::string Evaluator::get_type(const Token type)
+{
+	switch (type.type)
+	{
+	case NUMBER:
+		return "number";
+		break;
+	case BOOLEAN:
+		return "boolean";
+		break;
+	case STRING:
+		return "string";
+		break;
+	case IDENTIFIER:
+		return "object";
+		break;
+	default:
+
+		std::cerr << "Argument is not a valid type: " << type.type << std::endl;
+		exit(EXIT_FAILURE);
+		break;
+	}
 }
