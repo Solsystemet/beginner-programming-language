@@ -425,27 +425,27 @@ namespace node {
 	};
 
 	struct NodeBooleanFactor {
-		mpark::variant<NodeBooleanFactorValue*, NodeBooleanFactorIdentifier*, NodeBooleanExpr*, NodeFunctionCall*> var;
+		mpark::variant<NodeBooleanFactorValue*, NodeBooleanFactorIdentifier*, NodeBooleanExpr*, NodeFunctionCall*, NodeArithmeticExpr*, NodeStringExpr*> var;
 	};
 
 	struct NodeBooleanLess {
-		NodeArithmeticExpr* lhs;
-		NodeArithmeticExpr* rhs;
+		NodeBooleanRealExpression* lhs;
+		NodeBooleanNot* rhs;
 	};
 
 	struct NodeBooleanGreater {
-		NodeArithmeticExpr* lhs;
-		NodeArithmeticExpr* rhs;
+		NodeBooleanRealExpression* lhs;
+		NodeBooleanNot* rhs;
 	};
 
 	struct NodeBooleanLessEqual {
-		NodeArithmeticExpr* lhs;
-		NodeArithmeticExpr* rhs;
+		NodeBooleanRealExpression* lhs;
+		NodeBooleanNot* rhs;
 	};
 
 	struct NodeBooleanGreaterEqual {
-		NodeArithmeticExpr* lhs;
-		NodeArithmeticExpr* rhs;
+		NodeBooleanRealExpression* lhs;
+		NodeBooleanNot* rhs;
 	};
 
 	struct NodeGlobalControlFlow {

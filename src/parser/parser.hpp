@@ -72,10 +72,10 @@ private:
 
 
 	node::NodeBooleanRealExpression* parse_real_expr();
-	node::NodeBooleanGreaterEqual* parse_greater_equal(node::NodeArithmeticExpr* lhs);
-	node::NodeBooleanLessEqual* parse_less_equal(node::NodeArithmeticExpr* lhs);
-	node::NodeBooleanGreater* parse_greater(node::NodeArithmeticExpr* lhs);
-	node::NodeBooleanLess* parse_less(node::NodeArithmeticExpr* lhs);
+	node::NodeBooleanGreaterEqual* parse_greater_equal(node::NodeBooleanRealExpression* lhs);
+	node::NodeBooleanLessEqual* parse_less_equal(node::NodeBooleanRealExpression* lhs);
+	node::NodeBooleanGreater* parse_greater(node::NodeBooleanRealExpression* lhs);
+	node::NodeBooleanLess* parse_less(node::NodeBooleanRealExpression* lhs);
 
 
 	node::NodeBooleanNot* parse_not();

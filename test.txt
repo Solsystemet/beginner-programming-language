@@ -1,11 +1,3 @@
-person:
-	string name = "John Doe"
-	number age = 0
-	boolean canDrive = false
-person PeterGriffin:
-	name = "Peter Griffin"
-	age = 45
-	canDrive = true
-print(PeterGriffin.name)
-print(PeterGriffin.age)
-print(PeterGriffin.canDrive)
+number x = 2 + 6
+boolean yes = x >= 5 is true and (2 + 2 < 5) and "hey" is "hey"
+print(yes)

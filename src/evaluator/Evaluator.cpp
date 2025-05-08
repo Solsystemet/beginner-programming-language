@@ -893,24 +893,57 @@ void Evaluator::evaluate_boolean_equal(const node::NodeBooleanEqual* equal)
 
 			// assign the right hand side
 			//check if top of stack is a variable
-			bool rhs = false;
-			bool lhs = false;
+			mpark::variant<double, bool, std::string> rhs;
+			mpark::variant<double, bool, std::string> lhs;
 			if (mpark::holds_alternative<bool>(evaluator->m_stack.top())) {
 				rhs = mpark::get<bool>(evaluator->m_stack.top());
 				evaluator->m_stack.pop();
 			}
+			else if (mpark::holds_alternative<double>(evaluator->m_stack.top())) {
+				rhs = mpark::get<double>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
+			}
+			else if (mpark::holds_alternative<std::string>(evaluator->m_stack.top())) {
+				rhs = mpark::get<std::string>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
+			}
 			else {
-				std::cerr << "expected value of type bool" << std::endl;
+				std::cerr << "value is of invalid type" << std::endl;
+				exit(EXIT_FAILURE);
 			}
 
 			if (mpark::holds_alternative<bool>(evaluator->m_stack.top())) {
 				lhs = mpark::get<bool>(evaluator->m_stack.top());
 				evaluator->m_stack.pop();
 			}
-			else {
-				std::cerr << "expected value of type bool" << std::endl;
+			else if (mpark::holds_alternative<double>(evaluator->m_stack.top())) {
+				lhs = mpark::get<double>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
 			}
-			evaluator->m_stack.push(lhs == rhs);
+			else if (mpark::holds_alternative<std::string>(evaluator->m_stack.top())) {
+				lhs = mpark::get<std::string>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
+			}
+			else {
+				std::cerr << "value is of invalid type" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			if (mpark::holds_alternative<bool>(lhs) && mpark::holds_alternative<bool>(rhs)) {
+				evaluator->m_stack.push(mpark::get<bool>(lhs) == (mpark::get<bool>(rhs)));
+			}
+			else if (mpark::holds_alternative<double>(lhs) && mpark::holds_alternative<double>(rhs)) {
+				evaluator->m_stack.push(mpark::get<double>(lhs) == (mpark::get<double>(rhs)));
+			}
+			else if (mpark::holds_alternative<std::string>(lhs) && mpark::holds_alternative<std::string>(rhs)) {
+				evaluator->m_stack.push(mpark::get<std::string>(lhs) == (mpark::get<std::string>(rhs)));
+			}
+			else {
+				std::cerr << "lhs and rhs are not of the same type" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			
 		}
 
 		// equal is not
@@ -920,24 +953,55 @@ void Evaluator::evaluate_boolean_equal(const node::NodeBooleanEqual* equal)
 
 			// assign the right hand side
 			//check if top of stack is a variable
-			bool rhs = false;
-			bool lhs = false;
+			mpark::variant<double, bool, std::string> rhs;
+			mpark::variant<double, bool, std::string> lhs;
 			if (mpark::holds_alternative<bool>(evaluator->m_stack.top())) {
 				rhs = mpark::get<bool>(evaluator->m_stack.top());
 				evaluator->m_stack.pop();
 			}
+			else if (mpark::holds_alternative<double>(evaluator->m_stack.top())) {
+				rhs = mpark::get<double>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
+			}
+			else if (mpark::holds_alternative<std::string>(evaluator->m_stack.top())) {
+				rhs = mpark::get<std::string>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
+			}
 			else {
-				std::cerr << "expected value of type bool" << std::endl;
+				std::cerr << "value is of invalid type" << std::endl;
+				exit(EXIT_FAILURE);
 			}
 
 			if (mpark::holds_alternative<bool>(evaluator->m_stack.top())) {
 				lhs = mpark::get<bool>(evaluator->m_stack.top());
 				evaluator->m_stack.pop();
 			}
-			else {
-				std::cerr << "expected value of type bool" << std::endl;
+			else if (mpark::holds_alternative<double>(evaluator->m_stack.top())) {
+				lhs = mpark::get<double>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
 			}
-			evaluator->m_stack.push(lhs != rhs);
+			else if (mpark::holds_alternative<std::string>(evaluator->m_stack.top())) {
+				lhs = mpark::get<std::string>(evaluator->m_stack.top());
+				evaluator->m_stack.pop();
+			}
+			else {
+				std::cerr << "value is of invalid type" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			if (mpark::holds_alternative<bool>(lhs) && mpark::holds_alternative<bool>(rhs)) {
+				evaluator->m_stack.push(mpark::get<bool>(lhs) != (mpark::get<bool>(rhs)));
+			}
+			else if (mpark::holds_alternative<double>(lhs) && mpark::holds_alternative<double>(rhs)) {
+				evaluator->m_stack.push(mpark::get<double>(lhs) != (mpark::get<double>(rhs)));
+			}
+			else if (mpark::holds_alternative<std::string>(lhs) && mpark::holds_alternative<std::string>(rhs)) {
+				evaluator->m_stack.push(mpark::get<std::string>(lhs) != (mpark::get<std::string>(rhs)));
+			}
+			else {
+				std::cerr << "lhs and rhs are not of the same type" << std::endl;
+				exit(EXIT_FAILURE);
+			}
 		}
 
 	};
@@ -956,8 +1020,8 @@ void Evaluator::evaluate_real_expr(const node::NodeBooleanRealExpression* expr)
 
 		// less 
 		void operator()(const node::NodeBooleanLess* less) const {
-			evaluator->evaluate_arithmetic_expression(less->lhs);
-			evaluator->evaluate_arithmetic_expression(less->rhs);
+			evaluator->evaluate_real_expr(less->lhs);
+			evaluator->evaluate_not(less->rhs);
 
 			// assign the right hand side
 			//check if top of stack is a variable
@@ -982,9 +1046,8 @@ void Evaluator::evaluate_real_expr(const node::NodeBooleanRealExpression* expr)
 		}
 		// less equal
 		void operator()(const node::NodeBooleanLessEqual* less_equal) const {
-			evaluator->evaluate_arithmetic_expression(less_equal->lhs);
-			
-			evaluator->evaluate_arithmetic_expression(less_equal->rhs);
+			evaluator->evaluate_real_expr(less_equal->lhs);
+			evaluator->evaluate_not(less_equal->rhs);
 
 			// assign the right hand side
 			//check if top of stack is a variable
@@ -1010,8 +1073,8 @@ void Evaluator::evaluate_real_expr(const node::NodeBooleanRealExpression* expr)
 
 		// greater 
 		void operator()(const node::NodeBooleanGreater* greater) const {
-			evaluator->evaluate_arithmetic_expression(greater->lhs);
-			evaluator->evaluate_arithmetic_expression(greater->rhs);
+			evaluator->evaluate_real_expr(greater->lhs);
+			evaluator->evaluate_not(greater->rhs);
 
 			// assign the right hand side
 			//check if top of stack is a variable
@@ -1037,8 +1100,8 @@ void Evaluator::evaluate_real_expr(const node::NodeBooleanRealExpression* expr)
 
 		// greater equal
 		void operator()(const node::NodeBooleanGreaterEqual* greater_equal) const {
-			evaluator->evaluate_arithmetic_expression(greater_equal->lhs);
-			evaluator->evaluate_arithmetic_expression(greater_equal->rhs);
+			evaluator->evaluate_real_expr(greater_equal->lhs);
+			evaluator->evaluate_not(greater_equal->rhs);
 
 			// assign the right hand side
 			//check if top of stack is a variable
@@ -1126,6 +1189,16 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 				std::cerr << "Undeclared identifier: " << identifier->identifier.value << std::endl;
 				exit(EXIT_FAILURE);
 			}
+		}
+
+		// arithmetic expression
+		void operator()(const node::NodeArithmeticExpr* expr) const {
+			evaluator->evaluate_arithmetic_expression(expr);
+		}
+
+		// string expression
+		void operator()(const node::NodeStringExpr* expr) const {
+			evaluator->evaluate_string_expression(expr);
 		}
 
 		// boolean expr 
