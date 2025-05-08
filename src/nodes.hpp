@@ -304,6 +304,9 @@ namespace node {
 	struct NodeFactorIdentifier
 	{
 		Token identifier;
+
+		//if identifier is an array
+		NodeArithmeticExpr* index = nullptr;
 	};
 
 	struct NodeFactor
@@ -344,6 +347,9 @@ namespace node {
 
 	struct NodeStringIdentifier {
 		Token ident;
+
+		//if identifier is an array
+		NodeArithmeticExpr* index = nullptr;
 	};
 
 	struct NodeStringExpr {
@@ -422,6 +428,9 @@ namespace node {
 
 	struct NodeBooleanFactorIdentifier {
 		Token identifier;
+
+		//if identifier is an array
+		NodeArithmeticExpr* index = nullptr;
 	};
 
 	struct NodeBooleanFactor {

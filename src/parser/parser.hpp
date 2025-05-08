@@ -170,6 +170,12 @@ private:
 		if (t != nullptr) {
 			factor_identifier->identifier = *t;
 
+			if (peek()->type == OPEN_SQUAREBRACKET) {
+				consume();
+				factor_identifier->index = parse_arithmetic_expr();
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression!");
+			}
+
 			auto* factor = new node::NodeFactor();
 			factor->var = factor_identifier;
 			return factor;

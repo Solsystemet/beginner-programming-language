@@ -207,67 +207,53 @@ std::vector<Token> Lexer::Tokenize()
 }
 
 inline void Lexer::FixTabIndent(std::vector<Token>* tokens) {
+    int lastIndentLevel = 0;
 
-    int maxTabIndent = 0;
-    int currentTabIndent = 0;
-
-    for (size_t i = 0; i < tokens->size(); i++)
-    {
-
-        if (i == tokens->size() - 1 && maxTabIndent == 1) {
-            Token t = { TAB_DEDENT };
-            tokens->push_back(t);
-            break;
-        }
-
-        // if we find a new line token we read ahead an check amount of tabs
+    for (size_t i = 0; i < tokens->size(); ++i) {
         if (tokens->at(i).type == NEW_LINE) {
-            size_t count = 1;
-            while (tokens->at(i + count).type == TAB_INDENT)
-            {
-                currentTabIndent++;
-                count++;
-            }
-            // update maxTabIndent and remove tab indents until 1 left
-            if (currentTabIndent > maxTabIndent) {
-                int difference = currentTabIndent - maxTabIndent;
-                maxTabIndent = currentTabIndent;
+            int currentIndentLevel = 0;
+            size_t j = i + 1;
 
-                if (currentTabIndent > 1) {
-                    auto start = tokens->begin() + i + 2;
-                    auto end = tokens->begin() + i + count;
-                    tokens->erase(start, end);
-                    count = 1;
-                }
+            // Count the TAB_INDENTs after the newline
+            while (j < tokens->size() && tokens->at(j).type == TAB_INDENT) {
+                currentIndentLevel++;
+                j++;
+            }
 
-            }
-            // remove all the tab indent tokens
-            else if (currentTabIndent == maxTabIndent) {
-                auto start = tokens->begin() + i + 1;
-                auto end = tokens->begin() + i + count;
-                tokens->erase(start, end);
-                count = 1;
-            }
-            // remove all tab indent tokens and add the corresponding dedents
-            else if (currentTabIndent < maxTabIndent) {
-                int difference = maxTabIndent - currentTabIndent;
-                maxTabIndent = currentTabIndent;
-                Token t = { TAB_DEDENT };
-                for (size_t j = 0; j < difference; j++)
-                {
-                    tokens->insert(tokens->begin() + i + count, t);
+            size_t indentStart = i + 1;
+            size_t indentEnd = indentStart + currentIndentLevel;
+
+            if (currentIndentLevel > lastIndentLevel) {
+                // Keep only the difference (new indent level)
+                // Remove extra TAB_INDENTs so total equals current indent level
+                if (currentIndentLevel > 1) {
+                    tokens->erase(tokens->begin() + indentStart + 1, tokens->begin() + indentEnd);
                 }
-                auto start = tokens->begin() + i + 1;
-                auto end = tokens->begin() + i + count;
-                tokens->erase(start, end);
-                count -= difference - 1;
             }
-            i += count - 1;
-            currentTabIndent = 0;
+            else if (currentIndentLevel == lastIndentLevel) {
+                // Remove all TAB_INDENTs (they are redundant)
+                tokens->erase(tokens->begin() + indentStart, tokens->begin() + indentEnd);
+            }
+            else if (currentIndentLevel < lastIndentLevel) {
+                // Remove all TAB_INDENTs and insert dedents
+                tokens->erase(tokens->begin() + indentStart, tokens->begin() + indentEnd);
+                int dedentsToInsert = lastIndentLevel - currentIndentLevel;
+                tokens->insert(tokens->begin() + indentStart, dedentsToInsert, Token{ TAB_DEDENT });
+                i += dedentsToInsert; // move index forward to skip dedents
+            }
+
+            lastIndentLevel = currentIndentLevel;
         }
     }
 
+    // Insert remaining dedents at EOF
+    while (lastIndentLevel-- > 0) {
+        tokens->push_back(Token{ TAB_DEDENT });
+    }
 }
+
+
+
 
 // just for verifying the amount
 void Lexer::CountIndentDedent(std::vector<Token> tokens) {

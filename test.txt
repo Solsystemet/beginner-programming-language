@@ -1,3 +1,0 @@
-number x = 2 + 6
-boolean yes = x >= 5 is true and (2 + 2 < 5) and "hey" is "hey"
-print(yes)
