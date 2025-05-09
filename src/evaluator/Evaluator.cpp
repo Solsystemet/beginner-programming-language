@@ -1606,79 +1606,105 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 
 void Evaluator::evaluate_assignment_object(const node::NodeAssignment* assignment, SymbolTable* table)
 {
-	if (Symbol* symbol_lhs = table->lookup(assignment->identifierHead.value)) {
-
-		// handle if symbol is an array
-		if (assignment->index != nullptr) {
-			size_t lhs_index = get_array_index(assignment->index);
-
-			std::vector<mpark::variant<double, std::string, bool, Struct>> arr =
-				mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(symbol_lhs->value);
-
-			if (arr.size() <= lhs_index) {
-				std::cerr << "Array bound of bounds" << std::endl;
-				exit(EXIT_FAILURE);
-			}
-
-			// Handle right hand side
-			evaluate_value(assignment->rhs);
-			auto rhs = m_stack.top();
-			m_stack.pop();
-
-			if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct>>>(rhs)) {
-				auto rhs_arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(rhs);
-				if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) {
-					arr = rhs_arr;
-					symbol_lhs->value = arr;
-				}
-				else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) {
-					arr = rhs_arr;
-					symbol_lhs->value = arr;
-				}
-				else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) {
-					arr = rhs_arr;
-					symbol_lhs->value = arr;
-				}
-				else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct>(rhs_arr[0])) {
-					arr = rhs_arr;
-					symbol_lhs->value = arr;
-				}
-				else {
-					std::cerr << "Identifiers types do not match!" << std::endl;
-					exit(EXIT_FAILURE);
-				}
-			}
-			return;
-
-		}
+	if (Symbol* symbol = table->lookup(assignment->identifierHead.value)) {
 		evaluate_value(assignment->rhs);
 		auto rhs = m_stack.top();
 		m_stack.pop();
 
-		if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs)) {
-			symbol_lhs->value = rhs;
-		}
-		else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs)) {
-			symbol_lhs->value = rhs;
-		}
-		else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs)) {
-			symbol_lhs->value = rhs;
-		}
-		else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct>(rhs)) {
-			symbol_lhs->value = rhs;
-		}
-		else {
-			std::cerr << "Identifiers types do not match!" << std::endl;
-			exit(EXIT_FAILURE);
+		mpark::variant<double, std::string, bool, Struct, std::vector<mpark::variant<double, std::string, bool, Struct>>>* value_ptr = &symbol->value;
+
+		// Handle root array index: e.g., arr[2] = 5
+		if (assignment->index != nullptr) {
+			if (!mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct>>>(*value_ptr)) {
+				std::cerr << "Trying to index non-array variable" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			size_t idx = get_array_index(assignment->index);
+			auto& vec = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(*value_ptr);
+
+			if (idx >= vec.size()) {
+				std::cerr << "Array index out of bounds" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			auto& elem = vec[idx];
+
+			// Type check and assign
+			if (mpark::holds_alternative<double>(elem) && mpark::holds_alternative<double>(rhs)) {
+				elem = mpark::get<double>(rhs);
+			}
+			else if (mpark::holds_alternative<std::string>(elem) && mpark::holds_alternative<std::string>(rhs)) {
+				elem = mpark::get<std::string>(rhs);
+			}
+			else if (mpark::holds_alternative<bool>(elem) && mpark::holds_alternative<bool>(rhs)) {
+				elem = mpark::get<bool>(rhs);
+			}
+			else if (mpark::holds_alternative<Struct>(elem) && mpark::holds_alternative<Struct>(rhs)) {
+				elem = mpark::get<Struct>(rhs);
+			}
+			else {
+				std::cerr << "Type mismatch in array assignment at index " << idx << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			return;
 		}
 
+		// Handle property access (possibly nested)
+		if (assignment->props.empty()) {
+			// No props: assign directly
+			symbol->value = rhs;
+			return;
+		}
 
+		// Traverse props
+		Struct* current_struct = nullptr;
+		SymbolTable* current_table = nullptr;
+		mpark::variant<double, std::string, bool, Struct, std::vector<mpark::variant<double, std::string, bool, Struct>>>* current_value = value_ptr;
+
+		for (size_t i = 0; i < assignment->props.size(); ++i) {
+			const std::string& prop_name = assignment->props[i].value;
+			bool is_last = (i == assignment->props.size() - 1);
+
+			if (mpark::holds_alternative<Struct>(*current_value)) {
+				current_struct = &mpark::get<Struct>(*current_value);
+				current_table = current_struct->table;
+
+				if (!current_table) {
+					std::cerr << "Null symbol table in object '" << current_struct->name << "'" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
+				Symbol* next_sym = current_table->lookup(prop_name);
+				if (!next_sym) {
+					std::cerr << "Property '" << prop_name << "' not found in object" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
+				if (is_last) {
+					// Assign to final property
+					next_sym->value = rhs;
+					return;
+				} else {
+					current_value = &next_sym->value;
+				}
+			}
+			else if (mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct>>>(*current_value)) {
+				std::cerr << "Unexpected array while traversing property path '" << prop_name << "'" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			else {
+				std::cerr << "Cannot access property '" << prop_name << "' on non-object" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
 	}
-	else
-	{
+	else {
 		std::cerr << "Assignment on left hand side is an undeclared variable!" << std::endl;
+		exit(EXIT_FAILURE);
 	}
 }
+
+
 
 void Evaluator::evaluate_definition(const node::NodeDefinition* definition)
 {
