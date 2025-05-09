@@ -265,7 +265,7 @@ inline void Lexer::FixTabIndent(std::vector<Token>* tokens) {
 }
 
 // just for verifying the amount
-void Lexer::CountIndentDedent(std::vector<Token> tokens) {
+inline void Lexer::CountIndentDedent(std::vector<Token> tokens) {
     int indentCount = 0;
     int dedentCount = 0;
 
