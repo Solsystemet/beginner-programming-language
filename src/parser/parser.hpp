@@ -51,7 +51,7 @@ private:
 	node::NodeFunctionStmt* parse_function_stmt();
 
 
-	node::NodeArithmeticExpr* parse_arithmetic_expr();
+	virtual node::NodeArithmeticExpr* parse_arithmetic_expr();
 	virtual node::NodeTerm* parse_term();
 	virtual node::NodeFactor* parse_factor();
 
@@ -190,7 +190,7 @@ private:
 
 
 
-	void try_consume_arithmetic(
+	virtual void try_consume_arithmetic(
 		int tokenType,
 		node::NodeArithmeticExpr* expr,
 		node::NodeExprAdd* add
@@ -212,7 +212,7 @@ private:
 		}
 	}
 
-	void try_consume_arithmetic(
+	virtual void try_consume_arithmetic(
 		int tokenType,
 		node::NodeArithmeticExpr* expr,
 		node::NodeExprSubtract* sub
@@ -234,7 +234,7 @@ private:
 		}
 	}
 
-	void try_consume_arithmetic(
+	virtual void try_consume_arithmetic(
 		int tokenType,
 		node::NodeTerm* term,
 		node::NodeExprMult* mult
@@ -254,7 +254,7 @@ private:
 		}
 	}
 
-	void try_consume_arithmetic(
+	virtual void try_consume_arithmetic(
 		int tokenType,
 		node::NodeTerm* term,
 		node::NodeExprDivide* div
@@ -274,7 +274,7 @@ private:
 		}
 	}
 
-	void try_consume_arithmetic(
+	virtual void try_consume_arithmetic(
 		int tokenType,
 		node::NodeTerm* term,
 		node::NodeExprModulo* mod
