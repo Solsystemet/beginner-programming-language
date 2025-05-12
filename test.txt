@@ -1,9 +1,4 @@
-object1:
-	number x = 2
-object2:
-	object1 a:
-		x = 2
-object2 b:
-	a.x = 5
-
-print(b.a.x)
+print("Write a number\n")
+string x = ""
+x = input()
+print(x)

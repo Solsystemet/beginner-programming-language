@@ -16,6 +16,7 @@ private:
 
     // helper function for verifying indent and dedent count. move elsewhere or delete
     void CountIndentDedent(std::vector<Token> tokens);
+    std::string SanitizeStringLiteral(const std::string& raw);
 
 public:
     inline Lexer(FILE* file);
@@ -189,7 +190,7 @@ std::vector<Token> Lexer::Tokenize()
             break;
         case STRING_VAL:
             t.type = STRING_VAL;
-            t.value = yytext;
+            t.value = SanitizeStringLiteral(yytext);
             result.push_back(t);
             break;
         default:
@@ -270,4 +271,35 @@ void Lexer::CountIndentDedent(std::vector<Token> tokens) {
 
     std::cout << "Indents: " << indentCount << std::endl;
     std::cout << "Dedents: " << dedentCount << std::endl;
+}
+
+std::string Lexer::SanitizeStringLiteral(const std::string& raw) {
+    std::string result;
+
+    // Sanity check: must start and end with quotes
+    if (raw.size() < 2 || raw.front() != '"' || raw.back() != '"') {
+        return raw; // Or throw an error
+    }
+
+    for (size_t i = 1; i < raw.size() - 1; ++i) {
+        if (raw[i] == '\\' && i + 1 < raw.size() - 1) {
+            ++i;
+            switch (raw[i]) {
+            case 'n': result += '\n'; break;
+            case 't': result += '\t'; break;
+            case 'r': result += '\r'; break;
+            case '"': result += '"';  break;
+            case '\\': result += '\\'; break;
+            case '0': result += '\0'; break;
+            default:
+                result += raw[i]; // Unknown escape, keep as-is
+                break;
+            }
+        }
+        else {
+            result += raw[i];
+        }
+    }
+
+    return result;
 }

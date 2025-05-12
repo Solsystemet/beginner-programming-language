@@ -153,6 +153,7 @@ namespace node {
 	{
 		mpark::variant<
 			NodeValueIdentifier*,
+			NodeStmtInput*,
 			NodeValueFunctionCall*,
 			NodeValueArithmeticExpression*,
 			NodeValueStringExpression*,
@@ -353,7 +354,7 @@ namespace node {
 	};
 
 	struct NodeStringExpr {
-		mpark::variant<NodeStringValue*, NodeStringIdentifier*, NodeFunctionCall* , NodeStringExprConcat*> var;
+		mpark::variant<NodeStringValue*, NodeStringIdentifier*, NodeFunctionCall* , NodeStringExprConcat*, NodeStmtInput*> var;
 	};
 
 	

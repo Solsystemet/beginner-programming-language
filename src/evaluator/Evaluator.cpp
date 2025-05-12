@@ -45,7 +45,9 @@ void Evaluator::evaluate_stmt(const node::NodeStmt* stmt)
 
 		// input
 		void operator()(const node::NodeStmtInput* input) const {
-			
+			std::string value;
+			std::getline(std::cin, value);
+			evaluator->m_stack.push(value);
 		}
 
 	};
@@ -85,7 +87,9 @@ void Evaluator::evaluate_nested_stmt(const node::NodeNestedStmt* stmt, bool* _br
 
 		// input
 		void operator()(const node::NodeStmtInput* input) const {
-
+			std::string value;
+			std::getline(std::cin, value);
+			evaluator->m_stack.push(value);
 		}
 
 	};
@@ -106,13 +110,13 @@ void Evaluator::evaluate_print(const node::NodeStmtPrint* print_stmt)
 			evaluator->m_stack.pop();
 
 			if (mpark::holds_alternative<double>(result)) {
-				std::cout << mpark::get<double>(result) << std::endl;
+				std::cout << mpark::get<double>(result);
 			}
 			else if (mpark::holds_alternative<bool>(result)) {
-				std::cout << mpark::get<bool>(result) << std::endl;
+				std::cout << mpark::get<bool>(result);
 			}
 			else if (mpark::holds_alternative<std::string>(result)) {
-				std::cout << mpark::get<std::string>(result) << std::endl;
+				std::cout << mpark::get<std::string>(result);
 			}
 		}
 
@@ -1437,6 +1441,13 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 				exit(EXIT_FAILURE);
 			}
 		}
+
+		// input
+		void operator()(const node::NodeStmtInput* input) const {
+			std::string value;
+			std::getline(std::cin, value);
+			evaluator->m_stack.push(value);
+		}
 	};
 	mpark::visit(StringExpressionVisitor{ this }, expr->var);
 }
@@ -1917,6 +1928,13 @@ void Evaluator::evaluate_value(const node::NodeValue* val)
 		void operator()(const node::NodeValueFunctionCallProperty* props) const {
 			evaluator->evaluate_function_call_property(props);
 		}
+
+		// input
+		void operator()(const node::NodeStmtInput* input) const {
+			std::string value;
+			std::getline(std::cin, value);
+			evaluator->m_stack.push(value);
+		}
 	};
 	mpark::visit(ValueVisittor{ this, val->index }, val->var);
 }
@@ -2104,6 +2122,13 @@ void Evaluator::evaluate_value_object(const node::NodeValue* val, SymbolTable* t
 		void operator()(const node::NodeValueFunctionCallProperty* props) const {
 			evaluator->evaluate_function_call_property(props);
 		}
+
+		// input
+		void operator()(const node::NodeStmtInput* input) const {
+			std::string value;
+			std::getline(std::cin, value);
+			evaluator->m_stack.push(value);
+		}
 	};
 	mpark::visit(ValueVisittor{ this, val->index, table }, val->var);
 }
@@ -2198,7 +2223,9 @@ void Evaluator::evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Funct
 
 		// input
 		void operator()(const node::NodeStmtInput* input) const {
-
+			std::string value;
+			std::getline(std::cin, value);
+			evaluator->m_stack.push(value);
 		}
 
 	};

@@ -7,6 +7,11 @@ node::NodeProg Parser::parse_prog() {
 	// Stmts -> <Stmt><Stmts>;
 	while (peek() != nullptr && peek()->type != -1)
 	{
+		if (peek()->type == NEW_LINE) {
+			consume();
+			continue;
+		}
+
 		if (node::NodeStmt* stmt = parse_stmt()) {
 			//Push statement to program
 			prog.stmts.push_back(stmt);
@@ -14,6 +19,7 @@ node::NodeProg Parser::parse_prog() {
 
 		else {
 			std::cerr << "Invalid statement" << std::endl;
+			exit(EXIT_FAILURE);
 		}
 	}
 	return prog;
@@ -26,8 +32,14 @@ node::NodeStmt* Parser::parse_stmt() {
 	// <Stmt> -> <Decleration>
 	if (node::NodeDecl* decl = parse_decleration()) {
 		node::NodeStmt* stmt = new node::NodeStmt();
-		stmt->var = decl;
-		try_consume(NEW_LINE, "Expected new_line after decleration");
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = decl;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in decleration" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		return stmt;
 	}
 	if (peek() && peek()->type == INPUT &&
@@ -40,23 +52,43 @@ node::NodeStmt* Parser::parse_stmt() {
 		node::NodeStmt* stmt = new node::NodeStmt();
 		node::NodeStmtInput*
 			input = new node::NodeStmtInput();
-		stmt->var = input;
-		try_consume(NEW_LINE, "Expected new_line after function call");
-		return stmt;
+		
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = input;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in input" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	// <Stmt> -> <Function Call>
 	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
 		node::NodeStmt* stmt = new node::NodeStmt();
-		stmt->var = func_Call;
-		try_consume(NEW_LINE, "Expected new_line after function call");
+		
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = func_Call;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in function call" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		return stmt;
 	}
 
 	if (node::NodeAssignment* assignment = parse_assignment()) {
 		node::NodeStmt* stmt = new node::NodeStmt();
-		stmt->var = assignment;
-		try_consume(NEW_LINE, "Expected new_line after assignment");
+		
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = assignment;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in assignment" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		return stmt;
 	}
 
@@ -161,17 +193,14 @@ node::NodeSimpleDecl* Parser::parse_simple_decleration()
 		consume();      // <type>
 		simple_decl->identifier = consume();// <identifier>
 		consume();
-		size_t verify_str = 0;
-		if (verify_string_expr(&verify_str)) {
-			auto* expr = parse_string_expr();
-			if (expr == nullptr) {
-				std::cerr << "Invalid expression in simple declaration after '=' at token index "
-					<< m_currentIndex << std::endl;
-				exit(EXIT_FAILURE);
-			}
-			simple_decl->expr = expr;
-			return simple_decl;
+		auto* expr = parse_string_expr();
+		if (expr == nullptr) {
+			std::cerr << "Invalid expression in simple declaration after '=' at token index "
+				<< m_currentIndex << std::endl;
+			exit(EXIT_FAILURE);
 		}
+		simple_decl->expr = expr;
+		return simple_decl;
 		
 	}
 
@@ -524,8 +553,14 @@ node::NodeNestedStmt* Parser::parse_nested_stmt()
 	// <Stmt> -> <Decleration>
 	if (node::NodeDecl* decl = parse_decleration()) {
 		node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
-		stmt->var = decl;
-		try_consume(NEW_LINE, "Expected new_line after decleration");
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = decl;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in decleration" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		return stmt;
 	}
 
@@ -533,14 +568,28 @@ node::NodeNestedStmt* Parser::parse_nested_stmt()
 	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
 		node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
 		stmt->var = func_Call;
-		try_consume(NEW_LINE, "Expected new_line after function call");
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = func_Call;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in function call" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		return stmt;
 	}
 
 	if (node::NodeAssignment* assignment = parse_assignment()) {
 		node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
 		stmt->var = assignment;
-		try_consume(NEW_LINE, "Expected new_line after assignment");
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = assignment;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in assignment" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		return stmt;
 	}
 
@@ -549,6 +598,27 @@ node::NodeNestedStmt* Parser::parse_nested_stmt()
 		stmt->var = controlFlow;
 		try_consume(NEW_LINE, "Expected new_line after control flow");
 		return stmt;
+	}
+
+	if (peek() && peek()->type == INPUT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS &&
+		peek(2) && peek(2)->type == CLOSED_PARANTHESIS
+		) {
+		consume();
+		consume();
+		consume();
+		node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
+		node::NodeStmtInput*
+			input = new node::NodeStmtInput();
+
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = input;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in input" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	// Special print function call
@@ -563,9 +633,9 @@ node::NodeNestedStmt* Parser::parse_nested_stmt()
 		// consume terminal symbols
 		try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
 		if (try_consume(NEW_LINE) || try_consume(EOF)) {
-			node::NodeNestedStmt* stmt = new node::NodeNestedStmt();
-			stmt->var = node_stmt_print;
-			return stmt;
+			auto* node_stmt = new node::NodeNestedStmt();
+			node_stmt->var = node_stmt_print;
+			return node_stmt;
 		}
 		else {
 			std::cerr << "Expected new line or end of file in print" << std::endl;
@@ -618,6 +688,20 @@ node::NodeFunctionStmt* Parser::parse_function_stmt()
 		return stmt;
 	}
 
+	if (peek() && peek()->type == INPUT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS &&
+		peek(2) && peek(2)->type == CLOSED_PARANTHESIS
+		) {
+		consume();
+		consume();
+		consume();
+		node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
+		node::NodeStmtInput*
+			input = new node::NodeStmtInput();
+		stmt->var = input;
+		return stmt;
+	}
+
 	// Special print function call
 	if (peek() && peek()->type == PRINT &&
 		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
@@ -629,15 +713,9 @@ node::NodeFunctionStmt* Parser::parse_function_stmt()
 
 		// consume terminal symbols
 		try_consume(CLOSED_PARANTHESIS, "Exprected ')'");
-		if (try_consume(NEW_LINE) || try_consume(EOF)) {
-			node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
-			stmt->var = node_stmt_print;
-			return stmt;
-		}
-		else {
-			std::cerr << "Expected new line or end of file in print" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+		node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
+		stmt->var = node_stmt_print;
+		return stmt;
 	}
 
 	return nullptr;
@@ -800,6 +878,35 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 		string_expr->var = ident;
 
 		while (peek()->type == PLUS) {
+			consume();
+			auto* concat = new node::NodeStringExprConcat();
+			concat->lhs = new node::NodeStringExpr();
+			concat->lhs->var = string_expr->var;
+
+			node::NodeStringExpr* rhs = parse_string_expr();
+			if (rhs == nullptr) {
+				std::cerr << "Expected string expression after '+'" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			concat->rhs = rhs;
+			string_expr->var = concat;
+		}
+
+		return string_expr;
+	}
+	else if (peek() && peek()->type == INPUT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS &&
+		peek(2) && peek(2)->type == CLOSED_PARANTHESIS
+		) {
+		consume();
+		consume();
+		consume();
+		node::NodeStmtInput*
+			input = new node::NodeStmtInput();
+
+		string_expr->var = input;
+
+		if (peek()->type == PLUS) {
 			consume();
 			auto* concat = new node::NodeStringExprConcat();
 			concat->lhs = new node::NodeStringExpr();
@@ -1436,6 +1543,20 @@ node::NodeValue* Parser::parse_value()
 
 	}
 
+	if (peek() && peek()->type == INPUT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS &&
+		peek(2) && peek(2)->type == CLOSED_PARANTHESIS
+		) {
+		consume();
+		consume();
+		consume();
+		node::NodeStmt* stmt = new node::NodeStmt();
+		node::NodeStmtInput*
+			input = new node::NodeStmtInput();
+		val->var = input;
+		return val;
+	}
+
 	// value returns arithmetic expression
 	size_t verify_arithmetic = 0;
 	if (verify_arithmetic_expr(&verify_arithmetic)) {
@@ -1599,8 +1720,18 @@ node::NodeGlobalIf* Parser::parse_global_if()
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
 			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
 
-			while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
-				_if->stmts.push_back(stmt);
+			while (peek() != nullptr && peek()->type != -1) {
+
+				if (peek()->type == NEW_LINE) {
+					consume();
+					continue;
+				}
+				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+					_if->stmts.push_back(stmt);
+				}
+				else {
+					std::cerr << "Invalid statement" << std::endl;
+				}
 			}
 
 			try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
@@ -1640,8 +1771,18 @@ node::NodeGlobalElseIf* Parser::parse_global_else_if()
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
 			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
 
-			while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
-				_elseif->stmts.push_back(stmt);
+			while (peek() != nullptr && peek()->type != -1) {
+
+				if (peek()->type == NEW_LINE) {
+					consume();
+					continue;
+				}
+				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+					_elseif->stmts.push_back(stmt);
+				}
+				else {
+					std::cerr << "Invalid statement" << std::endl;
+				}
 			}
 
 			try_consume(TAB_DEDENT, "Expected tab dedent after else if statement");
@@ -1666,8 +1807,18 @@ node::NodeGlobalElse* Parser::parse_global_else()
 		try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
 		try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
 
-		while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
-			_else->stmts.push_back(stmt);
+		while (peek() != nullptr && peek()->type != -1) {
+
+			if (peek()->type == NEW_LINE) {
+				consume();
+				continue;
+			}
+			if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+				_else->stmts.push_back(stmt);
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+			}
 		}
 
 		try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
@@ -1711,8 +1862,18 @@ node::NodeGlobalWhile* Parser::parse_global_while()
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global while");
 			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global while");
 
-			while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
-				_while->stmts.push_back(stmt);
+			while (peek() != nullptr && peek()->type != -1) {
+
+				if (peek()->type == NEW_LINE) {
+					consume();
+					continue;
+				}
+				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+					_while->stmts.push_back(stmt);
+				}
+				else {
+					std::cerr << "Invalid statement" << std::endl;
+				}
 			}
 
 			try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
@@ -1777,8 +1938,18 @@ node::NodeGlobalFor* Parser::parse_global_for()
 		try_consume(NEW_LINE, "Expected 'new_line' after ':' in global while");
 		try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global while");
 
-		while (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
-			_for->stmts.push_back(stmt);
+		while (peek() != nullptr && peek()->type != -1) {
+
+			if (peek()->type == NEW_LINE) {
+				consume();
+				continue;
+			}
+			if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+				_for->stmts.push_back(stmt);
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+			}
 		}
 
 		try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
@@ -1819,16 +1990,23 @@ node::NodeFunctionIf* Parser::parse_function_if()
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
 			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
 
-			while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
-				_if->stmts.push_back(stmt);
+			while (peek() != nullptr && peek()->type != -1) {
+
 				if (peek()->type == NEW_LINE) {
-					consume(); // consumes new line after statement
+					consume();
+					continue;
 				}
-				else if (peek()->type == TAB_DEDENT) {
-					break; // go out of loop because the scoping ends
+
+				if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+					_if->stmts.push_back(stmt);
+					if (peek()->type == NEW_LINE) {
+						consume(); // consumes new line after statement
+					}
+					if (peek()->type == TAB_DEDENT)
+						break;
 				}
 				else {
-					std::cerr << "Expected a new line after function statement" << std::endl;
+					std::cerr << "Invalid statement" << std::endl;
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -1871,8 +2049,25 @@ node::NodeFunctionElseIf* Parser::parse_function_else_if()
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
 			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
 
-			while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
-				_elseif->stmts.push_back(stmt);
+			while (peek() != nullptr && peek()->type != -1) {
+
+				if (peek()->type == NEW_LINE) {
+					consume();
+					continue;
+				}
+
+				if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+					_elseif->stmts.push_back(stmt);
+					if (peek()->type == NEW_LINE) {
+						consume(); // consumes new line after statement
+					}
+					if (peek()->type == TAB_DEDENT)
+						break;
+				}
+				else {
+					std::cerr << "Invalid statement" << std::endl;
+					exit(EXIT_FAILURE);
+				}
 			}
 
 			try_consume(TAB_DEDENT, "Expected tab dedent after else if statement");
@@ -1897,8 +2092,25 @@ node::NodeFunctionElse* Parser::parse_function_else()
 		try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
 		try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global if");
 
-		while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
-			_else->stmts.push_back(stmt);
+		while (peek() != nullptr && peek()->type != -1) {
+
+			if (peek()->type == NEW_LINE) {
+				consume();
+				continue;
+			}
+
+			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+				_else->stmts.push_back(stmt);
+				if (peek()->type == NEW_LINE) {
+					consume(); // consumes new line after statement
+				}
+				if (peek()->type == TAB_DEDENT)
+					break;
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
@@ -1942,8 +2154,25 @@ node::NodeFunctionWhile* Parser::parse_function_while()
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global while");
 			try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in global while");
 
-			while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
-				_while->stmts.push_back(stmt);
+			while (peek() != nullptr && peek()->type != -1) {
+
+				if (peek()->type == NEW_LINE) {
+					consume();
+					continue;
+				}
+
+				if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+					_while->stmts.push_back(stmt);
+					if (peek()->type == NEW_LINE) {
+						consume(); // consumes new line after statement
+					}
+					if (peek()->type == TAB_DEDENT)
+						break;
+				}
+				else {
+					std::cerr << "Invalid statement" << std::endl;
+					exit(EXIT_FAILURE);
+				}
 			}
 
 			try_consume(TAB_DEDENT, "Expected tab dedent after if statement");
@@ -2010,13 +2239,24 @@ node::NodeFunctionFor* Parser::parse_function_for()
 		try_consume(NEW_LINE, "Expected 'new_line' after ':' in function while");
 		try_consume(TAB_INDENT, "Expected 'tab indent' after 'new line' in function while");
 
-		while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
-			_for->stmts.push_back(stmt);
+		while (peek() != nullptr && peek()->type != -1) {
+
 			if (peek()->type == NEW_LINE) {
-				consume(); // consumes new line after statement
+				consume();
+				continue;
 			}
-			else if (peek()->type == TAB_DEDENT) {
-				break; // go out of loop because the scoping ends
+
+			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+				_for->stmts.push_back(stmt);
+				if (peek()->type == NEW_LINE) {
+					consume(); // consumes new line after statement
+				}
+				if (peek()->type == TAB_DEDENT)
+					break;
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+				exit(EXIT_FAILURE);
 			}
 		}
 
@@ -2096,10 +2336,24 @@ node::NodeFunctionDefinition* Parser::parse_function_definition()
 		try_consume(NEW_LINE, "Expected 'new_line'in function definition");
 		try_consume(TAB_INDENT, "Expected 'tab indent' in function definition");
 
-		while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
-			func_def->stmts.push_back(stmt);
+		while (peek() != nullptr && peek()->type != -1) {
+
 			if (peek()->type == NEW_LINE) {
-				consume(); // consumes new line after statement
+				consume();
+				continue;
+			}
+
+			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+				func_def->stmts.push_back(stmt);
+				if (peek()->type == NEW_LINE) {
+					consume(); // consumes new line after statement
+				}
+				if (peek()->type == TAB_DEDENT)
+					break;
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+				exit(EXIT_FAILURE);
 			}
 		}
 
@@ -2145,8 +2399,25 @@ node::NodeFunctionDefinition* Parser::parse_function_definition()
 		try_consume(NEW_LINE, "Expected 'new_line'in function definition");
 		try_consume(TAB_INDENT, "Expected 'tab indent' in function definition");
 
-		while (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
-			func_def->stmts.push_back(stmt);
+		while (peek() != nullptr && peek()->type != -1) {
+
+			if (peek()->type == NEW_LINE) {
+				consume();
+				continue;
+			}
+
+			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+				func_def->stmts.push_back(stmt);
+				if (peek()->type == NEW_LINE) {
+					consume(); // consumes new line after statement
+				}
+				if (peek()->type == TAB_DEDENT)
+					break;
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		try_consume(TAB_DEDENT, "Expected tab dedent after function definition");
@@ -2472,6 +2743,16 @@ bool Parser::verify_value(size_t* index)
 		else
 			return true;
 
+	}
+
+	if (peek(*index) && peek(*index)->type == INPUT &&
+		peek(*index+1) && peek(*index+1)->type == OPEN_PARANTHESIS &&
+		peek(*index+2) && peek(*index+2)->type == CLOSED_PARANTHESIS
+		) {
+		(*index)++;
+		(*index)++;
+		(*index)++;
+		return true;
 	}
 
 
