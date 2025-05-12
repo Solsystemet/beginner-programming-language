@@ -17,8 +17,6 @@ public:
 
 	node::NodeProg parse_prog();
 
-private:
-
 
     Token* peek(int offset = 0){
         if (m_currentIndex + offset >= m_tokens.size())
@@ -51,9 +49,9 @@ private:
 	node::NodeFunctionStmt* parse_function_stmt();
 
 
-	virtual node::NodeArithmeticExpr* parse_arithmetic_expr();
-	virtual node::NodeTerm* parse_term();
-	virtual node::NodeFactor* parse_factor();
+	node::NodeArithmeticExpr* parse_arithmetic_expr();
+	node::NodeTerm* parse_term();
+	node::NodeFactor* parse_factor();
 
 	node::NodeStringExpr* parse_string_expr();
 
@@ -146,7 +144,7 @@ private:
 	bool verify_boolean_factor(size_t* index);
 
     std::vector<Token> m_tokens;
-    size_t m_currentIndex;
+    size_t m_currentIndex = 0;
 
 
 	// Overload for DECIMAL
@@ -195,7 +193,7 @@ private:
 		node::NodeArithmeticExpr* expr,
 		node::NodeExprAdd* add
 	) {
-		if (peek()->type == tokenType) {
+		if (peek() && peek()->type == tokenType) {
 			consume();
 			auto expr_lhs = new node::NodeArithmeticExpr();
 			expr_lhs->var = expr->var;
@@ -217,7 +215,7 @@ private:
 		node::NodeArithmeticExpr* expr,
 		node::NodeExprSubtract* sub
 	) {
-		if (peek()->type == tokenType) {
+		if (peek() && peek()->type == tokenType) {
 			consume();
 			auto expr_lhs = new node::NodeArithmeticExpr();
 			expr_lhs->var = expr->var;
@@ -239,7 +237,7 @@ private:
 		node::NodeTerm* term,
 		node::NodeExprMult* mult
 	) {
-		if (peek()->type == tokenType) {
+		if (peek() && peek()->type == tokenType) {
 			consume();
 
 			auto* term_mult = new node::NodeExprMult();
@@ -259,7 +257,7 @@ private:
 		node::NodeTerm* term,
 		node::NodeExprDivide* div
 	) {
-		if (peek()->type == DIVIDE) {
+		if (peek() && peek()->type == DIVIDE) {
 			consume();
 
 			auto* term_divide = new node::NodeExprDivide();
@@ -279,7 +277,7 @@ private:
 		node::NodeTerm* term,
 		node::NodeExprModulo* mod
 	) {
-		if (peek()->type == MODULO) {
+		if (peek() && peek()->type == MODULO) {
 			consume();
 
 			auto* term_modulo = new node::NodeExprModulo();
