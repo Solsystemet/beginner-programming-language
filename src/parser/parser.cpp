@@ -1726,6 +1726,9 @@ node::NodeGlobalIf* Parser::parse_global_if()
 					consume();
 					continue;
 				}
+				if (peek()->type == TAB_DEDENT) {
+					break;
+				}
 				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
 					_if->stmts.push_back(stmt);
 				}
@@ -1777,6 +1780,9 @@ node::NodeGlobalElseIf* Parser::parse_global_else_if()
 					consume();
 					continue;
 				}
+				if (peek()->type == TAB_DEDENT) {
+					break;
+				}
 				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
 					_elseif->stmts.push_back(stmt);
 				}
@@ -1812,6 +1818,9 @@ node::NodeGlobalElse* Parser::parse_global_else()
 			if (peek()->type == NEW_LINE) {
 				consume();
 				continue;
+			}
+			if (peek()->type == TAB_DEDENT) {
+				break;
 			}
 			if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
 				_else->stmts.push_back(stmt);
@@ -1867,6 +1876,9 @@ node::NodeGlobalWhile* Parser::parse_global_while()
 				if (peek()->type == NEW_LINE) {
 					consume();
 					continue;
+				}
+				if (peek()->type == TAB_DEDENT) {
+					break;
 				}
 				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
 					_while->stmts.push_back(stmt);
@@ -1943,6 +1955,9 @@ node::NodeGlobalFor* Parser::parse_global_for()
 			if (peek()->type == NEW_LINE) {
 				consume();
 				continue;
+			}
+			if (peek()->type == TAB_DEDENT) {
+				break;
 			}
 			if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
 				_for->stmts.push_back(stmt);

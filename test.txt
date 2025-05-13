@@ -1,4 +1,9 @@
-print("Write a number\n")
-string x = ""
-x = input()
-print(x)
+print("Are you gay?")
+print("\n")
+
+
+string x = input()
+if x is "yes":
+	print("Why are you gay?")
+else:
+	print("LIAR!!")
