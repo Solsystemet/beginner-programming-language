@@ -15,7 +15,7 @@ protected:
 };
 
 
-//Aritmetic Expression Tests
+//parse_arithmetic_expr
 TEST_F(ParserTest, TestParseArithmeticExprMinus) {
 
     // Arrange
@@ -42,6 +42,7 @@ TEST_F(ParserTest, TestParseArithmeticExprPlus) {
 	ASSERT_TRUE(mpark::holds_alternative<node::NodeExprAdd*>(result->var));
 }
 
+//parse_term
 TEST_F(ParserTest, TestParseTermMultiply) {
 	// Arrange
 	parser.m_tokens.push_back({ DECIMAL, "2" });
@@ -78,6 +79,7 @@ TEST_F(ParserTest, TestParseTermModulo) {
 	ASSERT_TRUE(mpark::holds_alternative<node::NodeExprModulo*>(result->var));
 }
 
+//parse_factor
 TEST_F(ParserTest, TestParseFactorDecimal) {
 	parser.m_tokens.push_back({ DECIMAL, "42" });
 
@@ -106,6 +108,32 @@ TEST_F(ParserTest, TestParseFactorParenthesizedExpr) {
 	ASSERT_NE(result, nullptr);
 	ASSERT_TRUE(mpark::holds_alternative<node::NodeArithmeticExpr*>(result->var));
 }
+
+//Parse_string_expr
+TEST_F(ParserTest, testParseStringExpr) {
+	parser.m_tokens.push_back({ STRING_VAL, "Test" });
+
+	node::NodeStringExpr* result = parser.parse_string_expr();
+
+	ASSERT_NE(result, nullptr);
+	ASSERT_TRUE(mpark::holds_alternative<Token>(result->var));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Parse statement
 TEST_F(ParserTest, TestParseStmtDeclaration) {
 	parser.m_tokens.push_back({ NUMBER, "number" });
 	parser.m_tokens.push_back({ IDENTIFIER, "x" });
