@@ -138,13 +138,11 @@
     <ClInclude Include="src\evaluator\StructTable.h" />
     <ClInclude Include="src\evaluator\SymbolTable.h" />
     <ClInclude Include="src\nodes.hpp" />
-    <ClInclude Include="parserHelperFunctions.hpp" />
     <ClInclude Include="src\lexer\lexer.h" />
     <ClInclude Include="src\lexer\flex.flex.h" />
     <ClInclude Include="src\lexer\FlexLexer.h" />
     <ClInclude Include="src\lexer\tokens.h" />
     <ClInclude Include="src\lexer\tokenvalues.h" />
-    <ClInclude Include="src\parser\parser.hpp" />
     <ClInclude Include="src\tokens.h" />
     <ClInclude Include="src\tokenvalues.h" />
   </ItemGroup>

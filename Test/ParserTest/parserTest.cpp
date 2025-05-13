@@ -116,7 +116,7 @@ TEST_F(ParserTest, testParseStringExpr) {
 	node::NodeStringExpr* result = parser.parse_string_expr();
 
 	ASSERT_NE(result, nullptr);
-	ASSERT_TRUE(mpark::holds_alternative<Token>(result->var));
+	ASSERT_TRUE(mpark::holds_alternative<node::NodeStringIdentifier*>(result->var));
 }
 
 
