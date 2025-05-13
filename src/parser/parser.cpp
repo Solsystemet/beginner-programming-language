@@ -7,7 +7,7 @@ node::NodeProg Parser::parse_prog() {
 	// Stmts -> <Stmt><Stmts>;
 	while (peek() != nullptr && peek()->type != -1)
 	{
-		if (peek()->type == NEW_LINE) {
+		if (peek() && peek()->type == NEW_LINE) {
 			consume();
 			continue;
 		}
@@ -315,7 +315,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 
 	// string[] x =
 	if (
-		peek()->type == STRING &&
+		peek() && peek()->type == STRING &&
 		peek(1) && peek(1)->type == OPEN_SQUAREBRACKET &&
 		peek(2) && peek(2)->type == CLOSED_SQUAREBRACKET &&
 		peek(3) && peek(3)->type == IDENTIFIER &&
@@ -384,7 +384,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 
 	// boolean[] x =
 	if (
-		peek()->type == BOOLEAN &&
+		peek() && peek()->type == BOOLEAN &&
 		peek(1) && peek(1)->type == OPEN_SQUAREBRACKET &&
 		peek(2) && peek(2)->type == CLOSED_SQUAREBRACKET &&
 		peek(3) && peek(3)->type == IDENTIFIER &&
@@ -450,7 +450,7 @@ node::NodeArrayDecl* Parser::parse_array_decleration()
 
 	// person[] x =
 	if (
-		peek()->type == IDENTIFIER &&
+		peek() && peek()->type == IDENTIFIER &&
 		peek(1) && peek(1)->type == OPEN_SQUAREBRACKET &&
 		peek(2) && peek(2)->type == CLOSED_SQUAREBRACKET &&
 		peek(3) && peek(3)->type == IDENTIFIER &&
@@ -732,7 +732,7 @@ node::NodeArithmeticExpr* Parser::parse_arithmetic_expr() {
 	left_expr->var = left_term;
 
 
-	while (peek()->type == PLUS || peek()->type == MINUS) {
+	while (peek() && peek()->type == PLUS || peek() && peek()->type == MINUS) {
 		Token t = consume();
 
 		node::NodeTerm* right_term = parse_term();
@@ -774,7 +774,7 @@ node::NodeTerm* Parser::parse_term() {
 	}
 	left_term->var = left_factor;
 
-	while (peek()->type == MULTIPLY || peek()->type == DIVIDE || peek()->type == MODULO) {
+	while (peek() && peek()->type == MULTIPLY || peek() && peek()->type == DIVIDE || peek() && peek()->type == MODULO) {
 		Token t = consume();
 
 		node::NodeFactor* right_factor = parse_factor();
@@ -848,7 +848,7 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 		val->value = *t;
 		string_expr->var = val;
 
-		while (peek()->type == PLUS) {
+		while (peek() && peek()->type == PLUS) {
 			consume();
 			auto* concat = new node::NodeStringExprConcat();
 			concat->lhs = new node::NodeStringExpr();
@@ -869,7 +869,7 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 		node::NodeStringIdentifier* ident = new node::NodeStringIdentifier();
 		ident->ident = *t;
 
-		if (peek()->type == OPEN_SQUAREBRACKET) {
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
 			consume();
 			ident->index = parse_arithmetic_expr();
 			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression!");
@@ -877,7 +877,7 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 
 		string_expr->var = ident;
 
-		while (peek()->type == PLUS) {
+		while (peek() && peek()->type == PLUS) {
 			consume();
 			auto* concat = new node::NodeStringExprConcat();
 			concat->lhs = new node::NodeStringExpr();
@@ -906,7 +906,7 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 
 		string_expr->var = input;
 
-		if (peek()->type == PLUS) {
+		if (peek() && peek()->type == PLUS) {
 			consume();
 			auto* concat = new node::NodeStringExprConcat();
 			concat->lhs = new node::NodeStringExpr();
@@ -926,7 +926,7 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 	else if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
 		string_expr->var = func_Call;
 
-		if (peek()->type == PLUS) {
+		if (peek() && peek()->type == PLUS) {
 			consume();
 			auto* concat = new node::NodeStringExprConcat();
 			concat->lhs = new node::NodeStringExpr();
@@ -971,7 +971,7 @@ node::NodeBooleanOr* Parser::parse_or()
 		left_or->var = left_and;
 
 		// check for operator
-		while(peek()->type == OR) {
+		while(peek() && peek()->type == OR) {
 			consume();
 
 			node::NodeBooleanAnd* right_and = parse_and();
@@ -1027,7 +1027,7 @@ node::NodeBooleanAnd* Parser::parse_and()
 		left_and->var = left_equal;
 
 		// Check for operator
-		while (peek()->type == AND) {
+		while (peek() && peek()->type == AND) {
 			consume();
 			
 			node::NodeBooleanEqual* right_equal = parse_equal();
@@ -1082,8 +1082,8 @@ node::NodeBooleanEqual* Parser::parse_equal()
 		left_equal->var = left_real_expr;
 		// check for operators
 		// is not
-		while ((peek()->type == IS && peek(1)->type == NOT) || peek()->type == IS) {
-			if (peek()->type == IS && peek(1)->type == NOT) {
+		while ((peek() && peek()->type == IS && peek(1) && peek(1)->type == NOT) || peek() && peek()->type == IS) {
+			if (peek() && peek()->type == IS && peek(1) && peek(1)->type == NOT) {
 				consume();
 				consume();
 
@@ -1101,7 +1101,7 @@ node::NodeBooleanEqual* Parser::parse_equal()
 				left_equal = new node::NodeBooleanEqual();
 				left_equal->var = is_not;
 			}
-			else if (peek()->type == IS) {
+			else if (peek() && peek()->type == IS) {
 				consume();
 
 				node::NodeBooleanRealExpression* right_real_expr = parse_real_expr();
@@ -1183,7 +1183,7 @@ node::NodeBooleanRealExpression* Parser::parse_real_expr()
 		result->var = not_result;
 
 		// greater equal
-		if (peek()->type == GREATER && peek(1)->type == EQUAL) {
+		if (peek() && peek()->type == GREATER && peek(1) && peek(1)->type == EQUAL) {
 			node::NodeBooleanGreaterEqual* ge = parse_greater_equal(result);
 			if (ge != nullptr) {
 				result->var = ge;
@@ -1192,7 +1192,7 @@ node::NodeBooleanRealExpression* Parser::parse_real_expr()
 		}
 
 		// less equal
-		if (peek()->type == LESS && peek(1)->type == EQUAL) {
+		if (peek() && peek()->type == LESS && peek(1) && peek(1)->type == EQUAL) {
 			node::NodeBooleanLessEqual* le = parse_less_equal(result);
 			if (le != nullptr) {
 				result->var = le;
@@ -1201,7 +1201,7 @@ node::NodeBooleanRealExpression* Parser::parse_real_expr()
 		}
 
 		// greater
-		if (peek()->type == GREATER) {
+		if (peek() && peek()->type == GREATER) {
 			node::NodeBooleanGreater* g = parse_greater(result);
 			if (g != nullptr) {
 				result->var = g;
@@ -1210,7 +1210,7 @@ node::NodeBooleanRealExpression* Parser::parse_real_expr()
 		}
 
 		// less
-		if (peek()->type == LESS) {
+		if (peek() && peek()->type == LESS) {
 			node::NodeBooleanLess* l = parse_less(result);
 			if (l != nullptr) {
 				result->var = l;
@@ -1321,7 +1321,7 @@ node::NodeBooleanNot* Parser::parse_not()
 	// Assume not since they are recursive with itself
 	
 	node::NodeBooleanNot* result = new node::NodeBooleanNot();
-	if (peek()->type == NOT) {
+	if (peek() && peek()->type == NOT) {
 		node::NodeBooleanNotOperation* notop = parse_not_op();
 
 		if (notop != nullptr) {
@@ -1390,7 +1390,7 @@ node::NodeBooleanFactor* Parser::parse_boolean_factor()
 		node::NodeBooleanFactorIdentifier* value = new node::NodeBooleanFactorIdentifier();
 		value->identifier = *t;
 
-		if (peek()->type == OPEN_SQUAREBRACKET) {
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
 			consume();
 			value->index = parse_arithmetic_expr();
 			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression!");
@@ -1722,7 +1722,7 @@ node::NodeGlobalIf* Parser::parse_global_if()
 
 			while (peek() != nullptr && peek()->type != -1) {
 
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume();
 					continue;
 				}
@@ -1773,7 +1773,7 @@ node::NodeGlobalElseIf* Parser::parse_global_else_if()
 
 			while (peek() != nullptr && peek()->type != -1) {
 
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume();
 					continue;
 				}
@@ -1809,7 +1809,7 @@ node::NodeGlobalElse* Parser::parse_global_else()
 
 		while (peek() != nullptr && peek()->type != -1) {
 
-			if (peek()->type == NEW_LINE) {
+			if (peek() && peek()->type == NEW_LINE) {
 				consume();
 				continue;
 			}
@@ -1864,7 +1864,7 @@ node::NodeGlobalWhile* Parser::parse_global_while()
 
 			while (peek() != nullptr && peek()->type != -1) {
 
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume();
 					continue;
 				}
@@ -1940,7 +1940,7 @@ node::NodeGlobalFor* Parser::parse_global_for()
 
 		while (peek() != nullptr && peek()->type != -1) {
 
-			if (peek()->type == NEW_LINE) {
+			if (peek() && peek()->type == NEW_LINE) {
 				consume();
 				continue;
 			}
@@ -1992,17 +1992,17 @@ node::NodeFunctionIf* Parser::parse_function_if()
 
 			while (peek() != nullptr && peek()->type != -1) {
 
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume();
 					continue;
 				}
 
 				if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
 					_if->stmts.push_back(stmt);
-					if (peek()->type == NEW_LINE) {
+					if (peek() && peek()->type == NEW_LINE) {
 						consume(); // consumes new line after statement
 					}
-					if (peek()->type == TAB_DEDENT)
+					if (peek() && peek()->type == TAB_DEDENT)
 						break;
 				}
 				else {
@@ -2051,17 +2051,17 @@ node::NodeFunctionElseIf* Parser::parse_function_else_if()
 
 			while (peek() != nullptr && peek()->type != -1) {
 
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume();
 					continue;
 				}
 
 				if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
 					_elseif->stmts.push_back(stmt);
-					if (peek()->type == NEW_LINE) {
+					if (peek() && peek()->type == NEW_LINE) {
 						consume(); // consumes new line after statement
 					}
-					if (peek()->type == TAB_DEDENT)
+					if (peek() && peek()->type == TAB_DEDENT)
 						break;
 				}
 				else {
@@ -2094,17 +2094,17 @@ node::NodeFunctionElse* Parser::parse_function_else()
 
 		while (peek() != nullptr && peek()->type != -1) {
 
-			if (peek()->type == NEW_LINE) {
+			if (peek() && peek()->type == NEW_LINE) {
 				consume();
 				continue;
 			}
 
 			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
 				_else->stmts.push_back(stmt);
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume(); // consumes new line after statement
 				}
-				if (peek()->type == TAB_DEDENT)
+				if (peek() && peek()->type == TAB_DEDENT)
 					break;
 			}
 			else {
@@ -2156,17 +2156,17 @@ node::NodeFunctionWhile* Parser::parse_function_while()
 
 			while (peek() != nullptr && peek()->type != -1) {
 
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume();
 					continue;
 				}
 
 				if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
 					_while->stmts.push_back(stmt);
-					if (peek()->type == NEW_LINE) {
+					if (peek() && peek()->type == NEW_LINE) {
 						consume(); // consumes new line after statement
 					}
-					if (peek()->type == TAB_DEDENT)
+					if (peek() && peek()->type == TAB_DEDENT)
 						break;
 				}
 				else {
@@ -2241,17 +2241,17 @@ node::NodeFunctionFor* Parser::parse_function_for()
 
 		while (peek() != nullptr && peek()->type != -1) {
 
-			if (peek()->type == NEW_LINE) {
+			if (peek() && peek()->type == NEW_LINE) {
 				consume();
 				continue;
 			}
 
 			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
 				_for->stmts.push_back(stmt);
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume(); // consumes new line after statement
 				}
-				if (peek()->type == TAB_DEDENT)
+				if (peek() && peek()->type == TAB_DEDENT)
 					break;
 			}
 			else {
@@ -2338,17 +2338,17 @@ node::NodeFunctionDefinition* Parser::parse_function_definition()
 
 		while (peek() != nullptr && peek()->type != -1) {
 
-			if (peek()->type == NEW_LINE) {
+			if (peek() && peek()->type == NEW_LINE) {
 				consume();
 				continue;
 			}
 
 			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
 				func_def->stmts.push_back(stmt);
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume(); // consumes new line after statement
 				}
-				if (peek()->type == TAB_DEDENT)
+				if (peek() && peek()->type == TAB_DEDENT)
 					break;
 			}
 			else {
@@ -2401,17 +2401,17 @@ node::NodeFunctionDefinition* Parser::parse_function_definition()
 
 		while (peek() != nullptr && peek()->type != -1) {
 
-			if (peek()->type == NEW_LINE) {
+			if (peek() && peek()->type == NEW_LINE) {
 				consume();
 				continue;
 			}
 
 			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
 				func_def->stmts.push_back(stmt);
-				if (peek()->type == NEW_LINE) {
+				if (peek() && peek()->type == NEW_LINE) {
 					consume(); // consumes new line after statement
 				}
-				if (peek()->type == TAB_DEDENT)
+				if (peek() && peek()->type == TAB_DEDENT)
 					break;
 			}
 			else {
@@ -2441,10 +2441,10 @@ node::NodeObjectDefinition* Parser::parse_object_definition()
 		while (node::NodeDecl* decl = parse_decleration())
 		{
 			obj_Def->props.push_back(decl);
-			if (peek()->type == NEW_LINE) {
+			if (peek() && peek()->type == NEW_LINE) {
 				consume();
 			}
-			else if (peek()->type == TAB_DEDENT) {
+			else if (peek() && peek()->type == TAB_DEDENT) {
 				break;
 			}
 		}
@@ -2477,13 +2477,13 @@ bool Parser::verify_arithmetic_expr(size_t* index)
 	if (verify_term(index)) {
 
 
-		if (peek(*index)->type == PLUS) {
+		if (peek(*index) && peek(*index)->type == PLUS) {
 			(*index)++;
 
 			return verify_term(index);
 		}
 
-		if (peek(*index)->type == MINUS) {
+		if (peek(*index) && peek(*index)->type == MINUS) {
 			(*index)++;
 
 			return verify_term(index);
@@ -2499,17 +2499,17 @@ bool Parser::verify_term(size_t* index)
 	if (verify_factor(index)) {
 
 
-		if (peek(*index)->type == MULTIPLY) {
+		if (peek(*index) && peek(*index)->type == MULTIPLY) {
 			(*index)++;
 			return verify_factor(index);
 		}
 
-		if (peek(*index)->type == DIVIDE) {
+		if (peek(*index) && peek(*index)->type == DIVIDE) {
 			(*index)++;
 			return verify_factor(index);
 		}
 
-		if (peek(*index)->type == MODULO) {
+		if (peek(*index) && peek(*index)->type == MODULO) {
 			(*index)++;
 			return verify_factor(index);
 		}
@@ -2520,7 +2520,7 @@ bool Parser::verify_term(size_t* index)
 
 bool Parser::verify_factor(size_t* index)
 {
-	if (peek(*index)->type == DECIMAL) {
+	if (peek(*index) && peek(*index)->type == DECIMAL) {
 		(*index)++;
 		return true;
 	}
@@ -2529,16 +2529,16 @@ bool Parser::verify_factor(size_t* index)
 		return true;
 	}
 
-	if (peek(*index)->type == IDENTIFIER) {
+	if (peek(*index) && peek(*index)->type == IDENTIFIER) {
 		(*index)++;
 		return true;
 	}
 
 	// (<AExpr>)
-	if (peek(*index)->type == OPEN_PARANTHESIS) {
+	if (peek(*index) && peek(*index)->type == OPEN_PARANTHESIS) {
 		(*index)++;
 		if (verify_arithmetic_expr(index)) {
-			if (peek(*index)->type == CLOSED_PARANTHESIS) {
+			if (peek(*index) && peek(*index)->type == CLOSED_PARANTHESIS) {
 				return true;
 			}
 		}
@@ -2765,39 +2765,39 @@ bool Parser::verify_string_expr(size_t* index)
 	if (peek(*index) && peek(*index)->type == STRING_VAL) {
 		(*index)++;
 
-		if (peek(*index)->type == PLUS) {
+		if (peek(*index) && peek(*index)->type == PLUS) {
 			(*index)++;
 
 			return verify_string_expr(index);
 		}
-		else if (peek(*index)->type == MINUS) {
+		else if (peek(*index) && peek(*index)->type == MINUS) {
 			return false;
 		}
-		else if (peek(*index)->type == MULTIPLY) {
+		else if (peek(*index) && peek(*index)->type == MULTIPLY) {
 			return false;
 		}
-		else if (peek(*index)->type == DIVIDE) {
+		else if (peek(*index) && peek(*index)->type == DIVIDE) {
 			return false;
 		}
-		else if (peek(*index)->type == MODULO) {
+		else if (peek(*index) && peek(*index)->type == MODULO) {
 			return false;
 		}
-		else if (peek(*index)->type == OR) {
+		else if (peek(*index) && peek(*index)->type == OR) {
 			return false;
 		}
-		else if (peek(*index)->type == AND) {
+		else if (peek(*index) && peek(*index)->type == AND) {
 			return false;
 		}
-		else if (peek(*index)->type == LESS) {
+		else if (peek(*index) && peek(*index)->type == LESS) {
 			return false;
 		}
-		else if (peek(*index)->type == GREATER) {
+		else if (peek(*index) && peek(*index)->type == GREATER) {
 			return false;
 		}
-		else if (peek(*index)->type == IS) {
+		else if (peek(*index) && peek(*index)->type == IS) {
 			return false;
 		}
-		else if (peek(*index)->type == NOT) {
+		else if (peek(*index) && peek(*index)->type == NOT) {
 			return false;
 		}
 
@@ -2806,39 +2806,39 @@ bool Parser::verify_string_expr(size_t* index)
 	else if (peek(*index) && peek(*index)->type == IDENTIFIER) {
 		(*index)++;
 
-		if (peek(*index)->type == PLUS) {
+		if (peek(*index) && peek(*index)->type == PLUS) {
 			(*index)++;
 
 			return verify_string_expr(index);
 		}
-		else if (peek(*index)->type == MINUS) {
+		else if (peek(*index) && peek(*index)->type == MINUS) {
 			return false;
 		}
-		else if (peek(*index)->type == MULTIPLY) {
+		else if (peek(*index) && peek(*index)->type == MULTIPLY) {
 			return false;
 		}
-		else if (peek(*index)->type == DIVIDE) {
+		else if (peek(*index) && peek(*index)->type == DIVIDE) {
 			return false;
 		}
-		else if (peek(*index)->type == MODULO) {
+		else if (peek(*index) && peek(*index)->type == MODULO) {
 			return false;
 		}
-		else if (peek(*index)->type == OR) {
+		else if (peek(*index) && peek(*index)->type == OR) {
 			return false;
 		}
-		else if (peek(*index)->type == AND) {
+		else if (peek(*index) && peek(*index)->type == AND) {
 			return false;
 		}
-		else if (peek(*index)->type == LESS) {
+		else if (peek(*index) && peek(*index)->type == LESS) {
 			return false;
 		}
-		else if (peek(*index)->type == GREATER) {
+		else if (peek(*index) && peek(*index)->type == GREATER) {
 			return false;
 		}
-		else if (peek(*index)->type == IS) {
+		else if (peek(*index) && peek(*index)->type == IS) {
 			return false;
 		}
-		else if (peek(*index)->type == NOT) {
+		else if (peek(*index) && peek(*index)->type == NOT) {
 			return false;
 		}
 
@@ -2846,7 +2846,7 @@ bool Parser::verify_string_expr(size_t* index)
 	}
 	else if (verify_function_call(index)) {
 
-		if (peek(*index)->type == PLUS) {
+		if (peek(*index) && peek(*index)->type == PLUS) {
 			(*index)++;
 
 			return verify_string_expr(index);
@@ -2868,7 +2868,7 @@ bool Parser::verify_or(size_t* index)
 
 	if (verify_and(index)) {
 		// check for operator
-		if (peek(*index)->type == OR) {
+		if (peek(*index) && peek(*index)->type == OR) {
 			return verify_or_op(index);
 		}
 		return true;
@@ -2918,12 +2918,12 @@ bool Parser::verify_equal(size_t* index)
 		// check for operators
 
 		// is not
-		if (peek(*index)->type == IS && peek(*index + 1)->type == NOT) {
+		if (peek(*index) && peek(*index)->type == IS && peek(*index + 1)->type == NOT) {
 			return verify_equal_is_not(index);
 		}
 
 		// is not
-		if (peek()->type == IS) {
+		if (peek(*index) && peek(*index)->type == IS) {
 			return verify_equal_is(index);
 		}
 
@@ -2962,22 +2962,22 @@ bool Parser::verify_real_expr(size_t* index)
 	// Assume arithmetic expression
 	if (verify_arithmetic_expr(index)) {
 		// greater equal
-		if (peek(*index)->type == GREATER && peek(*index + 1)->type == EQUAL) {
+		if (peek(*index) && peek(*index)->type == GREATER && peek(*index+1) && peek(*index + 1)->type == EQUAL) {
 			return verify_greater_equal(index);
 		}
 
 		// less equal
-		if (peek(*index)->type == LESS && peek(*index + 1)->type == EQUAL) {
+		if (peek(*index) && peek(*index)->type == LESS && peek(*index+1) && peek(*index + 1)->type == EQUAL) {
 			return verify_less_equal(index);
 		}
 
 		// greater
-		if (peek(*index)->type == GREATER) {
+		if (peek(*index) && peek(*index)->type == GREATER) {
 			return verify_greater(index);
 		}
 
 		// less
-		if (peek(*index)->type == LESS) {
+		if (peek(*index) && peek(*index)->type == LESS) {
 			return verify_less(index);
 		}
 		return false;
@@ -3031,7 +3031,7 @@ bool Parser::verify_less(size_t* index)
 
 bool Parser::verify_not(size_t* index)
 {
-	if (peek(*index)->type == NOT) {
+	if (peek(*index) && peek(*index)->type == NOT) {
 		return verify_not_op(index);
 	}
 

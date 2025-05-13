@@ -29,7 +29,7 @@ public:
     }
 
      Token* try_consume(int type, const std::string& err_msg = "") {
-        if (peek() != nullptr && peek()->type == type) {
+        if (peek() && peek()->type == type) {
             return &consume();
         }
         if (!err_msg.empty()) {
@@ -157,7 +157,7 @@ public:
 		if (t != nullptr) {
 			factor_identifier->identifier = *t;
 
-			if (peek()->type == OPEN_SQUAREBRACKET) {
+			if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
 				consume();
 				factor_identifier->index = parse_arithmetic_expr();
 				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression!");
