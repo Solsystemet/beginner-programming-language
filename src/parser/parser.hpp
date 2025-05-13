@@ -70,10 +70,10 @@ public:
 
 
 	node::NodeBooleanRealExpression* parse_real_expr();
-	node::NodeBooleanGreaterEqual* parse_greater_equal(node::NodeArithmeticExpr* lhs);
-	node::NodeBooleanLessEqual* parse_less_equal(node::NodeArithmeticExpr* lhs);
-	node::NodeBooleanGreater* parse_greater(node::NodeArithmeticExpr* lhs);
-	node::NodeBooleanLess* parse_less(node::NodeArithmeticExpr* lhs);
+	node::NodeBooleanGreaterEqual* parse_greater_equal(node::NodeBooleanRealExpression* lhs);
+	node::NodeBooleanLessEqual* parse_less_equal(node::NodeBooleanRealExpression* lhs);
+	node::NodeBooleanGreater* parse_greater(node::NodeBooleanRealExpression* lhs);
+	node::NodeBooleanLess* parse_less(node::NodeBooleanRealExpression* lhs);
 
 
 	node::NodeBooleanNot* parse_not();
@@ -142,7 +142,10 @@ public:
 	bool verify_not(size_t* index);
 	bool verify_not_op(size_t* index);
 	bool verify_boolean_factor(size_t* index);
+	bool operator_check(size_t* index);
 
+	// check for boolean operators after verify arithmetic expression
+	bool arithmetic_operator_check(size_t* index);
     std::vector<Token> m_tokens;
     size_t m_currentIndex = 0;
 
@@ -164,6 +167,12 @@ public:
 		t = try_consume(IDENTIFIER);
 		if (t != nullptr) {
 			factor_identifier->identifier = *t;
+
+			if (peek()->type == OPEN_SQUAREBRACKET) {
+				consume();
+				factor_identifier->index = parse_arithmetic_expr();
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression!");
+			}
 
 			auto* factor = new node::NodeFactor();
 			factor->var = factor_identifier;
@@ -241,7 +250,8 @@ public:
 			consume();
 
 			auto* term_mult = new node::NodeExprMult();
-			term_mult->lhs = term;
+			term_mult->lhs = new node::NodeTerm();
+			term_mult->lhs->var = term->var;
 			node::NodeFactor* factor_rhs = parse_factor();
 			if (factor_rhs == nullptr) {
 				std::cerr << "Invalid factor!" << std::endl;
@@ -261,7 +271,8 @@ public:
 			consume();
 
 			auto* term_divide = new node::NodeExprDivide();
-			term_divide->lhs = term;
+			term_divide->lhs = new node::NodeTerm();
+			term_divide->lhs->var = term->var;
 			node::NodeFactor* factor_rhs = parse_factor();
 			if (factor_rhs == nullptr) {
 				std::cerr << "Invalid factor!" << std::endl;
@@ -281,7 +292,8 @@ public:
 			consume();
 
 			auto* term_modulo = new node::NodeExprModulo();
-			term_modulo->lhs = term;
+			term_modulo->lhs = new node::NodeTerm();
+			term_modulo->lhs->var = term->var;
 			node::NodeFactor* factor_rhs = parse_factor();
 			if (factor_rhs == nullptr) {
 				std::cerr << "Invalid factor!" << std::endl;

@@ -57,6 +57,7 @@ namespace node {
 	// Statement rules
 	struct NodeDecl;
 	struct NodeStmtPrint; // special function call stmt
+	struct NodeStmtInput;
 	
 	struct NodeFunctionCall;
 	// for function call arguments
@@ -110,19 +111,19 @@ namespace node {
 	struct NodeStmt
 	{
 		mpark::variant<NodeDecl*,NodeFunctionCall*,NodeAssignment*,
-			NodeGlobalControlFlow*, NodeStmtPrint*, NodeDefinition*> var;
+			NodeGlobalControlFlow*, NodeStmtPrint*, NodeDefinition*, NodeStmtInput*> var;
 	};
 
 	struct NodeNestedStmt
 	{
 		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
-			NodeGlobalControlFlow*, NodeStmtPrint*> var;
+			NodeGlobalControlFlow*, NodeStmtPrint*, NodeStmtInput*> var;
 	};
 
 	struct NodeFunctionStmt
 	{
 		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
-			NodeFunctionControlFlow*, NodeFunctionReturn*, NodeStmtPrint*> var;
+			NodeFunctionControlFlow*, NodeFunctionReturn*, NodeStmtPrint*, NodeStmtInput*> var;
 	};
 
 	struct NodeFunctionReturn {
@@ -130,9 +131,14 @@ namespace node {
 	};
 
 	struct NodeStmtPrint {
-		mpark::variant<NodeArithmeticExpr*, NodeStringExpr*, NodeBooleanExpr*> var;
+		//TODO: make it handle conantations like "I am " + 20 + " years old\n"
+		mpark::variant<NodeValue*> value;
 	};
 
+	struct NodeStmtInput
+	{
+
+	};
 	struct NodeFunctionCall {
 		Token functionName;
 		std::vector<NodeArgs*> args;
@@ -147,12 +153,14 @@ namespace node {
 	{
 		mpark::variant<
 			NodeValueIdentifier*,
+			NodeStmtInput*,
 			NodeValueFunctionCall*,
 			NodeValueArithmeticExpression*,
 			NodeValueStringExpression*,
 			NodeValueBooleanExpression*,
 			NodeValueIdentifierProperty*,
-			NodeValueFunctionCallProperty*> var;
+			NodeValueFunctionCallProperty*
+		> var;
 
 		//if node value is from an array
 		NodeArithmeticExpr* index = nullptr;
@@ -277,6 +285,7 @@ namespace node {
 	// sus
 	struct NodeObjectArrayDecl
 	{
+		Token objectType;
 		mpark::variant<NodeArithmeticExpr*, size_t> size;
 		std::vector<NodeObjectDecl*> elements;
 	};
@@ -296,6 +305,9 @@ namespace node {
 	struct NodeFactorIdentifier
 	{
 		Token identifier;
+
+		//if identifier is an array
+		NodeArithmeticExpr* index = nullptr;
 	};
 
 	struct NodeFactor
@@ -330,9 +342,22 @@ namespace node {
 		NodeStringExpr* rhs;
 	};
 
-	struct NodeStringExpr {
-		mpark::variant<Token, NodeStringExprConcat*, NodeFunctionCall*> var;
+	struct NodeStringValue {
+		Token value;
 	};
+
+	struct NodeStringIdentifier {
+		Token ident;
+
+		//if identifier is an array
+		NodeArithmeticExpr* index = nullptr;
+	};
+
+	struct NodeStringExpr {
+		mpark::variant<NodeStringValue*, NodeStringIdentifier*, NodeFunctionCall* , NodeStringExprConcat*, NodeStmtInput*> var;
+	};
+
+	
 
 	struct NodeArithmeticExpr
 	{
@@ -345,7 +370,7 @@ namespace node {
 	};
 
 	struct NodeBooleanExpr {
-		NodeBooleanOr* expr;
+		mpark::variant<NodeBooleanOr*> expr;
 	};
 
 	struct NodeBooleanOrOperation {
@@ -404,30 +429,33 @@ namespace node {
 
 	struct NodeBooleanFactorIdentifier {
 		Token identifier;
+
+		//if identifier is an array
+		NodeArithmeticExpr* index = nullptr;
 	};
 
 	struct NodeBooleanFactor {
-		mpark::variant<NodeBooleanFactorValue*, NodeBooleanFactorIdentifier*, NodeBooleanExpr*, NodeFunctionCall*> var;
+		mpark::variant<NodeBooleanFactorValue*, NodeBooleanFactorIdentifier*, NodeBooleanExpr*, NodeFunctionCall*, NodeArithmeticExpr*, NodeStringExpr*> var;
 	};
 
 	struct NodeBooleanLess {
-		NodeArithmeticExpr* lhs;
-		NodeArithmeticExpr* rhs;
+		NodeBooleanRealExpression* lhs;
+		NodeBooleanNot* rhs;
 	};
 
 	struct NodeBooleanGreater {
-		NodeArithmeticExpr* lhs;
-		NodeArithmeticExpr* rhs;
+		NodeBooleanRealExpression* lhs;
+		NodeBooleanNot* rhs;
 	};
 
 	struct NodeBooleanLessEqual {
-		NodeArithmeticExpr* lhs;
-		NodeArithmeticExpr* rhs;
+		NodeBooleanRealExpression* lhs;
+		NodeBooleanNot* rhs;
 	};
 
 	struct NodeBooleanGreaterEqual {
-		NodeArithmeticExpr* lhs;
-		NodeArithmeticExpr* rhs;
+		NodeBooleanRealExpression* lhs;
+		NodeBooleanNot* rhs;
 	};
 
 	struct NodeGlobalControlFlow {

@@ -35,3 +35,4 @@
 #define STRING 34
 #define BOOLEAN 35
 #define STRING_VAL 36
+#define INPUT 37
