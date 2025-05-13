@@ -1,3 +1,4 @@
-number function add(number lhs, number rhs):
-	return lhs + rhs
-	
+print("Write a number\n")
+string x = ""
+x = input()
+print(x)
