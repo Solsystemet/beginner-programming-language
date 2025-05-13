@@ -8,7 +8,6 @@
 #include <filesystem>
 #include <string.h>
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include "../src/lexer/lexer.h"
 #include "../src/parser/parser.hpp"
 
