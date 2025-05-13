@@ -8,3 +8,6 @@
 #include <string.h>
 #include <gtest/gtest.h>
 #include "./lexer/lexer.h"
+#include "./parser/parser.hpp"
+#include "./evaluator/evaluator.h"
+#include "EvaluatorTesting.h"

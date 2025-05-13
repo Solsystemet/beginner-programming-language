@@ -23,7 +23,7 @@ public:
 	void evaluate_stmt(const node::NodeStmt* stmt);
 	void evaluate_nested_stmt(const node::NodeNestedStmt* stmt, bool* _break);
 
-	void evaluate_print(const node::NodeStmtPrint* print_stmt);
+	virtual void evaluate_print(const node::NodeStmtPrint* print_stmt);
 
 	void evaluate_declecration(const node::NodeDecl* decl);
 	void evaluate_object_declare(const node::NodeObjectDecl* decl);

@@ -15,8 +15,8 @@ private:
     inline void FixTabIndent(std::vector<Token>* tokens);
 
     // helper function for verifying indent and dedent count. move elsewhere or delete
-    void CountIndentDedent(std::vector<Token> tokens);
-    std::string SanitizeStringLiteral(const std::string& raw);
+    inline void CountIndentDedent(std::vector<Token> tokens);
+    inline std::string SanitizeStringLiteral(const std::string& raw);
 
 public:
     inline Lexer(FILE* file);
