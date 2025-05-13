@@ -54,7 +54,7 @@ public:
 	
 	 node::NodeStringExpr* parse_string_expr();
 	 node::NodeBooleanExpr* parse_boolean_expr();
-	 node::NodeBooleanOr* parse_or();
+	 node::NodeBooleanOr* parse_or();bool
 	 node::NodeBooleanOrOperation* parse_or_op(node::NodeBooleanOr* lhs);
 	
 	 node::NodeBooleanAnd* parse_and();

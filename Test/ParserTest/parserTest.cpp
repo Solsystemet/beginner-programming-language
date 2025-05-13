@@ -4,6 +4,8 @@
 class ParserTest : public testing::Test {
 public:
 	ParserTest() = default;
+	Parser parser = Parser({});
+
 };
 
 
@@ -11,7 +13,6 @@ public:
 TEST_F(ParserTest, TestParseArithmeticExprMinus) {
 
     // Arrange
-	Parser parser = Parser({}); // Example test case
 	parser.m_tokens.push_back({ DECIMAL, "2" });
 	parser.m_tokens.push_back({ MINUS });
 	parser.m_tokens.push_back({ DECIMAL, "2" });
@@ -25,7 +26,6 @@ TEST_F(ParserTest, TestParseArithmeticExprMinus) {
 }
 TEST_F(ParserTest, TestParseArithmeticExprPlus) {
 	// Arrange
-	Parser parser = Parser({}); // Example test case
 	parser.m_tokens.push_back({ DECIMAL, "2" });
 	parser.m_tokens.push_back({ PLUS });
 	parser.m_tokens.push_back({ DECIMAL, "2" });
@@ -39,7 +39,6 @@ TEST_F(ParserTest, TestParseArithmeticExprPlus) {
 //parse_term
 TEST_F(ParserTest, TestParseTermMultiply) {
 	// Arrange
-	Parser parser = Parser({}); // Example test case
 	parser.m_tokens.push_back({ DECIMAL, "2" });
 	parser.m_tokens.push_back({ MULTIPLY });
 	parser.m_tokens.push_back({ DECIMAL, "2" });
@@ -52,7 +51,6 @@ TEST_F(ParserTest, TestParseTermMultiply) {
 
 TEST_F(ParserTest, TestParseTermDivide) {
 	// Arrange
-	Parser parser = Parser({}); // Example test case
 	parser.m_tokens.push_back({ DECIMAL, "2" });
 	parser.m_tokens.push_back({ DIVIDE });
 	parser.m_tokens.push_back({ DECIMAL, "2" });
@@ -65,7 +63,6 @@ TEST_F(ParserTest, TestParseTermDivide) {
 
 TEST_F(ParserTest, TestParseTermModulo) {
 	// Arrange
-	Parser parser = Parser({}); // Example test case
 	parser.m_tokens.push_back({ DECIMAL, "2" });
 	parser.m_tokens.push_back({ MODULO });
 	parser.m_tokens.push_back({ DECIMAL, "2" });
@@ -78,7 +75,6 @@ TEST_F(ParserTest, TestParseTermModulo) {
 
 //parse_factor
 TEST_F(ParserTest, TestParseFactorDecimal) {
-	Parser parser = Parser({}); // Example test case
 	parser.m_tokens.push_back({ DECIMAL, "42" });
 
 	node::NodeFactor* result = parser.parse_factor();
@@ -88,7 +84,6 @@ TEST_F(ParserTest, TestParseFactorDecimal) {
 }
 
 TEST_F(ParserTest, TestParseFactorIdentifier) {
-	Parser parser = Parser({}); // Example test case
 	parser.m_tokens.push_back({ IDENTIFIER, "x" });
 
 	node::NodeFactor* result = parser.parse_factor();
@@ -98,7 +93,6 @@ TEST_F(ParserTest, TestParseFactorIdentifier) {
 }
 
 TEST_F(ParserTest, TestParseFactorParenthesizedExpr) {
-	Parser parser = Parser({}); // Example test case
 	parser.m_tokens.push_back({ OPEN_PARANTHESIS, "(" });
 	parser.m_tokens.push_back({ DECIMAL, "2" });
 	parser.m_tokens.push_back({ CLOSED_PARANTHESIS, ")" });
@@ -111,7 +105,6 @@ TEST_F(ParserTest, TestParseFactorParenthesizedExpr) {
 
 //Parse_string_expr
 TEST_F(ParserTest, testParseStringExpr) {
-	Parser parser = Parser({}); // Example test case
 	parser.m_tokens.push_back({ STRING_VAL, "Test" });
 
 	node::NodeStringExpr* result = parser.parse_string_expr();
@@ -121,30 +114,105 @@ TEST_F(ParserTest, testParseStringExpr) {
 }
 
 
-//Parse statement
-TEST_F(ParserTest, TestParseStmtDeclaration) {
-	Parser parser = Parser({}); // Example test case
-	parser.m_tokens.push_back({ NUMBER, "number" });
-	parser.m_tokens.push_back({ IDENTIFIER, "x" });
-	parser.m_tokens.push_back({ EQUAL, "=" });
-	parser.m_tokens.push_back({ DECIMAL, "1" });
-	parser.m_tokens.push_back({ NEW_LINE, "\n" });
+// parse_string_expr
 
-	node::NodeStmt* result = parser.parse_stmt();
+TEST_F(ParserTest, TestParseStringExpr_StringLiteral) {
+	parser.m_tokens.push_back({ STRING_VAL, "hello" });
+
+	node::NodeStringExpr* result = parser.parse_string_expr();
 
 	ASSERT_NE(result, nullptr);
-	ASSERT_TRUE(mpark::holds_alternative<node::NodeDecl*>(result->var));
+	ASSERT_TRUE(mpark::holds_alternative<node::NodeStringValue*>(result->var));
 }
 
-TEST_F(ParserTest, TestParseStmtFunctionCall) {
-	Parser parser = Parser({}); // Example test case
+TEST_F(ParserTest, TestParseStringExpr_Identifier) {
+	parser.m_tokens.push_back({ IDENTIFIER, "myStr" });
+
+	node::NodeStringExpr* result = parser.parse_string_expr();
+
+	ASSERT_NE(result, nullptr);
+	ASSERT_TRUE(mpark::holds_alternative<node::NodeStringIdentifier*>(result->var));
+}
+
+TEST_F(ParserTest, TestParseStringExpr_IdentifierWithIndex) {
+	parser.m_tokens.push_back({ IDENTIFIER, "arr" });
+	parser.m_tokens.push_back({ OPEN_SQUAREBRACKET, "[" });
+	parser.m_tokens.push_back({ DECIMAL, "0" });
+	parser.m_tokens.push_back({ CLOSED_SQUAREBRACKET, "]" });
+
+	node::NodeStringExpr* result = parser.parse_string_expr();
+
+	ASSERT_NE(result, nullptr);
+	ASSERT_TRUE(mpark::holds_alternative<node::NodeStringIdentifier*>(result->var));
+	auto* ident = mpark::get<node::NodeStringIdentifier*>(result->var);
+	ASSERT_NE(ident->index, nullptr);
+}
+
+TEST_F(ParserTest, TestParseStringExpr_Concatenation) {
+	parser.m_tokens.push_back({ STRING_VAL, "foo" });
+	parser.m_tokens.push_back({ PLUS });
+	parser.m_tokens.push_back({ STRING_VAL, "bar" });
+
+	node::NodeStringExpr* result = parser.parse_string_expr();
+
+	ASSERT_NE(result, nullptr);
+	ASSERT_TRUE(mpark::holds_alternative<node::NodeStringExprConcat*>(result->var));
+	auto* concat = mpark::get<node::NodeStringExprConcat*>(result->var);
+	ASSERT_NE(concat->lhs, nullptr);
+	ASSERT_NE(concat->rhs, nullptr);
+}
+
+TEST_F(ParserTest, TestParseStringExpr_FunctionCall) {
 	parser.m_tokens.push_back({ IDENTIFIER, "foo" });
 	parser.m_tokens.push_back({ OPEN_PARANTHESIS, "(" });
 	parser.m_tokens.push_back({ CLOSED_PARANTHESIS, ")" });
-	parser.m_tokens.push_back({ NEW_LINE, "\n" });
 
-	node::NodeStmt* result = parser.parse_stmt();
+	node::NodeStringExpr* result = parser.parse_string_expr();
 
 	ASSERT_NE(result, nullptr);
 	ASSERT_TRUE(mpark::holds_alternative<node::NodeFunctionCall*>(result->var));
 }
+
+TEST_F(ParserTest, TestParseStringExpr_InputCall) {
+	parser.m_tokens.push_back({ INPUT });
+	parser.m_tokens.push_back({ OPEN_PARANTHESIS, "(" });
+	parser.m_tokens.push_back({ CLOSED_PARANTHESIS, ")" });
+
+	node::NodeStringExpr* result = parser.parse_string_expr();
+
+	ASSERT_NE(result, nullptr);
+	ASSERT_TRUE(mpark::holds_alternative<node::NodeStmtInput*>(result->var));
+}
+
+TEST_F(ParserTest, TestParseStringExpr_InputCallConcat) {
+	parser.m_tokens.push_back({ INPUT });
+	parser.m_tokens.push_back({ OPEN_PARANTHESIS, "(" });
+	parser.m_tokens.push_back({ CLOSED_PARANTHESIS, ")" });
+	parser.m_tokens.push_back({ PLUS });
+	parser.m_tokens.push_back({ STRING_VAL, "bar" });
+
+	node::NodeStringExpr* result = parser.parse_string_expr();
+
+	ASSERT_NE(result, nullptr);
+	ASSERT_TRUE(mpark::holds_alternative<node::NodeStringExprConcat*>(result->var));
+	auto* concat = mpark::get<node::NodeStringExprConcat*>(result->var);
+	ASSERT_NE(concat->lhs, nullptr);
+	ASSERT_NE(concat->rhs, nullptr);
+}
+
+// parse_boolean_expr
+TEST_F(ParserTest, TestParseBooleanExprl) {
+	// Arrange
+	parser.m_tokens.push_back({ BOOLVAL, "true" });
+
+	// Act
+	node::NodeBooleanExpr* result = parser.parse_boolean_expr();
+
+	// Assert
+	ASSERT_NE(result, nullptr);
+    ASSERT_TRUE(mpark::holds_alternative<node::NodeBooleanOr*>(result->expr));
+
+}
+
+
+

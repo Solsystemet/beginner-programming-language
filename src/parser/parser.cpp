@@ -865,6 +865,26 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 
 		return string_expr;
 	}
+	else if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
+		string_expr->var = func_Call;
+
+		if (peek() && peek()->type == PLUS) {
+			consume();
+			auto* concat = new node::NodeStringExprConcat();
+			concat->lhs = new node::NodeStringExpr();
+			concat->lhs->var = string_expr->var;
+
+			node::NodeStringExpr* rhs = parse_string_expr();
+			if (rhs == nullptr) {
+				std::cerr << "Expected string expression after '+'" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			concat->rhs = rhs;
+			string_expr->var = concat;
+		}
+
+		return string_expr;
+	}
 	else if (Token* t = try_consume(IDENTIFIER)) {
 		node::NodeStringIdentifier* ident = new node::NodeStringIdentifier();
 		ident->ident = *t;
@@ -923,26 +943,7 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 
 		return string_expr;
 	}
-	else if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
-		string_expr->var = func_Call;
-
-		if (peek() && peek()->type == PLUS) {
-			consume();
-			auto* concat = new node::NodeStringExprConcat();
-			concat->lhs = new node::NodeStringExpr();
-			concat->lhs->var = string_expr->var;
-
-			node::NodeStringExpr* rhs = parse_string_expr();
-			if (rhs == nullptr) {
-				std::cerr << "Expected string expression after '+'" << std::endl;
-				exit(EXIT_FAILURE);
-			}
-			concat->rhs = rhs;
-			string_expr->var = concat;
-		}
-
-		return string_expr;
-	}
+	
 
 	return nullptr;
 }
