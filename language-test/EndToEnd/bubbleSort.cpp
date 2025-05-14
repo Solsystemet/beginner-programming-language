@@ -312,6 +312,6 @@ TEST_F(BubbleSortTest, BubbleSort) {
     // Act Evaluator
     evaluate_prog();
 
-    // Assert Evaluator
+    // Assert Evaluator output
     ASSERT_EQ(output, "1351069");
 }

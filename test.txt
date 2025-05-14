@@ -14,9 +14,9 @@ date today:
 date tomorrow:
 	day = 9
 	month = 11
-	year = 2011
+	year = 2012
 
-if date_before(today, tomorrow):
+if date_before(today,tomorrow):
 	print("OK")
 else:
-	print("Problems")
+	print("Problems!")

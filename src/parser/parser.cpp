@@ -1383,14 +1383,14 @@ node::NodeBooleanFactor* Parser::parse_boolean_factor()
 	}
 
 	size_t verify_str = 0;
-	if (verify_string_expr(&verify_str)) {
+	if (verify_string_expr(&verify_str) && string_operator_check(&verify_str)) {
 		node::NodeStringExpr* expr = parse_string_expr();
 		nodefactor->var = expr;
 		return nodefactor;
 	}
 
 	size_t verify_arithmetic = 0;
-	if (verify_arithmetic_expr(&verify_arithmetic)) {
+	if (verify_arithmetic_expr(&verify_arithmetic) && arithmetic_operator_check(&verify_arithmetic)) {
 		node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 		nodefactor->var = expr;
 		return nodefactor;
@@ -1406,6 +1406,17 @@ node::NodeBooleanFactor* Parser::parse_boolean_factor()
 			consume();
 			value->index = parse_arithmetic_expr();
 			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression!");
+		}
+
+		while (peek() && peek()->type == DOT) {
+			consume();
+			if (peek() && peek()->type == IDENTIFIER) {
+				value->props.push_back(consume());
+			}
+			else {
+				std::cerr << "Expected identifier property in expression";
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		nodefactor->var = value;
@@ -2493,44 +2504,35 @@ Token* Parser::parse_type()
 bool Parser::verify_arithmetic_expr(size_t* index)
 {
 	if (verify_term(index)) {
-
-
-		if (peek(*index)->type == PLUS) {
+		while (peek(*index) && peek(*index)->type == PLUS || peek(*index) && peek(*index)->type == MINUS) {
 			(*index)++;
 
-			return verify_term(index);
+			node::NodeTerm* right_term = parse_term();
+			if (!verify_term(index)) {
+				return false;
+			}
 		}
 
-		if (peek(*index)->type == MINUS) {
-			(*index)++;
-
-			return verify_term(index);
-		}
 		return true;
 	}
-
 	return false;
+	
 }
 
 bool Parser::verify_term(size_t* index)
 {
 	if (verify_factor(index)) {
 
-
-		if (peek(*index)->type == MULTIPLY) {
+		while (peek(*index) && peek(*index)->type == MULTIPLY ||
+			peek(*index) && peek(*index)->type == DIVIDE ||
+			peek(*index) && peek(*index)->type == MODULO) {
 			(*index)++;
-			return verify_factor(index);
+
+			if (!verify_factor(index)) {
+				return false;
+			}
 		}
 
-		if (peek(*index)->type == DIVIDE) {
-			(*index)++;
-			return verify_factor(index);
-		}
-
-		if (peek(*index)->type == MODULO) {
-			(*index)++;
-			return verify_factor(index);
-		}
 		return true;
 	}
 	return false;
@@ -2547,8 +2549,28 @@ bool Parser::verify_factor(size_t* index)
 		return true;
 	}
 
-	if (peek(*index)->type == IDENTIFIER) {
+	if (peek(*index) && peek(*index)->type == IDENTIFIER) {
 		(*index)++;
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+					(*index)++;
+				}
+			}
+			else
+				return false;
+		}
+
+		while (peek(*index) && peek(*index)->type == DOT) {
+			(*index)++;
+			if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+				(*index)++;
+			}
+			else {
+				return false;
+			}
+		}
 		return true;
 	}
 
@@ -2557,6 +2579,7 @@ bool Parser::verify_factor(size_t* index)
 		(*index)++;
 		if (verify_arithmetic_expr(index)) {
 			if (peek(*index)->type == CLOSED_PARANTHESIS) {
+				(*index)++;
 				return true;
 			}
 		}
@@ -2783,40 +2806,20 @@ bool Parser::verify_string_expr(size_t* index)
 	if (peek(*index) && peek(*index)->type == STRING_VAL) {
 		(*index)++;
 
-		if (peek(*index)->type == PLUS) {
+		while (peek(*index) && peek(*index)->type == PLUS) {
 			(*index)++;
 
 			return verify_string_expr(index);
 		}
-		else if (peek(*index)->type == MINUS) {
-			return false;
-		}
-		else if (peek(*index)->type == MULTIPLY) {
-			return false;
-		}
-		else if (peek(*index)->type == DIVIDE) {
-			return false;
-		}
-		else if (peek(*index)->type == MODULO) {
-			return false;
-		}
-		else if (peek(*index)->type == OR) {
-			return false;
-		}
-		else if (peek(*index)->type == AND) {
-			return false;
-		}
-		else if (peek(*index)->type == LESS) {
-			return false;
-		}
-		else if (peek(*index)->type == GREATER) {
-			return false;
-		}
-		else if (peek(*index)->type == IS) {
-			return false;
-		}
-		else if (peek(*index)->type == NOT) {
-			return false;
+
+		return true;
+	}
+	else if (verify_function_call(index)) {
+
+		while (peek(*index) && peek(*index)->type == PLUS) {
+			(*index)++;
+
+			return verify_string_expr(index);
 		}
 
 		return true;
@@ -2824,47 +2827,28 @@ bool Parser::verify_string_expr(size_t* index)
 	else if (peek(*index) && peek(*index)->type == IDENTIFIER) {
 		(*index)++;
 
-		if (peek(*index)->type == PLUS) {
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
 			(*index)++;
-
-			return verify_string_expr(index);
-		}
-		else if (peek(*index)->type == MINUS) {
-			return false;
-		}
-		else if (peek(*index)->type == MULTIPLY) {
-			return false;
-		}
-		else if (peek(*index)->type == DIVIDE) {
-			return false;
-		}
-		else if (peek(*index)->type == MODULO) {
-			return false;
-		}
-		else if (peek(*index)->type == OR) {
-			return false;
-		}
-		else if (peek(*index)->type == AND) {
-			return false;
-		}
-		else if (peek(*index)->type == LESS) {
-			return false;
-		}
-		else if (peek(*index)->type == GREATER) {
-			return false;
-		}
-		else if (peek(*index)->type == IS) {
-			return false;
-		}
-		else if (peek(*index)->type == NOT) {
-			return false;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET)
+					(*index)++;
+			}
+			else
+				return false;
+			
 		}
 
-		return true;
-	}
-	else if (verify_function_call(index)) {
+		while (peek(*index) && peek(*index)->type == DOT) {
+			(*index)++;
+			if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+				(*index)++;
+			}
+			else {
+				return false;
+			}
+		}
 
-		if (peek(*index)->type == PLUS) {
+		while (peek(*index) && peek(*index)->type == PLUS) {
 			(*index)++;
 
 			return verify_string_expr(index);
@@ -2872,6 +2856,21 @@ bool Parser::verify_string_expr(size_t* index)
 
 		return true;
 	}
+	else if (peek(*index) && peek(*index)->type == INPUT &&
+		peek(*index+1) && peek(*index+1)->type == OPEN_PARANTHESIS &&
+		peek(*index+2) && peek(*index+2)->type == CLOSED_PARANTHESIS
+		) {
+		(*index)+= 3;
+
+		while (peek(*index) && peek(*index)->type == PLUS) {
+			(*index)++;
+
+			return verify_string_expr(index);
+		}
+
+		return true;
+	}
+
 
 	return false;
 }
@@ -3181,6 +3180,28 @@ bool Parser::arithmetic_operator_check(size_t* index)
 	case GREATER:
 	case IS:
 	case NOT:
+		return false;
+	default:
+		return true;
+		break;
+	}
+}
+
+bool Parser::string_operator_check(size_t* index)
+{
+	switch (peek(*index)->type)
+	{
+	case LESS:
+	case GREATER:
+	case IS:
+	case NOT:
+	case OR:
+	case AND:
+	case MINUS:
+	case MULTIPLY:
+	case MODULO:
+	case DIVIDE:
+	case CLOSED_PARANTHESIS:
 		return false;
 	default:
 		return true;

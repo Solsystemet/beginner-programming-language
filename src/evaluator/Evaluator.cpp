@@ -290,8 +290,11 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 void Evaluator::evaluate_object_declare(const node::NodeObjectDecl* decl)
 {
 	if (m_structDefinitionTable.contains(decl->objectType.value)) {
-		Struct obj = *m_structDefinitionTable.lookup(decl->objectType.value);
-
+		Struct obj_def = *m_structDefinitionTable.lookup(decl->objectType.value);
+		Struct obj;
+		obj.name = obj_def.name;
+		obj.table = new SymbolTable();
+		*obj.table = *obj_def.table;
 		for (node::NodeAssignment* ass : decl->properties) {
 			evaluate_assignment_object(ass, obj.table);
 		}
@@ -786,8 +789,19 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 					else if (mpark::holds_alternative<std::string>(arr[index])) {
 						evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 					}
+					else if (mpark::holds_alternative<Struct>(arr[index])) {
+						evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+					}
 				}
 				else {
+					if (mpark::holds_alternative<Struct>(symbol->value) && identifier->props.size() > 0) {
+						for (size_t i = 0; i < identifier->props.size(); i++)
+						{
+							symbol = mpark::get<Struct>(symbol->value).table->lookup(identifier->props[i].value);
+						}
+						evaluator->m_stack.push(symbol->value);
+						return;
+					}
 					evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
 				}
 
@@ -813,8 +827,19 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 							else if (mpark::holds_alternative<std::string>(arr[index])) {
 								evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 							}
+							else if (mpark::holds_alternative<Struct>(arr[index])) {
+								evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+							}
 						}
 						else {
+							if (mpark::holds_alternative<Struct>(symbol->value) && identifier->props.size() > 0) {
+								for (size_t i = 0; i < identifier->props.size(); i++)
+								{
+									symbol = mpark::get<Struct>(symbol->value).table->lookup(identifier->props[i].value);
+								}
+								evaluator->m_stack.push(symbol->value);
+								return;
+							}
 							evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(identifier->identifier.value)->value);
 						}
 
@@ -1249,9 +1274,19 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 					else if (mpark::holds_alternative<std::string>(arr[index])) {
 						evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 					}
-
+					else if (mpark::holds_alternative<Struct>(arr[index])) {
+						evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+					}
 				}
 				else {
+					if (mpark::holds_alternative<Struct>(symbol->value) && identifier->props.size() > 0) {
+						for (size_t i = 0; i < identifier->props.size(); i++)
+						{
+							symbol = mpark::get<Struct>(symbol->value).table->lookup(identifier->props[i].value);
+						}
+						evaluator->m_stack.push(symbol->value);
+						return;
+					}
 					evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
 				}
 			}
@@ -1275,8 +1310,20 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 							else if (mpark::holds_alternative<std::string>(arr[index])) {
 								evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 							}
+							else if (mpark::holds_alternative<Struct>(arr[index])) {
+								evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+							}
 						}
 						else {
+							if (mpark::holds_alternative<Struct>(symbol->value) && identifier->props.size() > 0) {
+								for (size_t i = 0; i < identifier->props.size(); i++)
+								{
+									symbol = mpark::get<Struct>(symbol->value).table->lookup(identifier->props[i].value);
+								}
+								evaluator->m_stack.push(symbol->value);
+								return;
+							}
+
 							evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(identifier->identifier.value)->value);
 						}
 						return;
@@ -1453,16 +1500,10 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 				auto val = evaluator->m_stack.top();
 				evaluator->m_stack.pop();
 
-				if (mpark::holds_alternative<std::string>(val)) {
-					evaluator->m_stack.push(mpark::get<std::string>(val));
-				}
-				else {
-					std::cerr << "Function does not return type of string!!" << std::endl;
-					exit(EXIT_FAILURE);
-				}
+				evaluator->m_stack.push(val);
 			}
 			else {
-				std::cerr << "Function does not return type of string!!" << std::endl;
+				std::cerr << "Function does not return a value!!" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 		}

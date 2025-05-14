@@ -306,6 +306,8 @@ namespace node {
 	{
 		Token identifier;
 
+		std::vector<Token> props;
+
 		//if identifier is an array
 		NodeArithmeticExpr* index = nullptr;
 	};
@@ -432,6 +434,8 @@ namespace node {
 
 	struct NodeBooleanFactorIdentifier {
 		Token identifier;
+
+		std::vector<Token> props;
 
 		//if identifier is an array
 		NodeArithmeticExpr* index = nullptr;
