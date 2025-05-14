@@ -1356,8 +1356,20 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 					else if (mpark::holds_alternative<std::string>(arr[index])) {
 						evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 					}
+					else if (mpark::holds_alternative<Struct>(arr[index])) {
+						evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+					}
 				}
 				else {
+					if (mpark::holds_alternative<Struct>(symbol->value) && ident->props.size() > 0) {
+						for (size_t i = 0; i < ident->props.size(); i++)
+						{
+							symbol = mpark::get<Struct>(symbol->value).table->lookup(ident->props[i].value);
+						}
+						evaluator->m_stack.push(symbol->value);
+						return;
+					}
+
 					evaluator->m_stack.push(evaluator->m_symbolTable.lookup(ident->ident.value)->value);
 				}
 			}
@@ -1381,8 +1393,21 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 							else if (mpark::holds_alternative<std::string>(arr[index])) {
 								evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 							}
+							else if (mpark::holds_alternative<Struct>(arr[index])) {
+								evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+							}
 						}
 						else {
+
+							if (mpark::holds_alternative<Struct>(symbol->value) && ident->props.size() > 0) {
+								for (size_t i = 0; i < ident->props.size(); i++)
+								{
+									symbol = mpark::get<Struct>(symbol->value).table->lookup(ident->props[i].value);
+								}
+								evaluator->m_stack.push(symbol->value);
+								return;
+							}
+
 							evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(ident->ident.value)->value);
 						}
 						return;

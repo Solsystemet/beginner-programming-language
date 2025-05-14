@@ -348,6 +348,9 @@ namespace node {
 
 	struct NodeStringIdentifier {
 		Token ident;
+		
+		// if identifier is an object it has properties
+		std::vector<Token> props;
 
 		//if identifier is an array
 		NodeArithmeticExpr* index = nullptr;

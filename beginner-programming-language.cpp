@@ -20,14 +20,14 @@ int main(int argc, char* argv[])
     */
     FILE* input = fopen("test.txt", "r");
 
-    /*Lexer lexer = Lexer(input);
+    Lexer lexer = Lexer(input);
      std::vector<Token> result = lexer.Tokenize();
     fclose(yyin);
 
     Parser parser = Parser(result);
     node::NodeProg ast = parser.parse_prog();
     Evaluator evaluator = Evaluator(ast);
-    evaluator.evaluate_prog();*/
+    evaluator.evaluate_prog();
 
 
     return 0;

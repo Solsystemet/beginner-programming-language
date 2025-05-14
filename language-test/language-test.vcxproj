@@ -107,6 +107,7 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="EndToEnd\booleanTest.cpp" />
     <ClCompile Include="EndToEnd\bubbleSort.cpp" />
     <ClCompile Include="lexerTest\test.cpp" />
     <ClCompile Include="pch.cpp">
@@ -122,6 +123,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Text Include="EndToEnd\booleanTest.txt" />
     <Text Include="EndToEnd\bubbleSort.txt" />
     <Text Include="test.txt" />
   </ItemGroup>
