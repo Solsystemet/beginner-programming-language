@@ -109,6 +109,7 @@
   <ItemGroup>
     <ClCompile Include="EndToEnd\booleanTest.cpp" />
     <ClCompile Include="EndToEnd\bubbleSort.cpp" />
+    <ClCompile Include="EndToEnd\date.cpp" />
     <ClCompile Include="lexerTest\test.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -125,6 +126,7 @@
   <ItemGroup>
     <Text Include="EndToEnd\booleanTest.txt" />
     <Text Include="EndToEnd\bubbleSort.txt" />
+    <Text Include="EndToEnd\date.txt" />
     <Text Include="test.txt" />
   </ItemGroup>
   <ItemGroup>

@@ -149,6 +149,7 @@ private:
 	// check for boolean operators after verify arithmetic expression
 	bool arithmetic_operator_check(size_t* index);
 	bool string_operator_check(size_t* index);
+	bool function_operator_check(size_t* index);
     std::vector<Token> m_tokens;
     size_t m_currentIndex = 0;
 

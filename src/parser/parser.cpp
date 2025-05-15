@@ -1390,7 +1390,7 @@ node::NodeBooleanFactor* Parser::parse_boolean_factor()
 	}
 
 	size_t verify_arithmetic = 0;
-	if (verify_arithmetic_expr(&verify_arithmetic) && arithmetic_operator_check(&verify_arithmetic)) {
+	if (verify_arithmetic_expr(&verify_arithmetic)) {
 		node::NodeArithmeticExpr* expr = parse_arithmetic_expr();
 		nodefactor->var = expr;
 		return nodefactor;
@@ -1470,7 +1470,9 @@ node::NodeValue* Parser::parse_value()
 	node::NodeValue* val = new node::NodeValue();
 
 	// Assume normal function call
-	if (node::NodeFunctionCall* function_call = parse_function_Call()) {
+	size_t verify_func_call = 0;
+	if (verify_function_call(&verify_func_call) && !function_operator_check(&verify_func_call)) {
+		node::NodeFunctionCall* function_call = parse_function_Call();
 		node::NodeValueFunctionCall* v_func_call = new node::NodeValueFunctionCall();
 		v_func_call->functionCall = function_call;
 
@@ -1522,7 +1524,7 @@ node::NodeValue* Parser::parse_value()
 	}
 	size_t verify_operator = 0;
 	// value returns identifier (can be of any type)
-	if (peek() && peek()->type == IDENTIFIER && operator_check(&verify_operator) == false) {
+	if (peek() && peek()->type == IDENTIFIER && operator_check(&verify_operator)) {
 		node::NodeValueIdentifier* val_ident = new node::NodeValueIdentifier();
 		val_ident->identifier = consume();
 
@@ -1897,6 +1899,9 @@ node::NodeGlobalWhile* Parser::parse_global_while()
 					consume();
 					continue;
 				}
+				if (peek() && peek()->type == TAB_DEDENT)
+					break;
+
 				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
 					_while->stmts.push_back(stmt);
 				}
@@ -2127,14 +2132,13 @@ node::NodeFunctionElse* Parser::parse_function_else()
 				consume();
 				continue;
 			}
-
+			if (peek()->type == TAB_DEDENT)
+				break;
 			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
 				_else->stmts.push_back(stmt);
 				if (peek()->type == NEW_LINE) {
 					consume(); // consumes new line after statement
 				}
-				if (peek()->type == TAB_DEDENT)
-					break;
 			}
 			else {
 				std::cerr << "Invalid statement" << std::endl;
@@ -2506,8 +2510,6 @@ bool Parser::verify_arithmetic_expr(size_t* index)
 	if (verify_term(index)) {
 		while (peek(*index) && peek(*index)->type == PLUS || peek(*index) && peek(*index)->type == MINUS) {
 			(*index)++;
-
-			node::NodeTerm* right_term = parse_term();
 			if (!verify_term(index)) {
 				return false;
 			}
@@ -3137,9 +3139,10 @@ bool Parser::operator_check(size_t* index)
 		case GREATER:
 		case IS:
 		case NOT:
-			return true;
-		default:
+		case OPEN_PARANTHESIS:
 			return false;
+		default:
+			return true;
 			break;
 		}
 	}
@@ -3165,9 +3168,10 @@ bool Parser::operator_check(size_t* index)
 	case GREATER:
 	case IS:
 	case NOT:
-		return true;
-	default:
+	case OPEN_PARANTHESIS:
 		return false;
+	default:
+		return true;
 		break;
 	}
 }
@@ -3205,6 +3209,26 @@ bool Parser::string_operator_check(size_t* index)
 		return false;
 	default:
 		return true;
+		break;
+	}
+}
+
+bool Parser::function_operator_check(size_t* index)
+{
+	switch (peek(*index)->type)
+	{
+	case PLUS:
+	case MINUS:
+	case MULTIPLY:
+	case DIVIDE:
+	case MODULO:
+	case LESS:
+	case GREATER:
+	case IS:
+	case NOT:
+		return true;
+	default:
+		return false;
 		break;
 	}
 }
