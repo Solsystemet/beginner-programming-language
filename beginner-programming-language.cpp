@@ -22,6 +22,8 @@ int main(int argc, char* argv[])
 
     Lexer lexer = Lexer(input);
     std::vector<Token> result = lexer.Tokenize();
+    /*Lexer lexer = Lexer(input);
+     std::vector<Token> result = lexer.Tokenize();
     fclose(yyin);
     /*
     Parser parser = Parser(result);
@@ -29,6 +31,7 @@ int main(int argc, char* argv[])
     Evaluator evaluator = Evaluator(ast);
     evaluator.evaluate_prog();
     */
+
 
     return 0;
 }
