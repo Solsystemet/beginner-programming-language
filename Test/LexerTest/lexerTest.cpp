@@ -6,7 +6,7 @@ public:
     FILE* file;
     std::vector<Token> tokens;
     void SetUp() override {
-        file = fopen( "../../language-test/test.txt", "r");
+        file = fopen("../../Test/TestFiles/test.txt", "r");
         ASSERT_NE(file, nullptr) << "Failed to open file";
         lexer = new Lexer(file);
         tokens = lexer->Tokenize();

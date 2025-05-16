@@ -19,6 +19,7 @@ private:
     inline std::string SanitizeStringLiteral(const std::string& raw);
 
 public:
+    inline std::string SanitizeStringLiteral(const std::string& raw);
     inline Lexer(FILE* file);
     inline std::vector<Token> Tokenize();
     inline ~Lexer();
@@ -257,7 +258,7 @@ inline void Lexer::FixTabIndent(std::vector<Token>* tokens) {
 
 
 // just for verifying the amount
-void Lexer::CountIndentDedent(std::vector<Token> tokens) {
+inline void Lexer::CountIndentDedent(std::vector<Token> tokens) {
     int indentCount = 0;
     int dedentCount = 0;
 

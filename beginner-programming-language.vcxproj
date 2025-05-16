@@ -40,7 +40,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -138,7 +138,6 @@
     <ClInclude Include="src\evaluator\StructTable.h" />
     <ClInclude Include="src\evaluator\SymbolTable.h" />
     <ClInclude Include="src\nodes.hpp" />
-    <ClInclude Include="parserHelperFunctions.hpp" />
     <ClInclude Include="src\lexer\lexer.h" />
     <ClInclude Include="src\lexer\flex.flex.h" />
     <ClInclude Include="src\lexer\FlexLexer.h" />
@@ -151,7 +150,6 @@
   <ItemGroup>
     <Flex Include="src\lexer\flex.l" />
     <None Include=".gitignore" />
-    <None Include="a.exe" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="stringtest.txt" />

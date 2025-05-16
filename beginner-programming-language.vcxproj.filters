@@ -50,13 +50,7 @@
     <ClInclude Include="src\lexer\tokenvalues.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\parser\parser.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\nodes.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="parserHelperFunctions.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\evaluator\Evaluator.h">
@@ -71,9 +65,11 @@
     <ClInclude Include="src\evaluator\StructTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\parser\parser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="a.exe" />
     <None Include=".gitignore" />
   </ItemGroup>
   <ItemGroup>
