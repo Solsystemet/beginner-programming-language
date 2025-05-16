@@ -18,11 +18,13 @@ public:
 	 node::NodeProg parse_prog();
 
 
+
      Token* peek(int offset = 0){
         if (m_currentIndex + offset >= m_tokens.size())
             return nullptr;
         return &m_tokens.at(m_currentIndex + offset);
     }
+
 
      Token& consume() {
         return m_tokens.at(m_currentIndex++);
@@ -39,6 +41,7 @@ public:
         return nullptr;
     }
 	
+
 	 node::NodeStmt* parse_stmt();
 	 node::NodeDecl* parse_decleration();
 	 node::NodeSimpleDecl* parse_simple_decleration();
@@ -101,6 +104,7 @@ public:
 	 node::NodeFunctionDefinition* parse_function_definition();
 	 node::NodeObjectDefinition* parse_object_definition();
 	// will only ever accept number, boolean, string and identifier
+
 	 Token* parse_type();
 	
 	 bool verify_arithmetic_expr(size_t* index);
@@ -140,6 +144,7 @@ public:
 
 
 	// Overload for DECIMAL
+
 	 node::NodeFactor* try_consume_symbol(Token*& t, node::NodeFactorDecimal* factor_decimal) {
 		t = try_consume(DECIMAL);
 		if (t != nullptr) {
@@ -152,6 +157,7 @@ public:
 	}
 
 	// Overload for IDENTIFIER
+
 	 node::NodeFactor* try_consume_symbol(Token*& t, node::NodeFactorIdentifier* factor_identifier) {
 		t = try_consume(IDENTIFIER);
 		if (t != nullptr) {
@@ -171,6 +177,7 @@ public:
 	}
 
 	// Overload for Parentheses (OPEN_PARANTHESIS)
+
 	 node::NodeFactor* try_consume_symbol(Token*& t, node::NodeArithmeticExpr* arithmetic_expr) {
 		t = try_consume(OPEN_PARANTHESIS);
 		if (t != nullptr) {
@@ -182,4 +189,5 @@ public:
 		}
 		return nullptr;
 	}
+
 };
