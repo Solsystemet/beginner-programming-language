@@ -895,6 +895,17 @@ node::NodeStringExpr* Parser::parse_string_expr() {
 			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression!");
 		}
 
+		while (peek() && peek()->type == DOT) {
+			consume();
+			if (peek() && peek()->type == IDENTIFIER) {
+				ident->props.push_back(consume());
+			}
+			else {
+				std::cerr << "Expected identifier property in expression";
+				exit(EXIT_FAILURE);
+			}
+		}
+
 		string_expr->var = ident;
 
 		while (peek() && peek()->type == PLUS) {
@@ -1372,7 +1383,7 @@ node::NodeBooleanFactor* Parser::parse_boolean_factor()
 	}
 
 	size_t verify_str = 0;
-	if (verify_string_expr(&verify_str)) {
+	if (verify_string_expr(&verify_str) && string_operator_check(&verify_str)) {
 		node::NodeStringExpr* expr = parse_string_expr();
 		nodefactor->var = expr;
 		return nodefactor;
@@ -1395,6 +1406,17 @@ node::NodeBooleanFactor* Parser::parse_boolean_factor()
 			consume();
 			value->index = parse_arithmetic_expr();
 			try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression!");
+		}
+
+		while (peek() && peek()->type == DOT) {
+			consume();
+			if (peek() && peek()->type == IDENTIFIER) {
+				value->props.push_back(consume());
+			}
+			else {
+				std::cerr << "Expected identifier property in expression";
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		nodefactor->var = value;
@@ -1448,7 +1470,9 @@ node::NodeValue* Parser::parse_value()
 	node::NodeValue* val = new node::NodeValue();
 
 	// Assume normal function call
-	if (node::NodeFunctionCall* function_call = parse_function_Call()) {
+	size_t verify_func_call = 0;
+	if (verify_function_call(&verify_func_call) && !function_operator_check(&verify_func_call)) {
+		node::NodeFunctionCall* function_call = parse_function_Call();
 		node::NodeValueFunctionCall* v_func_call = new node::NodeValueFunctionCall();
 		v_func_call->functionCall = function_call;
 
@@ -1500,7 +1524,7 @@ node::NodeValue* Parser::parse_value()
 	}
 	size_t verify_operator = 0;
 	// value returns identifier (can be of any type)
-	if (peek() && peek()->type == IDENTIFIER && operator_check(&verify_operator) == false) {
+	if (peek() && peek()->type == IDENTIFIER && operator_check(&verify_operator)) {
 		node::NodeValueIdentifier* val_ident = new node::NodeValueIdentifier();
 		val_ident->identifier = consume();
 
@@ -1560,7 +1584,7 @@ node::NodeValue* Parser::parse_value()
 
 	// value returns arithmetic expression
 	size_t verify_arithmetic = 0;
-	if (verify_arithmetic_expr(&verify_arithmetic)) {
+	if (verify_arithmetic_expr(&verify_arithmetic) && arithmetic_operator_check(&verify_arithmetic)) {
 		node::NodeArithmeticExpr* a_epxr = parse_arithmetic_expr();
 		node::NodeValueArithmeticExpression* val_expr = new node::NodeValueArithmeticExpression();
 		val_expr->expr = a_epxr;
@@ -1582,7 +1606,7 @@ node::NodeValue* Parser::parse_value()
 	// value returns boolean expression
 	size_t verify_bool = 0;
 	size_t verify_arith = 0;
-	if (verify_boolean_expr(&verify_bool) && verify_arithmetic_expr(&verify_arith) == false) {
+	if (verify_boolean_expr(&verify_bool)) {
 		node::NodeBooleanExpr* b_epxr = parse_boolean_expr();
 		node::NodeValueBooleanExpression* val_expr = new node::NodeValueBooleanExpression();
 		val_expr->expr = b_epxr;
@@ -1727,6 +1751,9 @@ node::NodeGlobalIf* Parser::parse_global_if()
 					consume();
 					continue;
 				}
+				if (peek() && peek()->type == TAB_DEDENT) {
+					break;
+				}
 				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
 					_if->stmts.push_back(stmt);
 				}
@@ -1814,6 +1841,9 @@ node::NodeGlobalElse* Parser::parse_global_else()
 				consume();
 				continue;
 			}
+			if (peek() && peek()->type == TAB_DEDENT) {
+				break;
+			}
 			if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
 				_else->stmts.push_back(stmt);
 			}
@@ -1869,6 +1899,9 @@ node::NodeGlobalWhile* Parser::parse_global_while()
 					consume();
 					continue;
 				}
+				if (peek() && peek()->type == TAB_DEDENT)
+					break;
+
 				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
 					_while->stmts.push_back(stmt);
 				}
@@ -2099,14 +2132,13 @@ node::NodeFunctionElse* Parser::parse_function_else()
 				consume();
 				continue;
 			}
-
+			if (peek()->type == TAB_DEDENT)
+				break;
 			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
 				_else->stmts.push_back(stmt);
 				if (peek() && peek()->type == NEW_LINE) {
 					consume(); // consumes new line after statement
 				}
-				if (peek() && peek()->type == TAB_DEDENT)
-					break;
 			}
 			else {
 				std::cerr << "Invalid statement" << std::endl;
@@ -2476,44 +2508,33 @@ Token* Parser::parse_type()
 bool Parser::verify_arithmetic_expr(size_t* index)
 {
 	if (verify_term(index)) {
-
-
-		if (peek(*index) && peek(*index)->type == PLUS) {
+		while (peek(*index) && peek(*index)->type == PLUS || peek(*index) && peek(*index)->type == MINUS) {
 			(*index)++;
-
-			return verify_term(index);
+			if (!verify_term(index)) {
+				return false;
+			}
 		}
 
-		if (peek(*index) && peek(*index)->type == MINUS) {
-			(*index)++;
-
-			return verify_term(index);
-		}
 		return true;
 	}
-
 	return false;
+	
 }
 
 bool Parser::verify_term(size_t* index)
 {
 	if (verify_factor(index)) {
 
-
-		if (peek(*index) && peek(*index)->type == MULTIPLY) {
+		while (peek(*index) && peek(*index)->type == MULTIPLY ||
+			peek(*index) && peek(*index)->type == DIVIDE ||
+			peek(*index) && peek(*index)->type == MODULO) {
 			(*index)++;
-			return verify_factor(index);
+
+			if (!verify_factor(index)) {
+				return false;
+			}
 		}
 
-		if (peek(*index) && peek(*index)->type == DIVIDE) {
-			(*index)++;
-			return verify_factor(index);
-		}
-
-		if (peek(*index) && peek(*index)->type == MODULO) {
-			(*index)++;
-			return verify_factor(index);
-		}
 		return true;
 	}
 	return false;
@@ -2532,6 +2553,26 @@ bool Parser::verify_factor(size_t* index)
 
 	if (peek(*index) && peek(*index)->type == IDENTIFIER) {
 		(*index)++;
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET) {
+					(*index)++;
+				}
+			}
+			else
+				return false;
+		}
+
+		while (peek(*index) && peek(*index)->type == DOT) {
+			(*index)++;
+			if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+				(*index)++;
+			}
+			else {
+				return false;
+			}
+		}
 		return true;
 	}
 
@@ -2539,7 +2580,8 @@ bool Parser::verify_factor(size_t* index)
 	if (peek(*index) && peek(*index)->type == OPEN_PARANTHESIS) {
 		(*index)++;
 		if (verify_arithmetic_expr(index)) {
-			if (peek(*index) && peek(*index)->type == CLOSED_PARANTHESIS) {
+			if (peek(*index)->type == CLOSED_PARANTHESIS) {
+				(*index)++;
 				return true;
 			}
 		}
@@ -2766,40 +2808,20 @@ bool Parser::verify_string_expr(size_t* index)
 	if (peek(*index) && peek(*index)->type == STRING_VAL) {
 		(*index)++;
 
-		if (peek(*index) && peek(*index)->type == PLUS) {
+		while (peek(*index) && peek(*index)->type == PLUS) {
 			(*index)++;
 
 			return verify_string_expr(index);
 		}
-		else if (peek(*index) && peek(*index)->type == MINUS) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == MULTIPLY) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == DIVIDE) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == MODULO) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == OR) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == AND) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == LESS) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == GREATER) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == IS) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == NOT) {
-			return false;
+
+		return true;
+	}
+	else if (verify_function_call(index)) {
+
+		while (peek(*index) && peek(*index)->type == PLUS) {
+			(*index)++;
+
+			return verify_string_expr(index);
 		}
 
 		return true;
@@ -2807,47 +2829,28 @@ bool Parser::verify_string_expr(size_t* index)
 	else if (peek(*index) && peek(*index)->type == IDENTIFIER) {
 		(*index)++;
 
-		if (peek(*index) && peek(*index)->type == PLUS) {
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
 			(*index)++;
-
-			return verify_string_expr(index);
-		}
-		else if (peek(*index) && peek(*index)->type == MINUS) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == MULTIPLY) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == DIVIDE) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == MODULO) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == OR) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == AND) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == LESS) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == GREATER) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == IS) {
-			return false;
-		}
-		else if (peek(*index) && peek(*index)->type == NOT) {
-			return false;
+			if (verify_arithmetic_expr(index)) {
+				if (peek(*index) && peek(*index)->type == CLOSED_SQUAREBRACKET)
+					(*index)++;
+			}
+			else
+				return false;
+			
 		}
 
-		return true;
-	}
-	else if (verify_function_call(index)) {
+		while (peek(*index) && peek(*index)->type == DOT) {
+			(*index)++;
+			if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+				(*index)++;
+			}
+			else {
+				return false;
+			}
+		}
 
-		if (peek(*index) && peek(*index)->type == PLUS) {
+		while (peek(*index) && peek(*index)->type == PLUS) {
 			(*index)++;
 
 			return verify_string_expr(index);
@@ -2855,6 +2858,21 @@ bool Parser::verify_string_expr(size_t* index)
 
 		return true;
 	}
+	else if (peek(*index) && peek(*index)->type == INPUT &&
+		peek(*index+1) && peek(*index+1)->type == OPEN_PARANTHESIS &&
+		peek(*index+2) && peek(*index+2)->type == CLOSED_PARANTHESIS
+		) {
+		(*index)+= 3;
+
+		while (peek(*index) && peek(*index)->type == PLUS) {
+			(*index)++;
+
+			return verify_string_expr(index);
+		}
+
+		return true;
+	}
+
 
 	return false;
 }
@@ -3121,9 +3139,10 @@ bool Parser::operator_check(size_t* index)
 		case GREATER:
 		case IS:
 		case NOT:
-			return true;
-		default:
+		case OPEN_PARANTHESIS:
 			return false;
+		default:
+			return true;
 			break;
 		}
 	}
@@ -3149,9 +3168,10 @@ bool Parser::operator_check(size_t* index)
 	case GREATER:
 	case IS:
 	case NOT:
-		return true;
-	default:
+	case OPEN_PARANTHESIS:
 		return false;
+	default:
+		return true;
 		break;
 	}
 }
@@ -3167,6 +3187,48 @@ bool Parser::arithmetic_operator_check(size_t* index)
 		return false;
 	default:
 		return true;
+		break;
+	}
+}
+
+bool Parser::string_operator_check(size_t* index)
+{
+	switch (peek(*index)->type)
+	{
+	case LESS:
+	case GREATER:
+	case IS:
+	case NOT:
+	case OR:
+	case AND:
+	case MINUS:
+	case MULTIPLY:
+	case MODULO:
+	case DIVIDE:
+	case CLOSED_PARANTHESIS:
+		return false;
+	default:
+		return true;
+		break;
+	}
+}
+
+bool Parser::function_operator_check(size_t* index)
+{
+	switch (peek(*index)->type)
+	{
+	case PLUS:
+	case MINUS:
+	case MULTIPLY:
+	case DIVIDE:
+	case MODULO:
+	case LESS:
+	case GREATER:
+	case IS:
+	case NOT:
+		return true;
+	default:
+		return false;
 		break;
 	}
 }

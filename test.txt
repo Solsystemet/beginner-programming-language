@@ -1,4 +1,11 @@
-print("Write a number\n")
-string x = ""
-x = input()
-print(x)
+number function fib(number n):
+	number result = 0
+	if n is 0:
+		result = 0
+	else if n is 1:
+		result = 1
+	else:
+		result = fib(n - 1) + fib(n - 2)
+	return result
+
+print(fib(30))

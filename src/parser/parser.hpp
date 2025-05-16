@@ -138,7 +138,9 @@ public:
 	 bool operator_check(size_t* index);
 	
 	// check for boolean operators after verify arithmetic expression
-	 bool arithmetic_operator_check(size_t* index);
+	bool arithmetic_operator_check(size_t* index);
+	bool string_operator_check(size_t* index);
+	bool function_operator_check(size_t* index);
     std::vector<Token> m_tokens;
     size_t m_currentIndex = 0;
 
@@ -167,6 +169,17 @@ public:
 				consume();
 				factor_identifier->index = parse_arithmetic_expr();
 				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression!");
+			}
+
+			while (peek() && peek()->type == DOT) {
+				consume();
+				if (peek() && peek()->type == IDENTIFIER) {
+					factor_identifier->props.push_back(consume());
+				}
+				else {
+					std::cerr << "Expected identifier property in expression";
+					exit(EXIT_FAILURE);
+				}
 			}
 
 			auto* factor = new node::NodeFactor();

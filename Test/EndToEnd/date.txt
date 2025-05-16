@@ -1,0 +1,22 @@
+date:
+	number day = 0
+	number month = 0
+	number year = 0
+
+boolean function date_before(date d1, date d2):
+	boolean result = (d1.year < d2.year) or (d1.year is d2.year and d1.month < d2.month) or (d1.year is d2.year and d1.month is d2.month and d1.day < d2.day)
+	return result
+date today:
+	day = 8
+	month = 11
+	year = 2011
+
+date tomorrow:
+	day = 9
+	month = 11
+	year = 2012
+
+if date_before(today,tomorrow):
+	print("OK")
+else:
+	print("Problems!")

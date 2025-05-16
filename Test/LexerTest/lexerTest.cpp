@@ -1,12 +1,5 @@
 #include "../pch.h"
 
-std::string GetTestFilePath() {
-    std::string current = __FILE__; // full path to this source file
-    auto pos = current.find_last_of("/\\");
-    std::string dir = current.substr(0, pos);
-    return dir + "/../Test/test.txt"; // adjust as needed
-}
-
 class LexerTest : public testing::Test {
 public:
     Lexer* lexer;

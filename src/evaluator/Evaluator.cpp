@@ -290,8 +290,11 @@ void Evaluator::evaluate_declecration(const node::NodeDecl* decl)
 void Evaluator::evaluate_object_declare(const node::NodeObjectDecl* decl)
 {
 	if (m_structDefinitionTable.contains(decl->objectType.value)) {
-		Struct obj = *m_structDefinitionTable.lookup(decl->objectType.value);
-
+		Struct obj_def = *m_structDefinitionTable.lookup(decl->objectType.value);
+		Struct obj;
+		obj.name = obj_def.name;
+		obj.table = new SymbolTable();
+		*obj.table = *obj_def.table;
 		for (node::NodeAssignment* ass : decl->properties) {
 			evaluate_assignment_object(ass, obj.table);
 		}
@@ -786,8 +789,19 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 					else if (mpark::holds_alternative<std::string>(arr[index])) {
 						evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 					}
+					else if (mpark::holds_alternative<Struct>(arr[index])) {
+						evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+					}
 				}
 				else {
+					if (mpark::holds_alternative<Struct>(symbol->value) && identifier->props.size() > 0) {
+						for (size_t i = 0; i < identifier->props.size(); i++)
+						{
+							symbol = mpark::get<Struct>(symbol->value).table->lookup(identifier->props[i].value);
+						}
+						evaluator->m_stack.push(symbol->value);
+						return;
+					}
 					evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
 				}
 
@@ -813,8 +827,19 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 							else if (mpark::holds_alternative<std::string>(arr[index])) {
 								evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 							}
+							else if (mpark::holds_alternative<Struct>(arr[index])) {
+								evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+							}
 						}
 						else {
+							if (mpark::holds_alternative<Struct>(symbol->value) && identifier->props.size() > 0) {
+								for (size_t i = 0; i < identifier->props.size(); i++)
+								{
+									symbol = mpark::get<Struct>(symbol->value).table->lookup(identifier->props[i].value);
+								}
+								evaluator->m_stack.push(symbol->value);
+								return;
+							}
 							evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(identifier->identifier.value)->value);
 						}
 
@@ -1249,9 +1274,19 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 					else if (mpark::holds_alternative<std::string>(arr[index])) {
 						evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 					}
-
+					else if (mpark::holds_alternative<Struct>(arr[index])) {
+						evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+					}
 				}
 				else {
+					if (mpark::holds_alternative<Struct>(symbol->value) && identifier->props.size() > 0) {
+						for (size_t i = 0; i < identifier->props.size(); i++)
+						{
+							symbol = mpark::get<Struct>(symbol->value).table->lookup(identifier->props[i].value);
+						}
+						evaluator->m_stack.push(symbol->value);
+						return;
+					}
 					evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
 				}
 			}
@@ -1275,8 +1310,20 @@ void Evaluator::evaluate_bool_factor(const node::NodeBooleanFactor* factor)
 							else if (mpark::holds_alternative<std::string>(arr[index])) {
 								evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 							}
+							else if (mpark::holds_alternative<Struct>(arr[index])) {
+								evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+							}
 						}
 						else {
+							if (mpark::holds_alternative<Struct>(symbol->value) && identifier->props.size() > 0) {
+								for (size_t i = 0; i < identifier->props.size(); i++)
+								{
+									symbol = mpark::get<Struct>(symbol->value).table->lookup(identifier->props[i].value);
+								}
+								evaluator->m_stack.push(symbol->value);
+								return;
+							}
+
 							evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(identifier->identifier.value)->value);
 						}
 						return;
@@ -1356,8 +1403,20 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 					else if (mpark::holds_alternative<std::string>(arr[index])) {
 						evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 					}
+					else if (mpark::holds_alternative<Struct>(arr[index])) {
+						evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+					}
 				}
 				else {
+					if (mpark::holds_alternative<Struct>(symbol->value) && ident->props.size() > 0) {
+						for (size_t i = 0; i < ident->props.size(); i++)
+						{
+							symbol = mpark::get<Struct>(symbol->value).table->lookup(ident->props[i].value);
+						}
+						evaluator->m_stack.push(symbol->value);
+						return;
+					}
+
 					evaluator->m_stack.push(evaluator->m_symbolTable.lookup(ident->ident.value)->value);
 				}
 			}
@@ -1381,8 +1440,21 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 							else if (mpark::holds_alternative<std::string>(arr[index])) {
 								evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 							}
+							else if (mpark::holds_alternative<Struct>(arr[index])) {
+								evaluator->m_stack.push(mpark::get<Struct>(arr[index]));
+							}
 						}
 						else {
+
+							if (mpark::holds_alternative<Struct>(symbol->value) && ident->props.size() > 0) {
+								for (size_t i = 0; i < ident->props.size(); i++)
+								{
+									symbol = mpark::get<Struct>(symbol->value).table->lookup(ident->props[i].value);
+								}
+								evaluator->m_stack.push(symbol->value);
+								return;
+							}
+
 							evaluator->m_stack.push(evaluator->m_scopedTables[i].lookup(ident->ident.value)->value);
 						}
 						return;
@@ -1428,16 +1500,10 @@ void Evaluator::evaluate_string_expression(const node::NodeStringExpr* expr)
 				auto val = evaluator->m_stack.top();
 				evaluator->m_stack.pop();
 
-				if (mpark::holds_alternative<std::string>(val)) {
-					evaluator->m_stack.push(mpark::get<std::string>(val));
-				}
-				else {
-					std::cerr << "Function does not return type of string!!" << std::endl;
-					exit(EXIT_FAILURE);
-				}
+				evaluator->m_stack.push(val);
 			}
 			else {
-				std::cerr << "Function does not return type of string!!" << std::endl;
+				std::cerr << "Function does not return a value!!" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 		}
@@ -1518,27 +1584,30 @@ double Evaluator::evaluate_object_array(const node::NodeObjectArrayDecl* arr)
 
 void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 {
-	Symbol* symbol_lhs = m_symbolTable.lookup(assignment->identifierHead.value);
-
+	Symbol symbol_lhs = m_symbolTable.lookup(assignment->identifierHead.value) != nullptr ? *m_symbolTable.lookup(assignment->identifierHead.value) : Symbol();
+	Symbol* result = m_symbolTable.lookup(assignment->identifierHead.value);
+	size_t index = -1;
 	// Search scoped symbol tables if not found in global
-	if (!symbol_lhs && !m_scopedTables.empty()) {
+	if (!m_symbolTable.contains(assignment->identifierHead.value) && !m_scopedTables.empty()) {
 		for (int i = static_cast<int>(m_scopedTables.size()) - 1; i >= 0; --i) {
 			if (m_scopedTables[i].contains(assignment->identifierHead.value)) {
-				symbol_lhs = m_scopedTables[i].lookup(assignment->identifierHead.value);
+				symbol_lhs = *m_scopedTables[i].lookup(assignment->identifierHead.value);
+				result = m_scopedTables[i].lookup(assignment->identifierHead.value);
+				index = i;
 				break;
 			}
 		}
 	}
 
-	if (!symbol_lhs) {
+	if (result == nullptr) {
 		std::cerr << "Assignment to undeclared variable: " << assignment->identifierHead.value << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
 	// Assign to array element
-	if (symbol_lhs->isAnArray && assignment->index != nullptr) {
+	if (symbol_lhs.isAnArray && assignment->index != nullptr) {
 		size_t lhs_index = get_array_index(assignment->index);
-		auto& arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(symbol_lhs->value);
+		auto& arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(symbol_lhs.value);
 
 		if (lhs_index >= arr.size()) {
 			std::cerr << "Array index out of bounds" << std::endl;
@@ -1548,25 +1617,30 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 		evaluate_value(assignment->rhs);
 		auto rhs = m_stack.top(); m_stack.pop();
 
-		if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs))
+		if (symbol_lhs.type == "number" && mpark::holds_alternative<double>(rhs))
 			arr[lhs_index] = mpark::get<double>(rhs);
-		else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs))
+		else if (symbol_lhs.type == "string" && mpark::holds_alternative<std::string>(rhs))
 			arr[lhs_index] = mpark::get<std::string>(rhs);
-		else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs))
+		else if (symbol_lhs.type == "boolean" && mpark::holds_alternative<bool>(rhs))
 			arr[lhs_index] = mpark::get<bool>(rhs);
-		else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct>(rhs))
+		else if (symbol_lhs.type == "object" && mpark::holds_alternative<Struct>(rhs))
 			arr[lhs_index] = mpark::get<Struct>(rhs);
 		else {
 			std::cerr << "Type mismatch in array element assignment!" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
-		symbol_lhs->value = arr;
+		symbol_lhs.value = arr;
+		if(index != -1)
+			result = m_scopedTables[index].lookup(assignment->identifierHead.value);
+		else
+			result = m_symbolTable.lookup(assignment->identifierHead.value);
+		result->value = symbol_lhs.value;
 		return;
 	}
 
 	// Assign whole array
-	if (symbol_lhs->isAnArray && assignment->index == nullptr) {
+	if (symbol_lhs.isAnArray && assignment->index == nullptr) {
 		evaluate_value(assignment->rhs);
 		auto rhs = m_stack.top(); m_stack.pop();
 
@@ -1581,17 +1655,21 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 			exit(EXIT_FAILURE);
 		}
 
-		if ((symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) ||
-			(symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) ||
-			(symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) ||
-			(symbol_lhs->type == "object" && mpark::holds_alternative<Struct>(rhs_arr[0]))) {
-			symbol_lhs->value = rhs_arr;
+		if ((symbol_lhs.type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) ||
+			(symbol_lhs.type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) ||
+			(symbol_lhs.type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) ||
+			(symbol_lhs.type == "object" && mpark::holds_alternative<Struct>(rhs_arr[0]))) {
+			symbol_lhs.value = rhs_arr;
 		}
 		else {
 			std::cerr << "Array element types do not match!" << std::endl;
 			exit(EXIT_FAILURE);
 		}
-
+		if (index != -1)
+			result = m_scopedTables[index].lookup(assignment->identifierHead.value);
+		else
+			result = m_symbolTable.lookup(assignment->identifierHead.value);
+		result->value = symbol_lhs.value;
 		return;
 	}
 
@@ -1599,18 +1677,23 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 	evaluate_value(assignment->rhs);
 	auto rhs = m_stack.top(); m_stack.pop();
 
-	if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs))
-		symbol_lhs->value = rhs;
-	else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs))
-		symbol_lhs->value = rhs;
-	else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs))
-		symbol_lhs->value = rhs;
-	else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct>(rhs))
-		symbol_lhs->value = rhs;
+	if (symbol_lhs.type == "number" && mpark::holds_alternative<double>(rhs))
+		symbol_lhs.value = rhs;
+	else if (symbol_lhs.type == "string" && mpark::holds_alternative<std::string>(rhs))
+		symbol_lhs.value = rhs;
+	else if (symbol_lhs.type == "boolean" && mpark::holds_alternative<bool>(rhs))
+		symbol_lhs.value = rhs;
+	else if (symbol_lhs.type == "object" && mpark::holds_alternative<Struct>(rhs))
+		symbol_lhs.value = rhs;
 	else {
 		std::cerr << "Type mismatch in assignment!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
+	if (index != -1)
+		result = m_scopedTables[index].lookup(assignment->identifierHead.value);
+	else
+		result = m_symbolTable.lookup(assignment->identifierHead.value);
+	result->value = symbol_lhs.value;
 }
 
 
