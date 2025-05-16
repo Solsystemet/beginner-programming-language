@@ -1584,27 +1584,30 @@ double Evaluator::evaluate_object_array(const node::NodeObjectArrayDecl* arr)
 
 void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 {
-	Symbol* symbol_lhs = m_symbolTable.lookup(assignment->identifierHead.value);
-
+	Symbol symbol_lhs = m_symbolTable.lookup(assignment->identifierHead.value) != nullptr ? *m_symbolTable.lookup(assignment->identifierHead.value) : Symbol();
+	Symbol* result = m_symbolTable.lookup(assignment->identifierHead.value);
+	size_t index = -1;
 	// Search scoped symbol tables if not found in global
-	if (!symbol_lhs && !m_scopedTables.empty()) {
+	if (!m_symbolTable.contains(assignment->identifierHead.value) && !m_scopedTables.empty()) {
 		for (int i = static_cast<int>(m_scopedTables.size()) - 1; i >= 0; --i) {
 			if (m_scopedTables[i].contains(assignment->identifierHead.value)) {
-				symbol_lhs = m_scopedTables[i].lookup(assignment->identifierHead.value);
+				symbol_lhs = *m_scopedTables[i].lookup(assignment->identifierHead.value);
+				result = m_scopedTables[i].lookup(assignment->identifierHead.value);
+				index = i;
 				break;
 			}
 		}
 	}
 
-	if (!symbol_lhs) {
+	if (result == nullptr) {
 		std::cerr << "Assignment to undeclared variable: " << assignment->identifierHead.value << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
 	// Assign to array element
-	if (symbol_lhs->isAnArray && assignment->index != nullptr) {
+	if (symbol_lhs.isAnArray && assignment->index != nullptr) {
 		size_t lhs_index = get_array_index(assignment->index);
-		auto& arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(symbol_lhs->value);
+		auto& arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(symbol_lhs.value);
 
 		if (lhs_index >= arr.size()) {
 			std::cerr << "Array index out of bounds" << std::endl;
@@ -1614,25 +1617,30 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 		evaluate_value(assignment->rhs);
 		auto rhs = m_stack.top(); m_stack.pop();
 
-		if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs))
+		if (symbol_lhs.type == "number" && mpark::holds_alternative<double>(rhs))
 			arr[lhs_index] = mpark::get<double>(rhs);
-		else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs))
+		else if (symbol_lhs.type == "string" && mpark::holds_alternative<std::string>(rhs))
 			arr[lhs_index] = mpark::get<std::string>(rhs);
-		else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs))
+		else if (symbol_lhs.type == "boolean" && mpark::holds_alternative<bool>(rhs))
 			arr[lhs_index] = mpark::get<bool>(rhs);
-		else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct>(rhs))
+		else if (symbol_lhs.type == "object" && mpark::holds_alternative<Struct>(rhs))
 			arr[lhs_index] = mpark::get<Struct>(rhs);
 		else {
 			std::cerr << "Type mismatch in array element assignment!" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
-		symbol_lhs->value = arr;
+		symbol_lhs.value = arr;
+		if(index != -1)
+			result = m_scopedTables[index].lookup(assignment->identifierHead.value);
+		else
+			result = m_symbolTable.lookup(assignment->identifierHead.value);
+		result->value = symbol_lhs.value;
 		return;
 	}
 
 	// Assign whole array
-	if (symbol_lhs->isAnArray && assignment->index == nullptr) {
+	if (symbol_lhs.isAnArray && assignment->index == nullptr) {
 		evaluate_value(assignment->rhs);
 		auto rhs = m_stack.top(); m_stack.pop();
 
@@ -1647,17 +1655,21 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 			exit(EXIT_FAILURE);
 		}
 
-		if ((symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) ||
-			(symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) ||
-			(symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) ||
-			(symbol_lhs->type == "object" && mpark::holds_alternative<Struct>(rhs_arr[0]))) {
-			symbol_lhs->value = rhs_arr;
+		if ((symbol_lhs.type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) ||
+			(symbol_lhs.type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) ||
+			(symbol_lhs.type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) ||
+			(symbol_lhs.type == "object" && mpark::holds_alternative<Struct>(rhs_arr[0]))) {
+			symbol_lhs.value = rhs_arr;
 		}
 		else {
 			std::cerr << "Array element types do not match!" << std::endl;
 			exit(EXIT_FAILURE);
 		}
-
+		if (index != -1)
+			result = m_scopedTables[index].lookup(assignment->identifierHead.value);
+		else
+			result = m_symbolTable.lookup(assignment->identifierHead.value);
+		result->value = symbol_lhs.value;
 		return;
 	}
 
@@ -1665,18 +1677,23 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 	evaluate_value(assignment->rhs);
 	auto rhs = m_stack.top(); m_stack.pop();
 
-	if (symbol_lhs->type == "number" && mpark::holds_alternative<double>(rhs))
-		symbol_lhs->value = rhs;
-	else if (symbol_lhs->type == "string" && mpark::holds_alternative<std::string>(rhs))
-		symbol_lhs->value = rhs;
-	else if (symbol_lhs->type == "boolean" && mpark::holds_alternative<bool>(rhs))
-		symbol_lhs->value = rhs;
-	else if (symbol_lhs->type == "object" && mpark::holds_alternative<Struct>(rhs))
-		symbol_lhs->value = rhs;
+	if (symbol_lhs.type == "number" && mpark::holds_alternative<double>(rhs))
+		symbol_lhs.value = rhs;
+	else if (symbol_lhs.type == "string" && mpark::holds_alternative<std::string>(rhs))
+		symbol_lhs.value = rhs;
+	else if (symbol_lhs.type == "boolean" && mpark::holds_alternative<bool>(rhs))
+		symbol_lhs.value = rhs;
+	else if (symbol_lhs.type == "object" && mpark::holds_alternative<Struct>(rhs))
+		symbol_lhs.value = rhs;
 	else {
 		std::cerr << "Type mismatch in assignment!" << std::endl;
 		exit(EXIT_FAILURE);
 	}
+	if (index != -1)
+		result = m_scopedTables[index].lookup(assignment->identifierHead.value);
+	else
+		result = m_symbolTable.lookup(assignment->identifierHead.value);
+	result->value = symbol_lhs.value;
 }
 
 
