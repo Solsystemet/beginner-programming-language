@@ -16,7 +16,7 @@ private:
 
     // helper function for verifying indent and dedent count. move elsewhere or delete
     void CountIndentDedent(std::vector<Token> tokens);
-    std::string SanitizeStringLiteral(const std::string& raw);
+    inline std::string SanitizeStringLiteral(const std::string& raw);
 
 public:
     inline Lexer(FILE* file);
@@ -257,7 +257,7 @@ inline void Lexer::FixTabIndent(std::vector<Token>* tokens) {
 
 
 // just for verifying the amount
-void Lexer::CountIndentDedent(std::vector<Token> tokens) {
+inline void Lexer::CountIndentDedent(std::vector<Token> tokens) {
     int indentCount = 0;
     int dedentCount = 0;
 

@@ -1,12 +1,19 @@
 #include "../pch.h"
-#include <filesystem>
+
+std::string GetTestFilePath() {
+    std::string current = __FILE__; // full path to this source file
+    auto pos = current.find_last_of("/\\");
+    std::string dir = current.substr(0, pos);
+    return dir + "/../Test/test.txt"; // adjust as needed
+}
+
 class LexerTest : public testing::Test {
 public:
     Lexer* lexer;
     FILE* file;
     std::vector<Token> tokens;
     void SetUp() override {
-        file = fopen( "C:\\repos\\beginner-programming-language\\language-test\\test.txt", "r");
+        file = fopen("../../Test/TestFiles/test.txt", "r");
         ASSERT_NE(file, nullptr) << "Failed to open file";
         lexer = new Lexer(file);
         tokens = lexer->Tokenize();
