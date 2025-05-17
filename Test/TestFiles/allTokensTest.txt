@@ -1,0 +1,3 @@
+
+	123 456 var print ( ) = + - * / % and or not function , true for while : if else return [ ] . is
+"string" True "string_val" input < > 
