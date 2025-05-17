@@ -106,6 +106,7 @@
     <ClCompile Include="EndToEnd\booleanTest.cpp" />
     <ClCompile Include="EndToEnd\bubbleSort.cpp" />
     <ClCompile Include="EndToEnd\date.cpp" />
+    <ClCompile Include="EndToEnd\recursion.cpp" />
     <ClCompile Include="EvaluatorTest\evaluatorTest.cpp" />
     <ClCompile Include="LexerTest\lexerTest.cpp" />
     <ClCompile Include="ParserTest\parserTest.cpp" />
@@ -125,6 +126,7 @@
     <Text Include="EndToEnd\booleanTest.txt" />
     <Text Include="EndToEnd\bubbleSort.txt" />
     <Text Include="EndToEnd\date.txt" />
+    <Text Include="EndToEnd\recursion.txt" />
     <Text Include="TestFiles\test.txt" />
   </ItemGroup>
   <ItemGroup>
