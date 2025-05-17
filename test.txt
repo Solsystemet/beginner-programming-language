@@ -1,11 +1,20 @@
-number function fib(number n):
-	number result = 0
-	if n is 0:
-		result = 0
-	else if n is 1:
-		result = 1
-	else:
-		result = fib(n - 1) + fib(n - 2)
-	return result
-
-print(fib(30))
+number age = 19
+print(age <= 21 and age >= 18)
+print("\n")
+number water = 1.49
+print(water < 1.5 and water > 0.1)
+print("\n")
+number year = 36
+boolean isLeapYear = year mod 4 is 0
+print(isLeapYear)
+print("\n")
+number speed = 45
+print(speed < 55)
+print("\n")
+number y = 7
+number x = 5
+number z = 8
+print(y > x and y > z)
+print("\n")
+number w = 6
+print(w <= 6)

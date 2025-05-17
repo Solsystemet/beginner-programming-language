@@ -363,8 +363,8 @@ TEST_F(ParserTest, TestParseValueDecimal) {
 TEST_F(ParserTest, TestParseValueFunctionCall) {
 	// Arrange: foo()
 	parser.m_tokens.push_back({ IDENTIFIER, "foo" });
-	parser.m_tokens.push_back({ OPEN_PARANTHESIS, "(" });
-	parser.m_tokens.push_back({ CLOSED_PARANTHESIS, ")" });
+	parser.m_tokens.push_back({ OPEN_PARANTHESIS});
+	parser.m_tokens.push_back({ CLOSED_PARANTHESIS});
 
 	// Act
 	node::NodeValue* result = parser.parse_value();
@@ -425,10 +425,12 @@ TEST_F(ParserTest, TestParseGlobalControlFlow) {
 	parser.m_tokens.push_back({ IS, "is" });
 	parser.m_tokens.push_back({ DECIMAL, "1" });
 	parser.m_tokens.push_back({ COLON, ":" });
+	parser.m_tokens.push_back({ NEW_LINE});
 	parser.m_tokens.push_back({ TAB_INDENT });
 	parser.m_tokens.push_back({ IDENTIFIER, "x" });
 	parser.m_tokens.push_back({ EQUAL });
-	parser.m_tokens.push_back({ NUMBER, "3" });
+	parser.m_tokens.push_back({ DECIMAL, "3" });
+	parser.m_tokens.push_back({ NEW_LINE});
 	parser.m_tokens.push_back({ TAB_DEDENT });
 
 	// Act
@@ -447,12 +449,20 @@ TEST_F(ParserTest, TestParseGlobalControlFlow) {
 //parse_definition
 TEST_F(ParserTest, TestParseDefinition_Function) {
 	// Arrange: def number foo():
-	parser.m_tokens.push_back({ NUMBER, "number" });
+	parser.m_tokens.push_back({ NUMBER});
 	parser.m_tokens.push_back({ FUNCTION });
 	parser.m_tokens.push_back({ IDENTIFIER, "foo" });
-	parser.m_tokens.push_back({ OPEN_PARANTHESIS, "(" });
-	parser.m_tokens.push_back({ CLOSED_PARANTHESIS, ")" });
-	parser.m_tokens.push_back({ COLON, ":" });
+	parser.m_tokens.push_back({ OPEN_PARANTHESIS});
+	parser.m_tokens.push_back({ CLOSED_PARANTHESIS});
+	parser.m_tokens.push_back({ COLON});
+	parser.m_tokens.push_back({ NEW_LINE});
+	parser.m_tokens.push_back({ TAB_INDENT});
+	parser.m_tokens.push_back({ NUMBER});
+	parser.m_tokens.push_back({ IDENTIFIER, "x"});
+	parser.m_tokens.push_back({ EQUAL});
+	parser.m_tokens.push_back({ DECIMAL, "69"});
+	parser.m_tokens.push_back({ NEW_LINE});
+	parser.m_tokens.push_back({ TAB_DEDENT});
 
 	// Act
 	node::NodeDefinition* result = parser.parse_definition();
@@ -464,7 +474,7 @@ TEST_F(ParserTest, TestParseDefinition_Function) {
 	ASSERT_NE(funcDef, nullptr);
 	ASSERT_EQ(funcDef->functionName.value, "foo");
 	ASSERT_EQ(funcDef->args.size(), 0);
-	ASSERT_EQ(funcDef->stmts.size(), 0);
+	ASSERT_EQ(funcDef->stmts.size(), 1);
 }
 
 TEST_F(ParserTest, TestParseDefinition_Object) {

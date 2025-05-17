@@ -1448,16 +1448,18 @@ node::NodeFunctionCall* Parser::parse_function_Call()
 
 		function_call->functionName = consume(); // identifier
 		consume();
+		if (peek() && peek()->type != CLOSED_PARANTHESIS) {
+			do
+			{
+				if (node::NodeValue* val = parse_value()) {
+					node::NodeArgs* arg = new node::NodeArgs();
+					arg->value = val;
+					function_call->args.push_back(arg);
+				}
 
-		do
-		{
-			if (node::NodeValue* val = parse_value()) {
-				node::NodeArgs* arg = new node::NodeArgs();
-				arg->value = val;
-				function_call->args.push_back(arg);
-			}
-
-		} while (try_consume(COMMA));
+			} while (try_consume(COMMA));
+		}
+		
 		try_consume(CLOSED_PARANTHESIS, "Expected closed paranthesis after function call args");
 		
 		return function_call;
@@ -1602,6 +1604,25 @@ node::NodeValue* Parser::parse_value()
 		return val;
 	}
 
+	// value returns string expression
+	size_t verify_str = 0;
+	if (verify_string_expr(&verify_str) && string_operator_check(&verify_str)) {
+		node::NodeStringExpr* s_epxr = parse_string_expr();
+		node::NodeValueStringExpression* val_expr = new node::NodeValueStringExpression();
+		val_expr->expr = s_epxr;
+		val->var = val_expr;
+
+		//Check if it is an array
+		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
+			consume();
+			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
+				val->index = expr;
+				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
+			}
+		}
+
+		return val;
+	}
 
 	// value returns boolean expression
 	size_t verify_bool = 0;
@@ -1624,23 +1645,7 @@ node::NodeValue* Parser::parse_value()
 		return val;
 	}
 
-	// value returns string expression
-	if (node::NodeStringExpr* s_epxr = parse_string_expr()) {
-		node::NodeValueStringExpression* val_expr = new node::NodeValueStringExpression();
-		val_expr->expr = s_epxr;
-		val->var = val_expr;
-
-		//Check if it is an array
-		if (peek() && peek()->type == OPEN_SQUAREBRACKET) {
-			consume();
-			if (node::NodeArithmeticExpr* expr = parse_arithmetic_expr()) {
-				val->index = expr;
-				try_consume(CLOSED_SQUAREBRACKET, "Expected ']' after arithmetic expression assignment");
-			}
-		}
-
-		return val;
-	}
+	
 
 	return nullptr;
 }
@@ -1738,8 +1743,7 @@ node::NodeGlobalIf* Parser::parse_global_if()
 		consume(); // if
 		node::NodeGlobalIf* _if = new node::NodeGlobalIf();
 		size_t verify_bool = 0;
-		if (verify_boolean_expr(&verify_bool)) {
-			node::NodeBooleanExpr* expr = parse_boolean_expr();
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
 			_if->condition = expr;
 			try_consume(COLON, "Expected ':' after boolean expr in global if");
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
@@ -1792,8 +1796,8 @@ node::NodeGlobalElseIf* Parser::parse_global_else_if()
 		consume(); // if
 		node::NodeGlobalElseIf* _elseif = new node::NodeGlobalElseIf();
 		size_t verify_bool = 0;
-		if (verify_boolean_expr(&verify_bool)) {
-			node::NodeBooleanExpr* expr = parse_boolean_expr();
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			
 			_elseif->condition = expr;
 			try_consume(COLON, "Expected ':' after boolean expr in global if");
 			try_consume(NEW_LINE, "Expected 'new_line' after ':' in global if");
@@ -2598,16 +2602,19 @@ bool Parser::verify_function_call(size_t* index)
 
 		*index += 2;
 
-		do
-		{
-			if (peek(*index) && peek(*index)->type == COMMA)
-				(*index)++;
+		if (peek(*index) && peek(*index)->type != CLOSED_PARANTHESIS) {
+			do
+			{
+				if (peek(*index) && peek(*index)->type == COMMA)
+					(*index)++;
 
-			if (verify_value(index) == false) {
-				return false;
-			}
+				if (verify_value(index) == false) {
+					return false;
+				}
 
-		} while (peek(*index) && peek(*index)->type == COMMA);
+			} while (peek(*index) && peek(*index)->type == COMMA);
+		}
+		
 
 		if (peek(*index) && peek(*index)->type == CLOSED_PARANTHESIS) {
 			(*index)++;
@@ -3069,16 +3076,47 @@ bool Parser::verify_not_op(size_t* index)
 
 bool Parser::verify_boolean_factor(size_t* index)
 {
+	size_t startIndex = *index;
 	// bool value
 	if (peek(*index) && peek(*index)->type == BOOLVAL) {
 		(*index)++;
 		return true;
 	}
 
+	if (verify_string_expr(index) && string_operator_check(index)) {
+		return true;
+	}
+	else {
+		*index = startIndex;
+	}
+
+	if (verify_arithmetic_expr(index)) {
+		return true;
+	}
+	else {
+		*index = startIndex;
+	}
 
 	// Identifier
 	if (peek(*index) && peek(*index)->type == IDENTIFIER) {
 		(*index)++;
+
+		if (peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET) {
+			(*index)++;
+			if(peek(*index) && peek(*index)->type == OPEN_SQUAREBRACKET)
+				(*index)++;
+		}
+
+		while (peek(*index) && peek(*index)->type == DOT) {
+			(*index)++;
+			if (peek(*index) && peek(*index)->type == IDENTIFIER) {
+				(*index)++;
+			}
+			else {
+				return false;
+			}
+		}
+
 		return true;
 	}
 
@@ -3128,7 +3166,7 @@ bool Parser::operator_check(size_t* index)
 				}
 			}
 		}
-		switch (peek(*index)->type)
+		switch (peek(*index) && peek(*index)->type)
 		{
 		case PLUS:
 		case MINUS:
@@ -3178,7 +3216,10 @@ bool Parser::operator_check(size_t* index)
 
 bool Parser::arithmetic_operator_check(size_t* index)
 {
-	switch (peek(*index)->type)
+	Token t;
+	if (peek(*index))
+		t = *peek(*index);
+	switch (t.type)
 	{
 	case LESS:
 	case GREATER:
@@ -3193,7 +3234,10 @@ bool Parser::arithmetic_operator_check(size_t* index)
 
 bool Parser::string_operator_check(size_t* index)
 {
-	switch (peek(*index)->type)
+	Token t;
+	if (peek(*index))
+		t = *peek(*index);
+	switch (t.type)
 	{
 	case LESS:
 	case GREATER:
@@ -3205,7 +3249,6 @@ bool Parser::string_operator_check(size_t* index)
 	case MULTIPLY:
 	case MODULO:
 	case DIVIDE:
-	case CLOSED_PARANTHESIS:
 		return false;
 	default:
 		return true;
@@ -3215,7 +3258,10 @@ bool Parser::string_operator_check(size_t* index)
 
 bool Parser::function_operator_check(size_t* index)
 {
-	switch (peek(*index)->type)
+	Token t;
+	if (peek(*index))
+		t = *peek(*index);
+	switch (t.type)
 	{
 	case PLUS:
 	case MINUS:
