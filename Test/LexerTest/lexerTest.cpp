@@ -6,20 +6,17 @@ public:
     FILE* file;
     std::vector<Token> tokens;
     void SetUp() override {
-        
-        lexer = new Lexer(file);
-        tokens = lexer->Tokenize();
     }
 
     void TearDown() override {
-        fclose(file);
-        delete lexer;
     }
 };
 TEST_F(LexerTest, TokenizeTest) {
     //Opens the file inside of the test, due to diffrent file, to different test 
     file = fopen("../../Test/TestFiles/test.txt", "r");
     ASSERT_NE(file, nullptr) << "Failed to open file";
+    lexer = new Lexer(file);
+    tokens = lexer->Tokenize();
 
     ASSERT_EQ(tokens.size(), 10);
     EXPECT_EQ(tokens[0].type, NEW_LINE);
