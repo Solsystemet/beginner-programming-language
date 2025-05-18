@@ -8,6 +8,7 @@
 #include "./SymbolTable.h"
 #include "./FunctionTable.h"
 #include "StructTable.h"
+#include "../errorHandling/errorHandling.h"
 
 
 
@@ -89,7 +90,76 @@ public:
 	inline void assign_function_args(Function* func, const node::NodeFunctionCall* func_call);
 	inline std::string get_type(const Token type);
 
-//private:
+private:
+	template<typename T>
+	bool type_check(Symbol lhs, std::string lhs_type, mpark::variant<double,
+		std::string,
+		bool,
+		Struct,
+		std::vector<mpark::variant<double, std::string, bool, Struct>>> rhs) {
+		if (lhs.type == lhs_type && mpark::holds_alternative<T>(rhs))
+			return true;
+		else
+			return false;
+	}
+
+	template<typename T>
+	bool type_check_arr(Symbol lhs, std::string lhs_type, 
+		mpark::variant<double, std::string, bool, Struct> rhs) {
+		if (lhs.type == lhs_type && mpark::holds_alternative<T>(rhs))
+			return true;
+		else
+			return false;
+	}
+
+	std::string variant_to_type(mpark::variant<double,
+		std::string,
+		bool,
+		Struct,
+		std::vector<mpark::variant<double, std::string, bool, Struct>>
+	> var) 
+	{
+		std::string* result = new std::string();
+		struct typeVisitor
+		{
+			std::string* output;
+			void operator()(const double) {
+				*output = "number";
+			}
+			void operator()(const std::string) {
+				*output = "string";
+			}
+			void operator()(const bool) {
+				*output = "boolean";
+			}
+
+			void operator()(const Struct) {
+				*output = "object";
+			}
+			void operator()(const std::vector<mpark::variant<double, std::string, bool, Struct>> arr) {
+				struct typeArrVisitor
+				{
+					std::string* arr_output;
+					void operator()(const double) {
+						*arr_output = "number";
+					}
+					void operator()(const std::string) {
+						*arr_output = "string";
+					}
+					void operator()(const bool) {
+						*arr_output = "boolean";
+					}
+					void operator()(const Struct) {
+						*arr_output = "object";
+					}
+				};
+				mpark::visit(typeVisitor{ output }, arr[0]);
+			}
+		};
+		mpark::visit(typeVisitor{ result }, var);
+		return *result;
+	}
+
 	node::NodeProg m_prog;
 
 	SymbolTable m_symbolTable; // this is for the global scope EXCLUSIVELY

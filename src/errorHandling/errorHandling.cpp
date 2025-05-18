@@ -11,6 +11,14 @@ void errorHandling::syntax_error(Token current_token, Token expected_token)
 	exit(EXIT_FAILURE);
 }
 
+void errorHandling::semantic_error(Symbol lhs_type, std::string rhs_type)
+{
+    std::cerr << "Trying to assign symbol: '" << lhs_type.name << "' to a value of type '" << rhs_type << "'" << std::endl;
+    std::cerr << "'" << lhs_type.name << "'" << "is of type '" << lhs_type.type << "'" << std::endl;
+    std::cerr << "Find '" << lhs_type.name << "' " << "and make sure to assign it to a correct type" << std::endl;
+    exit(EXIT_FAILURE);
+}
+
 std::string errorHandling::get_line_from_file(int line_num)
 {
     if (!file)

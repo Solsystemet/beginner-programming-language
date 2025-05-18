@@ -1617,17 +1617,16 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 		evaluate_value(assignment->rhs);
 		auto rhs = m_stack.top(); m_stack.pop();
 
-		if (symbol_lhs.type == "number" && mpark::holds_alternative<double>(rhs))
+		if (type_check<double>(symbol_lhs, "number", rhs))
 			arr[lhs_index] = mpark::get<double>(rhs);
-		else if (symbol_lhs.type == "string" && mpark::holds_alternative<std::string>(rhs))
+		else if (type_check<std::string>(symbol_lhs, "string", rhs))
 			arr[lhs_index] = mpark::get<std::string>(rhs);
-		else if (symbol_lhs.type == "boolean" && mpark::holds_alternative<bool>(rhs))
+		else if (type_check<bool>(symbol_lhs, "boolean", rhs))
 			arr[lhs_index] = mpark::get<bool>(rhs);
-		else if (symbol_lhs.type == "object" && mpark::holds_alternative<Struct>(rhs))
+		else if (type_check<Struct>(symbol_lhs, "object", rhs))
 			arr[lhs_index] = mpark::get<Struct>(rhs);
 		else {
-			std::cerr << "Type mismatch in array element assignment!" << std::endl;
-			exit(EXIT_FAILURE);
+			errorHandling::semantic_error(symbol_lhs, variant_to_type(rhs));
 		}
 
 		symbol_lhs.value = arr;
@@ -1655,15 +1654,14 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 			exit(EXIT_FAILURE);
 		}
 
-		if ((symbol_lhs.type == "number" && mpark::holds_alternative<double>(rhs_arr[0])) ||
-			(symbol_lhs.type == "string" && mpark::holds_alternative<std::string>(rhs_arr[0])) ||
-			(symbol_lhs.type == "boolean" && mpark::holds_alternative<bool>(rhs_arr[0])) ||
-			(symbol_lhs.type == "object" && mpark::holds_alternative<Struct>(rhs_arr[0]))) {
+		if (type_check_arr<double>(symbol_lhs, "number", rhs_arr[0]) ||
+			type_check_arr<std::string>(symbol_lhs, "string", rhs_arr[0]) ||
+			type_check_arr<bool>(symbol_lhs, "boolean", rhs_arr[0]) ||
+			type_check_arr<Struct>(symbol_lhs, "object", rhs_arr[0])) {
 			symbol_lhs.value = rhs_arr;
 		}
 		else {
-			std::cerr << "Array element types do not match!" << std::endl;
-			exit(EXIT_FAILURE);
+			errorHandling::semantic_error(symbol_lhs, variant_to_type(rhs));
 		}
 		if (index != -1)
 			result = m_scopedTables[index].lookup(assignment->identifierHead.value);
@@ -1677,17 +1675,16 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 	evaluate_value(assignment->rhs);
 	auto rhs = m_stack.top(); m_stack.pop();
 
-	if (symbol_lhs.type == "number" && mpark::holds_alternative<double>(rhs))
+	if (type_check<double>(symbol_lhs, "number", rhs))
 		symbol_lhs.value = rhs;
-	else if (symbol_lhs.type == "string" && mpark::holds_alternative<std::string>(rhs))
+	else if (type_check<std::string>(symbol_lhs, "string", rhs))
 		symbol_lhs.value = rhs;
-	else if (symbol_lhs.type == "boolean" && mpark::holds_alternative<bool>(rhs))
+	else if (type_check<bool>(symbol_lhs, "boolean", rhs))
 		symbol_lhs.value = rhs;
-	else if (symbol_lhs.type == "object" && mpark::holds_alternative<Struct>(rhs))
+	else if (type_check<Struct>(symbol_lhs, "object", rhs))
 		symbol_lhs.value = rhs;
 	else {
-		std::cerr << "Type mismatch in assignment!" << std::endl;
-		exit(EXIT_FAILURE);
+		errorHandling::semantic_error(symbol_lhs, variant_to_type(rhs));
 	}
 	if (index != -1)
 		result = m_scopedTables[index].lookup(assignment->identifierHead.value);
@@ -1724,21 +1721,20 @@ void Evaluator::evaluate_assignment_object(const node::NodeAssignment* assignmen
 			auto& elem = vec[idx];
 
 			// Type check and assign
-			if (mpark::holds_alternative<double>(elem) && mpark::holds_alternative<double>(rhs)) {
+			if (type_check<double>(*symbol, "number",rhs)) {
 				elem = mpark::get<double>(rhs);
 			}
-			else if (mpark::holds_alternative<std::string>(elem) && mpark::holds_alternative<std::string>(rhs)) {
+			else if (type_check<std::string>(*symbol, "string", rhs)) {
 				elem = mpark::get<std::string>(rhs);
 			}
-			else if (mpark::holds_alternative<bool>(elem) && mpark::holds_alternative<bool>(rhs)) {
+			else if (type_check<bool>(*symbol, "boolean", rhs)) {
 				elem = mpark::get<bool>(rhs);
 			}
-			else if (mpark::holds_alternative<Struct>(elem) && mpark::holds_alternative<Struct>(rhs)) {
+			else if (type_check<Struct>(*symbol, "object", rhs)) {
 				elem = mpark::get<Struct>(rhs);
 			}
 			else {
-				std::cerr << "Type mismatch in array assignment at index " << idx << std::endl;
-				exit(EXIT_FAILURE);
+				errorHandling::semantic_error(*symbol, variant_to_type(rhs));
 			}
 			return;
 		}
@@ -2039,8 +2035,7 @@ void Evaluator::evaluate_identifier_property(const node::NodeValueIdentifierProp
 					symbol = prop;
 				}
 				else {
-					std::cerr << "identifier property is not of type object!!" << std::endl;
-					exit(EXIT_FAILURE);
+					errorHandling::semantic_error(*symbol, "object");
 				}
 			}
 
@@ -2065,8 +2060,7 @@ void Evaluator::evaluate_identifier_property(const node::NodeValueIdentifierProp
 							symbol = prop;
 						}
 						else {
-							std::cerr << "identifier property is not of type object!!" << std::endl;
-							exit(EXIT_FAILURE);
+							errorHandling::semantic_error(*symbol, "object");
 						}
 					}
 
@@ -2272,7 +2266,7 @@ void Evaluator::evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Funct
 					return;
 				}
 				else {
-					std::cerr << "return value does not match function type" << std::endl;
+					std::cerr << "return value in '"<< func->name << "'" << " does not match function type: " << "'"  << func->type << "'" << std::endl;
 					exit(EXIT_FAILURE);
 				}
 
@@ -2293,7 +2287,7 @@ void Evaluator::evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Funct
 				return;
 			}
 			else {
-				std::cerr << "return value does not match function type" << std::endl;
+				std::cerr << "return value in '" << func->name << "'" << " does not match function type: " << "'" << func->type << "'" << std::endl;
 				exit(EXIT_FAILURE);
 			}
 
