@@ -3,6 +3,7 @@
 #include "src/lexer/lexer.h"
 #include "src/parser/parser.hpp"
 #include "src/evaluator/Evaluator.h"
+#include "src/errorHandling/errorHandling.h"
 
 int main(int argc, char* argv[])
 {
@@ -19,7 +20,7 @@ int main(int argc, char* argv[])
     }*/
     
     FILE* input = fopen("test.txt", "r");
-
+    errorHandling::file = fopen("test.txt", "r");
     Lexer lexer = Lexer(input);
     std::vector<Token> result = lexer.Tokenize();
     fclose(yyin);

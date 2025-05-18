@@ -4,6 +4,7 @@
 #include "../lexer/tokens.h"
 #include "../mpark/variant.hpp"
 #include "../nodes.hpp"
+#include "../errorHandling/errorHandling.h"
 
 
 
@@ -202,5 +203,12 @@ public:
 		}
 		return nullptr;
 	}
+	 private:
+		 Token* syntax_check(int expected) {
+			 if (peek() && peek()->type == expected)
+				 return &consume();
+			 else
+				 errorHandling::syntax_error(*peek(), { expected });
+		 }
 
 };
