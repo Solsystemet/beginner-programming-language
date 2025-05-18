@@ -16,7 +16,6 @@ private:
 
     // helper function for verifying indent and dedent count. move elsewhere or delete
     inline void CountIndentDedent(std::vector<Token> tokens);
-    inline std::string SanitizeStringLiteral(const std::string& raw);
 
 public:
     inline std::string SanitizeStringLiteral(const std::string& raw);
