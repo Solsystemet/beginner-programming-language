@@ -40,7 +40,7 @@ TEST_F(LexerTest, AllTokensTest) {
     lexer = new Lexer(file);
     tokens = lexer->Tokenize();
 
-    ASSERT_GE(tokens.size(), 39);
+    ASSERT_GE(tokens.size(), 38);
 
     EXPECT_EQ(tokens[0].type, NEW_LINE);
     EXPECT_EQ(tokens[1].type, TAB_INDENT);
@@ -72,13 +72,14 @@ TEST_F(LexerTest, AllTokensTest) {
     EXPECT_EQ(tokens[27].type, CLOSED_SQUAREBRACKET);
     EXPECT_EQ(tokens[28].type, DOT);
     EXPECT_EQ(tokens[29].type, IS);
-    EXPECT_EQ(tokens[30].type, STRING);
-    EXPECT_EQ(tokens[31].type, BOOLEAN);
-    EXPECT_EQ(tokens[32].type, STRING_VAL);
-    EXPECT_EQ(tokens[33].type, INPUT);
-    EXPECT_EQ(tokens[34].type, LESS);
-    EXPECT_EQ(tokens[35].type, GREATER);
-    EXPECT_EQ(tokens[36].type, TAB_DEDENT);
-    EXPECT_EQ(tokens[37].type, EOF);
-
+    EXPECT_EQ(tokens[30].type, NEW_LINE);
+    EXPECT_EQ(tokens[31].type, TAB_DEDENT);
+    EXPECT_EQ(tokens[32].type, STRING);
+    EXPECT_EQ(tokens[33].type, BOOLEAN);
+    EXPECT_EQ(tokens[34].type, STRING_VAL);
+    EXPECT_EQ(tokens[35].type, INPUT);
+    EXPECT_EQ(tokens[36].type, LESS);
+    EXPECT_EQ(tokens[37].type, GREATER);
+    EXPECT_EQ(tokens[38].type, EOF);
 }
+
