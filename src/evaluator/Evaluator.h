@@ -90,9 +90,9 @@ public:
 	inline void assign_function_args(Function* func, const node::NodeFunctionCall* func_call);
 	inline std::string get_type(const Token type);
 
-private:
+//private:
 	template<typename T>
-	bool type_check(Symbol lhs, std::string lhs_type, mpark::variant<double,
+	inline bool type_check(Symbol lhs, std::string lhs_type, mpark::variant<double,
 		std::string,
 		bool,
 		Struct,
@@ -104,7 +104,7 @@ private:
 	}
 
 	template<typename T>
-	bool type_check_arr(Symbol lhs, std::string lhs_type, 
+	inline bool type_check_arr(Symbol lhs, std::string lhs_type, 
 		mpark::variant<double, std::string, bool, Struct> rhs) {
 		if (lhs.type == lhs_type && mpark::holds_alternative<T>(rhs))
 			return true;
@@ -112,7 +112,7 @@ private:
 			return false;
 	}
 
-	std::string variant_to_type(mpark::variant<double,
+	inline std::string variant_to_type(mpark::variant<double,
 		std::string,
 		bool,
 		Struct,

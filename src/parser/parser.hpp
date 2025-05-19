@@ -203,8 +203,7 @@ public:
 		}
 		return nullptr;
 	}
-	 private:
-		 Token* syntax_check(int expected) {
+	Token* syntax_check(int expected) {
 			 if (peek() && peek()->type == expected)
 				 return &consume();
 			 else

@@ -1686,6 +1686,7 @@ void Evaluator::evaluate_assignment(const node::NodeAssignment* assignment)
 	else {
 		errorHandling::semantic_error(symbol_lhs, variant_to_type(rhs));
 	}
+
 	if (index != -1)
 		result = m_scopedTables[index].lookup(assignment->identifierHead.value);
 	else

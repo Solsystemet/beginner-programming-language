@@ -10,6 +10,7 @@
 #include "../src/lexer/lexer.h"
 #include "../src/parser/parser.hpp"
 #include "../src/evaluator/evaluator.cpp"
+#include "../src/errorHandling/errorHandling.h"
 
 
 
