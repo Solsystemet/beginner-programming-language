@@ -1,11 +1,8 @@
-number function fib(number n):
-	number result = 0
-	if n is 0:
-		result = 0
-	else if n is 1:
-		result = 1
-	else:
-		result = fib(n - 1) + fib(n - 2)
-	return result
-
-print(fib(10))
+number function test_loop():
+	for number i = 0, i < 5, 1:
+		for number j = 0, j < 5, 1:
+			print(j)
+			break
+		print(i)
+	return 0
+test_loop()

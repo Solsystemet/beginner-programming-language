@@ -96,6 +96,59 @@ void Evaluator::evaluate_nested_stmt(const node::NodeNestedStmt* stmt, bool* _br
 	mpark::visit(StmtVisitor{ this, _break }, stmt->var);
 }
 
+inline void Evaluator::evaluate_loop_stmt(const node::NodeLoopStmt* stmt, bool* _break, bool* _continue)
+{
+	struct StmtVisitor
+	{
+		Evaluator* evaluator;
+		bool* _break;
+		bool* _continue;
+
+		// decleration
+		void operator()(const node::NodeDecl* decl) const {
+
+			evaluator->evaluate_declecration(decl);
+		}
+
+		// function call
+		void operator()(const node::NodeFunctionCall* stmt_function_call) const {
+			evaluator->evaluate_function_call(stmt_function_call);
+		}
+		// assignment
+		void operator()(const node::NodeAssignment* assignment) const {
+			evaluator->evaluate_assignment(assignment);
+		}
+		// global control flow
+		void operator()(const node::NodeGlobalLoopControlFlow* global_control_flow) const {
+			evaluator->evaluate_global_loop_control_flow(global_control_flow, _break, _continue);
+		}
+
+		// print stmt
+		void operator()(const node::NodeStmtPrint* stmt_print) const {
+			evaluator->evaluate_print(stmt_print);
+		}
+
+		// input
+		void operator()(const node::NodeStmtInput* input) const {
+			std::string value;
+			std::getline(std::cin, value);
+			evaluator->m_stack.push(value);
+		}
+
+		// break
+		void operator()(const node::NodeBreak* _) const {
+			*_break = true;
+		}
+
+		// continue
+		void operator()(const node::NodeContinue* _) const {
+			*_continue = true;
+		}
+
+	};
+	mpark::visit(StmtVisitor{ this, _break, _continue }, stmt->var);
+}
+
 void Evaluator::evaluate_print(const node::NodeStmtPrint* print_stmt)
 {
 	struct PrintVisitor
@@ -787,6 +840,7 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 						evaluator->m_stack.push(mpark::get<double>(arr[index]));
 					}
 					else if (mpark::holds_alternative<std::string>(arr[index])) {
+						std::cout << "Yoooo" << std::endl;
 						evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 					}
 					else if (mpark::holds_alternative<Struct>(arr[index])) {
@@ -802,6 +856,7 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 						evaluator->m_stack.push(symbol->value);
 						return;
 					}
+
 					evaluator->m_stack.push(evaluator->m_symbolTable.lookup(identifier->identifier.value)->value);
 				}
 
@@ -2310,6 +2365,116 @@ void Evaluator::evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Funct
 	mpark::visit(StmtVisitor{ this, func, _break }, stmt->var);
 }
 
+inline void Evaluator::evaluate_function_loop_stmt(const node::NodeFunctionLoopStmt* stmt, Function* func, bool* _break, bool* _continue)
+{
+	struct StmtVisitor
+	{
+		Evaluator* evaluator;
+		Function* func;
+		bool* _break;
+		bool* _continue;
+
+		// decleration
+		void operator()(const node::NodeDecl* decl) const {
+			evaluator->evaluate_declecration(decl);
+		}
+
+		// function call
+		void operator()(const node::NodeFunctionCall* stmt_function_call) const {
+			evaluator->evaluate_function_call(stmt_function_call);
+		}
+		// assignment
+		void operator()(const node::NodeAssignment* assignment) const {
+			evaluator->evaluate_assignment(assignment);
+		}
+		// function control flow
+		void operator()(const node::NodeFunctionLoopControlFlow* function_control_flow) const {
+			evaluator->evaluate_function_loop_control_flow(function_control_flow, func, _break, _continue);
+		}
+
+		// return
+		void operator()(const node::NodeFunctionReturn* _return) const {
+			if (func->type == "") {
+				*_break = true;
+				return;
+			}
+			evaluator->evaluate_value(_return->val);
+			auto val = evaluator->m_stack.top();
+			evaluator->m_stack.pop();
+
+			if (func->isAnArray == true && mpark::holds_alternative<std::vector<mpark::variant<double, std::string, bool, Struct>>>(val)) {
+
+				auto arr = mpark::get<std::vector<mpark::variant<double, std::string, bool, Struct>>>(val);
+
+				if (func->type == "number" && mpark::holds_alternative<double>(arr[0])) {
+					evaluator->m_stack.push(arr);
+					*_break = true;
+					return;
+				}
+				else if (func->type == "boolean" && mpark::holds_alternative<bool>(arr[0])) {
+					evaluator->m_stack.push(arr);
+					*_break = true;
+					return;
+				}
+				else if (func->type == "string" && mpark::holds_alternative<std::string>(arr[0])) {
+					evaluator->m_stack.push(arr);
+					*_break = true;
+					return;
+				}
+				else {
+					std::cerr << "return value in '" << func->name << "'" << " does not match function type: " << "'" << func->type << "'" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
+			}
+			else if (func->type == "number" && mpark::holds_alternative<double>(val)) {
+				evaluator->m_stack.push(val);
+				*_break = true;
+				return;
+			}
+			else if (func->type == "boolean" && mpark::holds_alternative<bool>(val)) {
+				evaluator->m_stack.push(val);
+				*_break = true;
+				return;
+			}
+			else if (func->type == "string" && mpark::holds_alternative<std::string>(val)) {
+				evaluator->m_stack.push(val);
+				*_break = true;
+				return;
+			}
+			else {
+				std::cerr << "return value in '" << func->name << "'" << " does not match function type: " << "'" << func->type << "'" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+		}
+
+		// print stmt
+		void operator()(const node::NodeStmtPrint* stmt_print) const {
+			evaluator->evaluate_print(stmt_print);
+		}
+
+		// input
+		void operator()(const node::NodeStmtInput* input) const {
+			std::string value;
+			std::getline(std::cin, value);
+			evaluator->m_stack.push(value);
+		}
+
+		// break
+		void operator()(const node::NodeBreak* _) const {
+			*_break = true;
+		}
+
+		// continue
+		void operator()(const node::NodeContinue* _) const {
+			*_continue = true;
+		}
+
+	};
+	mpark::visit(StmtVisitor{ this, func, _break, _continue}, stmt->var);
+}
+
 void Evaluator::evaluate_global_control_flow(const node::NodeGlobalControlFlow* flow)
 {
 	struct ControlFlowVisitor {
@@ -2391,6 +2556,85 @@ void Evaluator::evaluate_global_control_flow(const node::NodeGlobalControlFlow* 
 	mpark::visit(ControlFlowVisitor{ this}, flow->var);
 }
 
+inline void Evaluator::evaluate_global_loop_control_flow(const node::NodeGlobalLoopControlFlow* flow, bool* _break, bool* _continue)
+{
+	struct ControlFlowVisitor {
+		Evaluator* evaluator;
+
+		bool* _break;
+		bool* _continue;
+		// if statement
+		void operator()(const node::NodeGlobalLoopIf* _if) const {
+			evaluator->evaluate_boolean_expression(_if->condition);
+			auto cond = evaluator->m_stack.top();
+			evaluator->m_stack.pop();
+
+			// Initial if statement 
+			if (mpark::get<bool>(cond) == true) {
+
+				SymbolTable table;
+				evaluator->m_scopedTables.push_back(table);
+				for (node::NodeLoopStmt* stmt : _if->stmts) {
+					if (*_break == true) {
+						break;
+					}
+					evaluator->evaluate_loop_stmt(stmt, _break, _continue);
+				}
+
+				evaluator->m_scopedTables.pop_back();
+				return;
+			}
+
+			// Check else ifs
+			for (node::NodeGlobalLoopElseIf* _elseif : _if->elseifs) {
+				evaluator->evaluate_boolean_expression(_elseif->condition);
+				auto cond = evaluator->m_stack.top();
+				evaluator->m_stack.pop();
+
+				// Initial if statement 
+				if (mpark::get<bool>(cond) == true) {
+
+					SymbolTable table;
+					evaluator->m_scopedTables.push_back(table);
+
+					for (node::NodeLoopStmt* stmt : _elseif->stmts) {
+						if (*_break == true) {
+							break;
+						}
+						evaluator->evaluate_loop_stmt(stmt, _break, _continue);
+					}
+
+					evaluator->m_scopedTables.pop_back();
+					return;
+				}
+			}
+
+			if (_if->_else != nullptr) {
+
+				SymbolTable table;
+				evaluator->m_scopedTables.push_back(table);
+
+				for (node::NodeLoopStmt* stmt : _if->_else->stmts) {
+					if (*_break == true) {
+						break;
+					}
+					evaluator->evaluate_loop_stmt(stmt, _break, _continue);
+				}
+
+				evaluator->m_scopedTables.pop_back();
+				return;
+			}
+		}
+
+		// loop statement
+		void operator()(const node::NodeGlobalLoop* _loop) const {
+			evaluator->evaluate_global_loop(_loop);
+		}
+
+	};
+	mpark::visit(ControlFlowVisitor{ this, _break, _continue }, flow->var);
+}
+
 void Evaluator::evaluate_global_loop(const node::NodeGlobalLoop* loop)
 {
 	struct LoopVisitor {
@@ -2423,11 +2667,16 @@ void Evaluator::evaluate_global_while(const node::NodeGlobalWhile* _while)
 
 		
 		bool _break = false;
-		for (node::NodeNestedStmt* stmt : _while->stmts) {
+		bool _continue = false;
+		for (node::NodeLoopStmt* stmt : _while->stmts) {
 			if (_break == true) {
 				break;
 			}
-			evaluate_nested_stmt(stmt, &_break);
+			if (_continue == true) {
+				_continue = false;
+				break;
+			}
+			evaluate_loop_stmt(stmt, &_break,&_continue);
 		}
 		
 		// Break out of while loop if break was true
@@ -2470,18 +2719,25 @@ void Evaluator::evaluate_global_for(const node::NodeGlobalFor* _for)
 	// our "for loop"
 	while (mpark::get<bool>(cond) == true) {
 		bool _break = false;
-		for (node::NodeNestedStmt* stmt : _for->stmts) {
+		bool _continue = false;
+		for (node::NodeLoopStmt* stmt : _for->stmts) {
 			if (_break == true) {
 				break;
 			}
-			evaluate_nested_stmt(stmt, &_break);
+			if (_continue == true) {
+				_continue = false;
+				break;
+			}
+			evaluate_loop_stmt(stmt, &_break, &_continue);
 		}
 
 		// Break out of while loop if break was true
 		if (_break)
 			break;
 
+
 		// simulate the for loop by incrementing
+		Symbol* indexRef = m_scopedTables[m_scopedTables.size() - 1].lookup(index.name);
 		mpark::get<double>(indexRef->value) += (size_t)mpark::get<double>(increment);
 		evaluate_boolean_expression(_for->condition);
 		cond = m_stack.top();
@@ -2574,6 +2830,90 @@ void Evaluator::evaluate_function_control_flow(const node::NodeFunctionControlFl
 	mpark::visit(FunctionControlFlowVisitor{ this, func, _break }, flow->var);
 }
 
+inline void Evaluator::evaluate_function_loop_control_flow(const node::NodeFunctionLoopControlFlow* flow, Function* func, bool* _break, bool* _continue)
+{
+	struct FunctionControlFlowVisitor
+	{
+		Evaluator* evaluator;
+		Function* func;
+		bool* _break;
+		bool* _continue;
+
+		// if statement
+		void operator()(const node::NodeFunctionLoopIf* _if) const {
+			evaluator->evaluate_boolean_expression(_if->condition);
+			auto cond = evaluator->m_stack.top();
+			evaluator->m_stack.pop();
+
+			// Initial if statement 
+			if (mpark::get<bool>(cond) == true) {
+
+				SymbolTable table;
+				evaluator->m_scopedTables.push_back(table);
+				for (node::NodeFunctionLoopStmt* stmt : _if->stmts) {
+					if (*_break == true) {
+						break;
+					}
+					evaluator->evaluate_function_loop_stmt(stmt, func, _break, _continue);
+				}
+
+				evaluator->m_scopedTables.pop_back();
+				return;
+			}
+
+			// Check else ifs
+			for (node::NodeFunctionLoopElseIf* _elseif : _if->elseifs) {
+				evaluator->evaluate_boolean_expression(_elseif->condition);
+				auto cond = evaluator->m_stack.top();
+				evaluator->m_stack.pop();
+
+				// Initial if statement 
+				if (mpark::get<bool>(cond) == true) {
+
+					SymbolTable table;
+					evaluator->m_scopedTables.push_back(table);
+					//std::cout << evaluator->m_scopedTables.size();
+
+					for (node::NodeFunctionLoopStmt * stmt : _elseif->stmts) {
+						if (*_break == true) {
+							break;
+						}
+						evaluator->evaluate_function_loop_stmt(stmt, func, _break, _continue);
+					}
+
+					evaluator->m_scopedTables.pop_back();
+					return;
+				}
+			}
+
+			if (_if->_else != nullptr) {
+
+				SymbolTable table;
+				evaluator->m_scopedTables.push_back(table);
+
+				for (node::NodeFunctionLoopStmt* stmt : _if->_else->stmts) {
+					if (*_break == true) {
+						break;
+					}
+					evaluator->evaluate_function_loop_stmt(stmt, func, _break, _continue);
+				}
+
+				evaluator->m_scopedTables.pop_back();
+				return;
+			}
+		}
+
+		// loop statement
+		void operator()(const node::NodeFunctionLoop* _loop) const {
+			evaluator->evaluate_function_loop(_loop, func, _break);
+		}
+
+	};
+
+
+	mpark::visit(FunctionControlFlowVisitor{ this, func, _break, _continue }, flow->var);
+}
+
 void Evaluator::evaluate_function_loop(const node::NodeFunctionLoop* loop, Function* func, bool* _break)
 {
 	struct LoopVisitor {
@@ -2605,11 +2945,17 @@ void Evaluator::evaluate_function_while(const node::NodeFunctionWhile* _while, F
 	m_scopedTables.push_back(table);
 	// Initial if statement 
 	while (mpark::get<bool>(cond) == true) {
-		for (node::NodeFunctionStmt* stmt : _while->stmts) {
-			if (*_break == true) {
+		bool _continue = false;
+		bool _break = false;
+		for (node::NodeFunctionLoopStmt* stmt : _while->stmts) {
+			if (_break == true) {
 				break;
 			}
-			evaluate_function_stmt(stmt, func, _break);
+			if (_continue == true) {
+				_continue = false;
+				break;
+			}
+			evaluate_function_loop_stmt(stmt, func, &_break, &_continue);
 		}
 
 		// Break out of while loop if break was true
@@ -2646,23 +2992,28 @@ void Evaluator::evaluate_function_for(const node::NodeFunctionFor* _for, Functio
 	auto cond = m_stack.top();
 	m_stack.pop();
 
-	Symbol* indexRef = m_scopedTables[m_scopedTables.size() - 1].lookup(index.name);
 
 	// our "for loop"
 	while (mpark::get<bool>(cond) == true) {
-		for (node::NodeFunctionStmt* stmt : _for->stmts) {
-			if (*_break == true) {
+		bool _continue = false;
+		bool _break = false;
+		for (node::NodeFunctionLoopStmt* stmt : _for->stmts) {
+			if (_break == true) {
 				break;
 			}
-			evaluate_function_stmt(stmt, func, _break);
+			if (_continue == true) {
+				_continue = false;
+				break;
+			}
+			evaluate_function_loop_stmt(stmt, func, &_break, &_continue);
 		}
 
 		// Break out of while loop if break was true
-		if (*_break)
+		if (_break)
 			break;
 
 		// simulate the for loop by incrementing
-		indexRef = m_scopedTables[m_scopedTables.size() - 1].lookup(index.name);
+		Symbol* indexRef = m_scopedTables[m_scopedTables.size() - 1].lookup(index.name);
 		mpark::get<double>(indexRef->value) += (size_t)mpark::get<double>(increment);
 		evaluate_boolean_expression(_for->condition);
 		cond = m_stack.top();

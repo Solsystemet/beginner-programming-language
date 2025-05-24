@@ -23,6 +23,7 @@ public:
 	
 	inline void evaluate_stmt(const node::NodeStmt* stmt);
 	inline void evaluate_nested_stmt(const node::NodeNestedStmt* stmt, bool* _break);
+	inline void evaluate_loop_stmt(const node::NodeLoopStmt* stmt, bool* _break, bool* _continue);
 	
 	inline void evaluate_print(const node::NodeStmtPrint* print_stmt);
 	
@@ -71,14 +72,17 @@ public:
 	inline void evaluate_value_object(const node::NodeValue* val, SymbolTable* table);
 	
 	inline void evaluate_function_stmt(const node::NodeFunctionStmt* stmt, Function* func, bool* _break);
+	inline void evaluate_function_loop_stmt(const node::NodeFunctionLoopStmt* stmt, Function* func, bool* _break, bool* _continue);
 	
 	inline void evaluate_global_control_flow(const node::NodeGlobalControlFlow* flow);
+	inline void evaluate_global_loop_control_flow(const node::NodeGlobalLoopControlFlow* flow, bool* _break, bool* _continue);
 	
 	inline void evaluate_global_loop(const node::NodeGlobalLoop* loop);
 	inline void evaluate_global_while(const node::NodeGlobalWhile* _while);
 	inline void evaluate_global_for(const node::NodeGlobalFor* _for);
 	
 	inline void evaluate_function_control_flow(const node::NodeFunctionControlFlow* flow, Function* func, bool* _break);
+	inline void evaluate_function_loop_control_flow(const node::NodeFunctionLoopControlFlow* flow, Function* func, bool* _break, bool* _continue);
 	
 	inline void evaluate_function_loop(const node::NodeFunctionLoop* loop, Function* func, bool* _break);
 	inline void evaluate_function_while(const node::NodeFunctionWhile* _while, Function* func, bool* _break);

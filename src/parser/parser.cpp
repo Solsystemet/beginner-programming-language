@@ -636,6 +636,121 @@ node::NodeNestedStmt* Parser::parse_nested_stmt()
 	return nullptr;
 }
 
+node::NodeLoopStmt* Parser::parse_loop_stmt()
+{
+	if (peek() && peek()->type == BREAK) {
+		consume();
+		node::NodeLoopStmt* stmt = new node::NodeLoopStmt();
+		node::NodeBreak* _break = new node::NodeBreak();
+		stmt->var = _break;
+		syntax_check(NEW_LINE);
+		return stmt;
+	}
+
+	if (peek() && peek()->type == CONTINUE) {
+		consume();
+		node::NodeLoopStmt* stmt = new node::NodeLoopStmt();
+		node::NodeContinue* _continue = new node::NodeContinue();
+		stmt->var = _continue;
+		syntax_check(NEW_LINE);
+		return stmt;
+	}
+	// <Stmt> -> <Decleration>
+	if (node::NodeDecl* decl = parse_decleration()) {
+		node::NodeLoopStmt* stmt = new node::NodeLoopStmt();
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = decl;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in decleration" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		return stmt;
+	}
+
+	// <Stmt> -> <Function Call>
+	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
+		node::NodeLoopStmt* stmt = new node::NodeLoopStmt();
+		stmt->var = func_Call;
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = func_Call;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in function call" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		return stmt;
+	}
+
+	if (node::NodeAssignment* assignment = parse_assignment()) {
+		node::NodeLoopStmt* stmt = new node::NodeLoopStmt();
+		stmt->var = assignment;
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = assignment;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in assignment" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		return stmt;
+	}
+
+	if (node::NodeGlobalLoopControlFlow* controlFlow = parse_global_loop_control_flow()) {
+		node::NodeLoopStmt* stmt = new node::NodeLoopStmt();
+		stmt->var = controlFlow;
+		return stmt;
+	}
+
+	if (peek() && peek()->type == INPUT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS &&
+		peek(2) && peek(2)->type == CLOSED_PARANTHESIS
+		) {
+		consume();
+		consume();
+		consume();
+		node::NodeLoopStmt* stmt = new node::NodeLoopStmt();
+		node::NodeStmtInput*
+			input = new node::NodeStmtInput();
+
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			stmt->var = input;
+			return stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in input" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	// Special print function call
+	if (peek() && peek()->type == PRINT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
+		// consume terminal symbols
+		consume();
+		consume();
+		auto* node_stmt_print = new node::NodeStmtPrint();
+		node_stmt_print->value = parse_value();
+
+		// consume terminal symbols
+		syntax_check(CLOSED_PARANTHESIS);
+		if (try_consume(NEW_LINE) || try_consume(EOF)) {
+			auto* node_stmt = new node::NodeLoopStmt();
+			node_stmt->var = node_stmt_print;
+			return node_stmt;
+		}
+		else {
+			std::cerr << "Expected new line or end of file in print" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+
+
+	return nullptr;
+}
+
 node::NodeFunctionStmt* Parser::parse_function_stmt()
 {
 	// <Stmt> -> <Decleration>
@@ -703,6 +818,97 @@ node::NodeFunctionStmt* Parser::parse_function_stmt()
 		// consume terminal symbols
 		syntax_check(CLOSED_PARANTHESIS);
 		node::NodeFunctionStmt* stmt = new node::NodeFunctionStmt();
+		stmt->var = node_stmt_print;
+		return stmt;
+	}
+
+	return nullptr;
+}
+
+node::NodeFunctionLoopStmt* Parser::parse_function_loop_stmt()
+{
+	if (peek() && peek()->type == BREAK) {
+		consume();
+		node::NodeFunctionLoopStmt* stmt = new node::NodeFunctionLoopStmt();
+		node::NodeBreak* _break = new node::NodeBreak();
+		stmt->var = _break;
+		syntax_check(NEW_LINE);
+		return stmt;
+	}
+
+	if (peek() && peek()->type == CONTINUE) {
+		consume();
+		node::NodeFunctionLoopStmt* stmt = new node::NodeFunctionLoopStmt();
+		node::NodeContinue* _continue = new node::NodeContinue();
+		stmt->var = _continue;
+		syntax_check(NEW_LINE);
+		return stmt;
+	}
+	// <Stmt> -> <Decleration>
+	if (node::NodeDecl* decl = parse_decleration()) {
+		node::NodeFunctionLoopStmt* stmt = new node::NodeFunctionLoopStmt();
+		stmt->var = decl;
+		return stmt;
+	}
+
+	// <Stmt> -> <Function Call>
+	if (node::NodeFunctionCall* func_Call = parse_function_Call()) {
+		node::NodeFunctionLoopStmt* stmt = new node::NodeFunctionLoopStmt();
+		stmt->var = func_Call;
+		return stmt;
+	}
+
+	if (node::NodeAssignment* assignment = parse_assignment()) {
+		node::NodeFunctionLoopStmt* stmt = new node::NodeFunctionLoopStmt();
+		stmt->var = assignment;
+		return stmt;
+	}
+
+	if (node::NodeFunctionLoopControlFlow* controlFlow = parse_function_loop_control_flow()) {
+		node::NodeFunctionLoopStmt* stmt = new node::NodeFunctionLoopStmt();
+		stmt->var = controlFlow;
+		return stmt;
+	}
+
+	if (peek() && peek()->type == RETURN) {
+		consume();
+		node::NodeFunctionLoopStmt* stmt = new node::NodeFunctionLoopStmt();
+		node::NodeFunctionReturn* returnstmt = new node::NodeFunctionReturn();
+		size_t verify_Val = 0;
+		if (verify_value(&verify_Val)) {
+			node::NodeValue* val = parse_value();
+			returnstmt->val = val;
+		}
+		stmt->var = returnstmt;
+		return stmt;
+	}
+
+	if (peek() && peek()->type == INPUT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS &&
+		peek(2) && peek(2)->type == CLOSED_PARANTHESIS
+		) {
+		consume();
+		consume();
+		consume();
+		node::NodeFunctionLoopStmt* stmt = new node::NodeFunctionLoopStmt();
+		node::NodeStmtInput*
+			input = new node::NodeStmtInput();
+		stmt->var = input;
+		return stmt;
+	}
+
+	// Special print function call
+	if (peek() && peek()->type == PRINT &&
+		peek(1) && peek(1)->type == OPEN_PARANTHESIS) {
+		// consume terminal symbols
+		consume();
+		consume();
+		auto* node_stmt_print = new node::NodeStmtPrint();
+		node_stmt_print->value = parse_value();
+
+		// consume terminal symbols
+		syntax_check(CLOSED_PARANTHESIS);
+		node::NodeFunctionLoopStmt* stmt = new node::NodeFunctionLoopStmt();
 		stmt->var = node_stmt_print;
 		return stmt;
 	}
@@ -1886,7 +2092,7 @@ node::NodeGlobalWhile* Parser::parse_global_while()
 				if (peek() && peek()->type == TAB_DEDENT)
 					break;
 
-				if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+				if (node::NodeLoopStmt* stmt = parse_loop_stmt()) {
 					_while->stmts.push_back(stmt);
 				}
 				else {
@@ -1962,7 +2168,9 @@ node::NodeGlobalFor* Parser::parse_global_for()
 				consume();
 				continue;
 			}
-			if (node::NodeNestedStmt* stmt = parse_nested_stmt()) {
+			if (peek() && peek()->type == TAB_DEDENT)
+				break;
+			if (node::NodeLoopStmt* stmt = parse_loop_stmt()) {
 				_for->stmts.push_back(stmt);
 			}
 			else {
@@ -1973,6 +2181,152 @@ node::NodeGlobalFor* Parser::parse_global_for()
 		syntax_check(TAB_DEDENT);
 
 		return _for;
+	}
+
+	return nullptr;
+}
+
+node::NodeGlobalLoopControlFlow* Parser::parse_global_loop_control_flow()
+{
+	node::NodeGlobalLoopControlFlow* controlFlow = new node::NodeGlobalLoopControlFlow();
+	if (node::NodeGlobalLoopIf* _if = parse_global_loop_if()) {
+		controlFlow->var = _if;
+		return controlFlow;
+	}
+
+	if (node::NodeGlobalLoop* _loop = parse_global_loop()) {
+		controlFlow->var = _loop;
+		return controlFlow;
+	}
+
+	return nullptr;
+}
+
+node::NodeGlobalLoopIf* Parser::parse_global_loop_if()
+{
+	if (peek() && peek()->type == IF) {
+		consume(); // if
+		node::NodeGlobalLoopIf* _if = new node::NodeGlobalLoopIf();
+		size_t verify_bool = 0;
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+			_if->condition = expr;
+			syntax_check(COLON);
+			syntax_check(NEW_LINE);
+			syntax_check(TAB_INDENT);
+
+			while (peek() != nullptr && peek()->type != -1) {
+
+				if (peek() && peek()->type == NEW_LINE) {
+					consume();
+					continue;
+				}
+				if (peek() && peek()->type == TAB_DEDENT) {
+					break;
+				}
+				if (node::NodeLoopStmt* stmt = parse_loop_stmt()) {
+					_if->stmts.push_back(stmt);
+				}
+				else {
+					std::cerr << "Invalid statement" << std::endl;
+				}
+			}
+
+			syntax_check(TAB_DEDENT);
+
+			while (node::NodeGlobalLoopElseIf* _elseif = parse_global_loop_else_if())
+			{
+				_if->elseifs.push_back(_elseif);
+			}
+
+			if (node::NodeGlobalLoopElse* _else = parse_global_loop_else()) {
+				_if->_else = _else;
+			}
+
+			return _if;
+		}
+		else
+		{
+			std::cerr << "Expected boolean expression after 'if'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return nullptr;
+}
+
+node::NodeGlobalLoopElseIf* Parser::parse_global_loop_else_if()
+{
+	if (peek() && peek()->type == ELSE &&
+		peek(1) && peek(1)->type == IF) {
+		consume(); // else
+		consume(); // if
+		node::NodeGlobalLoopElseIf* _elseif = new node::NodeGlobalLoopElseIf();
+		size_t verify_bool = 0;
+		if (node::NodeBooleanExpr* expr = parse_boolean_expr()) {
+
+			_elseif->condition = expr;
+			syntax_check(COLON);
+			syntax_check(NEW_LINE);
+			syntax_check(TAB_INDENT);
+
+			while (peek() != nullptr && peek()->type != -1) {
+
+				if (peek() && peek()->type == NEW_LINE) {
+					consume();
+					continue;
+				}
+				if (node::NodeLoopStmt* stmt = parse_loop_stmt()) {
+					_elseif->stmts.push_back(stmt);
+				}
+				else {
+					std::cerr << "Invalid statement" << std::endl;
+				}
+			}
+
+			syntax_check(TAB_DEDENT);
+
+			return _elseif;
+		}
+		else
+		{
+			std::cerr << "Expected boolean expression after 'if'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return nullptr;
+}
+
+node::NodeGlobalLoopElse* Parser::parse_global_loop_else()
+{
+	if (peek() && peek()->type == ELSE) {
+		consume(); // else
+		node::NodeGlobalLoopElse* _else = new node::NodeGlobalLoopElse();
+
+		syntax_check(COLON);
+		syntax_check(NEW_LINE);
+		syntax_check(TAB_INDENT);
+
+		while (peek() != nullptr && peek()->type != -1) {
+
+			if (peek() && peek()->type == NEW_LINE) {
+				consume();
+				continue;
+			}
+			if (peek() && peek()->type == TAB_DEDENT) {
+				break;
+			}
+			if (node::NodeLoopStmt* stmt = parse_loop_stmt()) {
+				_else->stmts.push_back(stmt);
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+			}
+		}
+
+		syntax_check(TAB_DEDENT);
+
+		return _else;
+
+
 	}
 
 	return nullptr;
@@ -2138,6 +2492,166 @@ node::NodeFunctionElse* Parser::parse_function_else()
 	return nullptr;
 }
 
+node::NodeFunctionLoopControlFlow* Parser::parse_function_loop_control_flow()
+{
+	node::NodeFunctionLoopControlFlow* controlFlow = new node::NodeFunctionLoopControlFlow();
+	if (node::NodeFunctionLoopIf* _if = parse_function_loop_if()) {
+		controlFlow->var = _if;
+		return controlFlow;
+	}
+
+	if (node::NodeFunctionLoop* _loop = parse_function_loop()) {
+		controlFlow->var = _loop;
+		return controlFlow;
+	}
+
+	return nullptr;
+}
+
+node::NodeFunctionLoopIf* Parser::parse_function_loop_if()
+{
+	if (peek() && peek()->type == IF) {
+		consume(); // if
+		node::NodeFunctionLoopIf* _if = new node::NodeFunctionLoopIf();
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
+			_if->condition = expr;
+			syntax_check(COLON);
+			syntax_check(NEW_LINE);
+			syntax_check(TAB_INDENT);
+
+			while (peek() != nullptr && peek()->type != -1) {
+
+				if (peek() && peek()->type == NEW_LINE) {
+					consume();
+					continue;
+				}
+
+				if (node::NodeFunctionLoopStmt* stmt = parse_function_loop_stmt()) {
+					_if->stmts.push_back(stmt);
+					if (peek() && peek()->type == NEW_LINE) {
+						consume(); // consumes new line after statement
+					}
+					if (peek() && peek()->type == TAB_DEDENT)
+						break;
+				}
+				else {
+					std::cerr << "Invalid statement" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			syntax_check(TAB_DEDENT);
+
+			while (node::NodeFunctionLoopElseIf* _elseif = parse_function_loop_else_if())
+			{
+				_if->elseifs.push_back(_elseif);
+			}
+
+			if (node::NodeFunctionLoopElse* _else = parse_function_loop_else()) {
+				_if->_else = _else;
+			}
+
+			return _if;
+		}
+		else
+		{
+			std::cerr << "Expected boolean expression after 'if'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return nullptr;
+}
+
+node::NodeFunctionLoopElseIf* Parser::parse_function_loop_else_if()
+{
+	if (peek() && peek()->type == ELSE &&
+		peek(1) && peek(1)->type == IF) {
+		consume(); // else
+		consume(); // if
+		node::NodeFunctionLoopElseIf* _elseif = new node::NodeFunctionLoopElseIf();
+		size_t verify_bool = 0;
+		if (verify_boolean_expr(&verify_bool)) {
+			node::NodeBooleanExpr* expr = parse_boolean_expr();
+			_elseif->condition = expr;
+
+			syntax_check(COLON);
+			syntax_check(NEW_LINE);
+			syntax_check(TAB_INDENT);
+
+			while (peek() != nullptr && peek()->type != -1) {
+
+				if (peek() && peek()->type == NEW_LINE) {
+					consume();
+					continue;
+				}
+
+				if (node::NodeFunctionLoopStmt* stmt = parse_function_loop_stmt()) {
+					_elseif->stmts.push_back(stmt);
+					if (peek() && peek()->type == NEW_LINE) {
+						consume(); // consumes new line after statement
+					}
+					if (peek() && peek()->type == TAB_DEDENT)
+						break;
+				}
+				else {
+					std::cerr << "Invalid statement" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+			}
+
+			syntax_check(TAB_DEDENT);
+			return _elseif;
+		}
+		else
+		{
+			std::cerr << "Expected boolean expression after 'if'" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	return nullptr;
+}
+
+node::NodeFunctionLoopElse* Parser::parse_function_loop_else()
+{
+	if (peek() && peek()->type == ELSE) {
+		consume(); // else
+		node::NodeFunctionLoopElse* _else = new node::NodeFunctionLoopElse();
+
+		syntax_check(COLON);
+		syntax_check(NEW_LINE);
+		syntax_check(TAB_INDENT);
+
+		while (peek() != nullptr && peek()->type != -1) {
+
+			if (peek() && peek()->type == NEW_LINE) {
+				consume();
+				continue;
+			}
+			if (peek()->type == TAB_DEDENT)
+				break;
+			if (node::NodeFunctionLoopStmt* stmt = parse_function_loop_stmt()) {
+				_else->stmts.push_back(stmt);
+				if (peek() && peek()->type == NEW_LINE) {
+					consume(); // consumes new line after statement
+				}
+			}
+			else {
+				std::cerr << "Invalid statement" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		syntax_check(TAB_DEDENT);
+
+		return _else;
+
+
+	}
+	return nullptr;
+}
+
 node::NodeFunctionLoop* Parser::parse_function_loop()
 {
 
@@ -2177,7 +2691,7 @@ node::NodeFunctionWhile* Parser::parse_function_while()
 					continue;
 				}
 
-				if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+				if (node::NodeFunctionLoopStmt* stmt = parse_function_loop_stmt()) {
 					_while->stmts.push_back(stmt);
 					if (peek() && peek()->type == NEW_LINE) {
 						consume(); // consumes new line after statement
@@ -2262,7 +2776,7 @@ node::NodeFunctionFor* Parser::parse_function_for()
 				continue;
 			}
 
-			if (node::NodeFunctionStmt* stmt = parse_function_stmt()) {
+			if (node::NodeFunctionLoopStmt* stmt = parse_function_loop_stmt()) {
 				_for->stmts.push_back(stmt);
 				if (peek() && peek()->type == NEW_LINE) {
 					consume(); // consumes new line after statement

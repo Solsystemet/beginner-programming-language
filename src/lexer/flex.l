@@ -47,6 +47,8 @@
     if (strcmp(yytext, "return") == 0) return RETURN;
     if (strcmp(yytext, "is") == 0) return IS;
     if (strcmp(yytext, "input") == 0) return INPUT;
+    if (strcmp(yytext, "break") == 0) return BREAK;
+    if (strcmp(yytext, "continue") == 0) return CONTINUE;
     return IDENTIFIER;
 }
 

@@ -227,6 +227,16 @@ std::vector<Token> Lexer::Tokenize()
             t.lineNum = line_num;
             result.push_back(t);
             break;
+        case BREAK:
+            t.type = BREAK;
+            t.lineNum = line_num;
+            result.push_back(t);
+            break;
+        case CONTINUE:
+            t.type = CONTINUE;
+            t.lineNum = line_num;
+            result.push_back(t);
+            break;
         case STRING_VAL:
             t.type = STRING_VAL;
             t.lineNum = line_num;
