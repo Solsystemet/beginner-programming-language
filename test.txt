@@ -1,8 +1,3 @@
-number function test_loop():
-	for number i = 0, i < 5, 1:
-		for number j = 0, j < 5, 1:
-			print(j)
-			break
-		print(i)
-	return 0
-test_loop()
+boolean y = true
+number x = 2+y
+print(x)

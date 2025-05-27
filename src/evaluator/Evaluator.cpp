@@ -840,7 +840,6 @@ void Evaluator::evaluate_factor(const node::NodeFactor* factor)
 						evaluator->m_stack.push(mpark::get<double>(arr[index]));
 					}
 					else if (mpark::holds_alternative<std::string>(arr[index])) {
-						std::cout << "Yoooo" << std::endl;
 						evaluator->m_stack.push(mpark::get<std::string>(arr[index]));
 					}
 					else if (mpark::holds_alternative<Struct>(arr[index])) {

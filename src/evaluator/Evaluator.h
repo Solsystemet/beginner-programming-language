@@ -19,13 +19,13 @@ public:
 	Evaluator(node::NodeProg prog):
 		m_prog(std::move(prog)) {}
 
-	inline void evaluate_prog();
+	void evaluate_prog();
 	
 	inline void evaluate_stmt(const node::NodeStmt* stmt);
 	inline void evaluate_nested_stmt(const node::NodeNestedStmt* stmt, bool* _break);
 	inline void evaluate_loop_stmt(const node::NodeLoopStmt* stmt, bool* _break, bool* _continue);
 	
-	inline virtual void evaluate_print(const node::NodeStmtPrint* print_stmt);
+	inline void evaluate_print(const node::NodeStmtPrint* print_stmt);
 	
 	inline void evaluate_declecration(const node::NodeDecl* decl);
 	inline void evaluate_object_declare(const node::NodeObjectDecl* decl);
