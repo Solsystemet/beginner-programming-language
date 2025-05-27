@@ -1,0 +1,3 @@
+boolean y = true
+number x = 2+y
+print(x)
