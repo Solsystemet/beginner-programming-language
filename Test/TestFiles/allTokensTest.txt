@@ -1,0 +1,3 @@
+
+	123.1 number foo print ( ) = + - * / mod and or not function , true for while : if else return [ ] . is 
+string boolean "string_val" input < >
