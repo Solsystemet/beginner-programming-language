@@ -9,11 +9,9 @@ public:
     std::vector<Token> tokens;
     std::string output;
     void SetUp() override {
-        file = fopen("../../language-test/EndToEnd/bubbleSort.txt", "r");
     }
 
     void TearDown() override {
-        delete file;
     }
 
     void evaluate_print(const node::NodeStmtPrint* print_stmt) override {
@@ -46,6 +44,7 @@ public:
 
 TEST_F(BubbleSortTest, BubbleSort) {
     //Arrange lexer
+    file = fopen("../../Test/EndToEnd/bubbleSort.txt", "r");
     ASSERT_NE(file, nullptr) << "Failed to open file";
     lexer = new Lexer(file);
 

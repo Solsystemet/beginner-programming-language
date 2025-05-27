@@ -6,5 +6,4 @@ int yylex();
 
 extern FILE* yyin;
 extern char* yytext;
-
 #endif 

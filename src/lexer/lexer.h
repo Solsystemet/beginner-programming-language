@@ -11,6 +11,7 @@
 class Lexer
 {
 private:
+    int line_num = 1;
     // Sanitizes the tokens to have correct amount of indents and dedents
     inline void FixTabIndent(std::vector<Token>* tokens);
 
@@ -36,6 +37,7 @@ Lexer::~Lexer()
 std::vector<Token> Lexer::Tokenize()
 {
     int ntoken;
+    line_num = 1;
     std::vector<Token> result;
     while ((ntoken = yylex())) {
         Token t;
@@ -43,153 +45,201 @@ std::vector<Token> Lexer::Tokenize()
         {
         case NEW_LINE:
             t.type = NEW_LINE;
+            t.lineNum = line_num;
+            line_num++;
             result.push_back(t);
             break;
         case TAB_INDENT:
             t.type = TAB_INDENT;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case TAB_DEDENT:
             t.type = TAB_DEDENT;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case DECIMAL:
             t.type = DECIMAL;
+            t.lineNum = line_num;
             t.value = yytext;
             result.push_back(t);
             break;
         case NUMBER:
             t.type = NUMBER;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case PRINT:
             t.type = PRINT;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case OPEN_PARANTHESIS:
             t.type = OPEN_PARANTHESIS;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case CLOSED_PARANTHESIS:
             t.type = CLOSED_PARANTHESIS;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case OPEN_SQUAREBRACKET:
             t.type = OPEN_SQUAREBRACKET;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case CLOSED_SQUAREBRACKET:
             t.type = CLOSED_SQUAREBRACKET;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case EQUAL:
             t.type = EQUAL;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case PLUS:
             t.type = PLUS;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case MINUS:
             t.type = MINUS;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case MULTIPLY:
             t.type = MULTIPLY;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case DIVIDE:
             t.type = DIVIDE;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case MODULO:
             t.type = MODULO;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case AND:
             t.type = AND;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case OR:
             t.type = OR;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case LESS:
             t.type = LESS;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case NOT:
             t.type = NOT;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case FUNCTION:
             t.type = FUNCTION;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case COMMA:
             t.type = COMMA;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case BOOLVAL:
             t.type = BOOLVAL;
+            t.lineNum = line_num;
             t.value = yytext;
             result.push_back(t);
             break;
         case FOR:
             t.type = FOR;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case WHILE:
             t.type = WHILE;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case COLON:
             t.type = COLON;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case IF:
             t.type = IF;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case ELSE:
             t.type = ELSE;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case RETURN:
             t.type = RETURN;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case DOT:
             t.type = DOT;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case IS:
             t.type = IS;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case IDENTIFIER:
             t.type = IDENTIFIER;
+            t.lineNum = line_num;
             t.value = yytext;
             result.push_back(t);
             break;
         case GREATER:
             t.type = GREATER;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case BOOLEAN:
             t.type = BOOLEAN;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case STRING:
             t.type = STRING;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case INPUT:
             t.type = INPUT;
+            t.lineNum = line_num;
+            result.push_back(t);
+            break;
+        case BREAK:
+            t.type = BREAK;
+            t.lineNum = line_num;
+            result.push_back(t);
+            break;
+        case CONTINUE:
+            t.type = CONTINUE;
+            t.lineNum = line_num;
             result.push_back(t);
             break;
         case STRING_VAL:
             t.type = STRING_VAL;
+            t.lineNum = line_num;
             t.value = SanitizeStringLiteral(yytext);
             result.push_back(t);
             break;
@@ -201,7 +251,7 @@ std::vector<Token> Lexer::Tokenize()
 
     FixTabIndent(&result);
 
-    Token t = { EOF };
+    Token t = { EOF, "", line_num};
     result.push_back(t);
 
     return result;
@@ -239,7 +289,7 @@ inline void Lexer::FixTabIndent(std::vector<Token>* tokens) {
                 // Remove all TAB_INDENTs and insert dedents
                 tokens->erase(tokens->begin() + indentStart, tokens->begin() + indentEnd);
                 int dedentsToInsert = lastIndentLevel - currentIndentLevel;
-                tokens->insert(tokens->begin() + indentStart, dedentsToInsert, Token{ TAB_DEDENT });
+                tokens->insert(tokens->begin() + indentStart, dedentsToInsert, Token{ TAB_DEDENT, "", line_num });
                 i += dedentsToInsert; // move index forward to skip dedents
             }
 
@@ -249,7 +299,7 @@ inline void Lexer::FixTabIndent(std::vector<Token>* tokens) {
 
     // Insert remaining dedents at EOF
     while (lastIndentLevel-- > 0) {
-        tokens->push_back(Token{ TAB_DEDENT });
+        tokens->push_back(Token{ TAB_DEDENT, "", line_num });
     }
 }
 

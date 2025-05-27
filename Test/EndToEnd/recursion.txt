@@ -8,4 +8,4 @@ number function fib(number n):
 		result = fib(n - 1) + fib(n - 2)
 	return result
 
-print(fib(30))
+print(fib(10))

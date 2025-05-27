@@ -40,7 +40,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -128,11 +128,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="beginner-programming-language.cpp" />
+    <ClCompile Include="src\errorHandling\errorHandling.cpp" />
     <ClCompile Include="src\evaluator\Evaluator.cpp" />
     <ClCompile Include="src\lexer\flex.flex.cpp" />
     <ClCompile Include="src\parser\parser.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\errorHandling\errorHandling.h" />
     <ClInclude Include="src\evaluator\Evaluator.h" />
     <ClInclude Include="src\evaluator\FunctionTable.h" />
     <ClInclude Include="src\evaluator\StructTable.h" />

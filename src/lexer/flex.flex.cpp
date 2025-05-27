@@ -857,20 +857,22 @@ YY_RULE_SETUP
     if (strcmp(yytext, "return") == 0) return RETURN;
     if (strcmp(yytext, "is") == 0) return IS;
     if (strcmp(yytext, "input") == 0) return INPUT;
+    if (strcmp(yytext, "break") == 0) return BREAK;
+    if (strcmp(yytext, "continue") == 0) return CONTINUE;
     return IDENTIFIER;
 }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 53 "flex.l"
+#line 55 "flex.l"
 ; // Ignore undefined characters
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 55 "flex.l"
+#line 57 "flex.l"
 ECHO;
 	YY_BREAK
-#line 873 "flex.flex.cpp"
+#line 875 "flex.flex.cpp"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1875,7 +1877,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 55 "flex.l"
+#line 57 "flex.l"
 
 
 int yywrap(void) {

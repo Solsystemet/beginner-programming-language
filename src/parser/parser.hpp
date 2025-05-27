@@ -4,6 +4,7 @@
 #include "../lexer/tokens.h"
 #include "../mpark/variant.hpp"
 #include "../nodes.hpp"
+#include "../errorHandling/errorHandling.h"
 
 
 
@@ -49,7 +50,9 @@ public:
 	 node::NodeObjectDecl* parse_object_decleration();
 	
 	 node::NodeNestedStmt* parse_nested_stmt();
+	 node::NodeLoopStmt* parse_loop_stmt();
 	 node::NodeFunctionStmt* parse_function_stmt();
+	 node::NodeFunctionLoopStmt* parse_function_loop_stmt();
 	
 	 node::NodeArithmeticExpr* parse_arithmetic_expr();
 	 node::NodeTerm* parse_term();
@@ -90,11 +93,23 @@ public:
 	 node::NodeGlobalLoop* parse_global_loop();
 	 node::NodeGlobalWhile* parse_global_while();
 	 node::NodeGlobalFor* parse_global_for();
+
+
+	 node::NodeGlobalLoopControlFlow* parse_global_loop_control_flow();
+	 node::NodeGlobalLoopIf* parse_global_loop_if();
+	 node::NodeGlobalLoopElseIf* parse_global_loop_else_if();
+	 node::NodeGlobalLoopElse* parse_global_loop_else();
 	
 	 node::NodeFunctionControlFlow* parse_function_control_flow();
 	 node::NodeFunctionIf* parse_function_if();
 	 node::NodeFunctionElseIf* parse_function_else_if();
 	 node::NodeFunctionElse* parse_function_else();
+
+
+	 node::NodeFunctionLoopControlFlow* parse_function_loop_control_flow();
+	 node::NodeFunctionLoopIf* parse_function_loop_if();
+	 node::NodeFunctionLoopElseIf* parse_function_loop_else_if();
+	 node::NodeFunctionLoopElse* parse_function_loop_else();
 	
 	 node::NodeFunctionLoop* parse_function_loop();
 	 node::NodeFunctionWhile* parse_function_while();
@@ -202,5 +217,11 @@ public:
 		}
 		return nullptr;
 	}
+	Token* syntax_check(int expected) {
+			 if (peek() && peek()->type == expected)
+				 return &consume();
+			 else
+				 errorHandling::syntax_error(*peek(), { expected });
+		 }
 
 };

@@ -9,8 +9,12 @@ namespace node {
 	// Prog node rules 
 	struct NodeProg;
 	struct NodeStmt;
+
 	struct NodeNestedStmt;
+	struct NodeLoopStmt;
+
 	struct NodeFunctionStmt;
+	struct NodeFunctionLoopStmt;
 
 	struct NodeFunctionReturn;
 
@@ -91,6 +95,15 @@ namespace node {
 	struct NodeGlobalWhile;
 	struct NodeGlobalFor;
 
+	// node global control flow rules
+	struct NodeGlobalLoopControlFlow;
+	struct NodeGlobalLoopIf;
+	struct NodeGlobalLoopElseIf;
+	struct NodeGlobalLoopElse;
+
+	struct NodeBreak;
+	struct NodeContinue;
+
 	// node function control flow rules
 	struct NodeFunctionControlFlow;
 	struct NodeFunctionIf;
@@ -99,6 +112,12 @@ namespace node {
 	struct NodeFunctionLoop;
 	struct NodeFunctionWhile;
 	struct NodeFunctionFor;
+
+
+	struct NodeFunctionLoopControlFlow;
+	struct NodeFunctionLoopIf;
+	struct NodeFunctionLoopElseIf;
+	struct NodeFunctionLoopElse;
 
 	// node definition rules
 	struct NodeDefinition;
@@ -120,10 +139,23 @@ namespace node {
 			NodeGlobalControlFlow*, NodeStmtPrint*, NodeStmtInput*> var;
 	};
 
+	struct NodeLoopStmt
+	{
+		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
+			NodeGlobalLoopControlFlow*, NodeStmtPrint*, NodeStmtInput*, NodeBreak*, NodeContinue*> var;
+	};
+
+
 	struct NodeFunctionStmt
 	{
 		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
 			NodeFunctionControlFlow*, NodeFunctionReturn*, NodeStmtPrint*, NodeStmtInput*> var;
+	};
+
+	struct NodeFunctionLoopStmt
+	{
+		mpark::variant<NodeDecl*, NodeFunctionCall*, NodeAssignment*,
+			NodeFunctionLoopControlFlow*, NodeFunctionReturn*, NodeStmtPrint*, NodeStmtInput*, NodeBreak*, NodeContinue*> var;
 	};
 
 	struct NodeFunctionReturn {
@@ -139,6 +171,16 @@ namespace node {
 	{
 
 	};
+
+	struct NodeBreak
+	{
+
+	};
+	struct NodeContinue
+	{
+
+	};
+
 	struct NodeFunctionCall {
 		Token functionName;
 		std::vector<NodeArgs*> args;
@@ -469,6 +511,10 @@ namespace node {
 		mpark::variant<NodeGlobalIf*, NodeGlobalLoop*> var;
 	};
 
+	struct NodeGlobalLoopControlFlow {
+		mpark::variant<NodeGlobalLoopIf*, NodeGlobalLoop*> var;
+	};
+
 	struct NodeGlobalIf {
 		NodeBooleanExpr* condition;
 		std::vector<NodeNestedStmt*> stmts;
@@ -489,13 +535,33 @@ namespace node {
 		std::vector<NodeNestedStmt*> stmts;
 	};
 
+	struct NodeGlobalLoopIf {
+		NodeBooleanExpr* condition;
+		std::vector<NodeLoopStmt*> stmts;
+
+		std::vector<NodeGlobalLoopElseIf*> elseifs;
+
+		// assumes else if not there
+		NodeGlobalLoopElse* _else = nullptr;
+	};
+
+	struct NodeGlobalLoopElseIf
+	{
+		NodeBooleanExpr* condition;
+		std::vector<NodeLoopStmt*> stmts;
+	};
+
+	struct NodeGlobalLoopElse {
+		std::vector<NodeLoopStmt*> stmts;
+	};
+
 	struct NodeGlobalLoop {
 		mpark::variant<NodeGlobalWhile*, NodeGlobalFor*> var;
 	};
 
 	struct NodeGlobalWhile {
 		NodeBooleanExpr* condition;
-		std::vector<NodeNestedStmt*> stmts;
+		std::vector<NodeLoopStmt*> stmts;
 	};
 
 	struct NodeGlobalFor
@@ -505,13 +571,17 @@ namespace node {
 		NodeBooleanExpr* condition;
 		NodeArithmeticExpr* increment;
 
-		std::vector<NodeNestedStmt*> stmts;
+		std::vector<NodeLoopStmt*> stmts;
 	};
 
 
 
 	struct NodeFunctionControlFlow {
 		mpark::variant<NodeFunctionIf*, NodeFunctionLoop*> var;
+	};
+
+	struct NodeFunctionLoopControlFlow {
+		mpark::variant<NodeFunctionLoopIf*, NodeFunctionLoop*> var;
 	};
 
 	struct NodeFunctionIf {
@@ -534,13 +604,33 @@ namespace node {
 		std::vector<NodeFunctionStmt*> stmts;
 	};
 
+	struct NodeFunctionLoopIf {
+		NodeBooleanExpr* condition;
+		std::vector<NodeFunctionLoopStmt*> stmts;
+
+		std::vector<NodeFunctionLoopElseIf*> elseifs;
+
+		// assumes else if not there
+		NodeFunctionLoopElse* _else = nullptr;
+	};
+
+	struct NodeFunctionLoopElseIf
+	{
+		NodeBooleanExpr* condition;
+		std::vector<NodeFunctionLoopStmt*> stmts;
+	};
+
+	struct NodeFunctionLoopElse {
+		std::vector<NodeFunctionLoopStmt*> stmts;
+	};
+
 	struct NodeFunctionLoop {
 		mpark::variant<NodeFunctionWhile*, NodeFunctionFor*> var;
 	};
 
 	struct NodeFunctionWhile {
 		NodeBooleanExpr* condition;
-		std::vector<NodeFunctionStmt*> stmts;
+		std::vector<NodeFunctionLoopStmt*> stmts;
 	};
 
 	struct NodeFunctionFor
@@ -550,7 +640,7 @@ namespace node {
 		NodeBooleanExpr* condition;
 		NodeArithmeticExpr* increment;
 
-		std::vector<NodeFunctionStmt*> stmts;
+		std::vector<NodeFunctionLoopStmt*> stmts;
 	};
 
 	struct NodeDefinition {

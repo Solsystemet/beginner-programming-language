@@ -36,3 +36,5 @@
 #define BOOLEAN 35
 #define STRING_VAL 36
 #define INPUT 37
+#define BREAK 38
+#define CONTINUE 39
